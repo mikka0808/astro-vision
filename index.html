@@ -89,6 +89,46 @@
           <output id="bortleValue" for="bortle">6 - ciel périurbain</output>
           <small class="help-text" id="bortleHint">Clique sur 🔄 pour estimer la pollution lumineuse actuelle.</small>
         </div>
+        <fieldset class="field-group field-group--choice">
+          <legend>Type d'observation</legend>
+          <div class="choice-grid" role="radiogroup" aria-label="Mode d'observation">
+            <label class="choice-card">
+              <input type="radio" name="observationMode" value="visual" checked>
+              <div class="choice-card__content">
+                <span class="choice-card__icon" aria-hidden="true">🌙</span>
+                <div class="choice-card__text">
+                  <span class="choice-card__label">Observation visuelle</span>
+                  <span class="choice-card__description">Messier, Caldwell, NGC</span>
+                </div>
+              </div>
+            </label>
+            <label class="choice-card">
+              <input type="radio" name="observationMode" value="astrophoto">
+              <div class="choice-card__content">
+                <span class="choice-card__icon" aria-hidden="true">📸</span>
+                <div class="choice-card__text">
+                  <span class="choice-card__label">Astrophotographie</span>
+                  <span class="choice-card__description">NGC, IC, Sharpless, LDN, vdB</span>
+                </div>
+              </div>
+            </label>
+            <label class="choice-card">
+              <input type="radio" name="observationMode" value="research">
+              <div class="choice-card__content">
+                <span class="choice-card__icon" aria-hidden="true">🔭</span>
+                <div class="choice-card__text">
+                  <span class="choice-card__label">Recherche scientifique</span>
+                  <span class="choice-card__description">Gaia, UGC, Arp, PGC</span>
+                </div>
+              </div>
+            </label>
+          </div>
+        </fieldset>
+        <fieldset class="field-group field-group--catalogues">
+          <legend>Catalogues à inclure</legend>
+          <div id="catalogueSelection" class="catalogue-grid" aria-live="polite"></div>
+          <small class="help-text" id="catalogueHint">Sélectionne un mode pour appliquer les pondérations recommandées.</small>
+        </fieldset>
         <fieldset class="field-group field-group--toggle">
           <legend>Mode astrophotographie</legend>
           <label class="toggle">

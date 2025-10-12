@@ -42,6 +42,9 @@ const bortleInput = document.getElementById('bortle');
 const bortleValue = document.getElementById('bortleValue');
 const refreshBortleBtn = document.getElementById('refreshBortle');
 const bortleHint = document.getElementById('bortleHint');
+const observationModeInputs = document.querySelectorAll('input[name="observationMode"]');
+const catalogueSelection = document.getElementById('catalogueSelection');
+const catalogueHint = document.getElementById('catalogueHint');
 const weatherPanel = document.getElementById('weatherPanel');
 const weatherSummary = document.getElementById('weatherSummary');
 const weatherHighlights = document.getElementById('weatherHighlights');
@@ -84,8 +87,9 @@ const skyMapLocationHint = document.getElementById('skyMapLocationHint');
 
 const contextPanels = new Map();
 
-const SESSION_SNAPSHOT_VERSION = 7;
+const SESSION_SNAPSHOT_VERSION = 8;
 let objectsCatalog = [];
+let catalogueDefinitions = [];
 let cachedSunsetTime = null;
 let sunsetDebounce = null;
 let cachedResults = [];
@@ -101,6 +105,30 @@ let skyMapLoaderPromise = null;
 let skyMapInstance = null;
 let skyMapOverlay = null;
 const skyMapState = { context: null, targets: [], selectedISO: null, ready: false };
+const catalogueCheckboxMap = new Map();
+const catalogueSelectionByMode = new Map();
+const catalogueMetaMap = new Map();
+const OBSERVATION_MODES = {
+  visual: {
+    id: 'visual',
+    icon: '🌙',
+    label: 'Observation visuelle',
+    recommended: ['messier', 'caldwell', 'ngc']
+  },
+  astrophoto: {
+    id: 'astrophoto',
+    icon: '📸',
+    label: 'Astrophotographie',
+    recommended: ['ngc', 'ic', 'sharpless', 'ldn', 'vdb']
+  },
+  research: {
+    id: 'research',
+    icon: '🔭',
+    label: 'Recherche scientifique',
+    recommended: ['gaia', 'ugc', 'arp', 'pgc']
+  }
+};
+let activeObservationMode = 'visual';
 
 const sunTimesCache = new Map();
 
@@ -109,9 +137,41 @@ async function loadCatalog() {
   if (!response.ok) {
     throw new Error('Impossible de charger la base de cibles.');
   }
-  const data = await response.json();
-  objectsCatalog = enrichCatalogueData(data);
+  const payload = await response.json();
+  let catalogues = [];
+  let objects = [];
+  if (Array.isArray(payload)) {
+    objects = payload.map((entry) => normalizeObjectEntry(entry));
+  } else {
+    const rawCatalogues = Array.isArray(payload.catalogues) ? payload.catalogues : [];
+    catalogues = rawCatalogues.map((entry) => normalizeCatalogueEntry(entry));
+    const fallbackCatalogueId =
+      catalogues.find((item) => item.defaultSelected)?.id || catalogues[0]?.id || null;
+    const rawObjects = Array.isArray(payload.objects) ? payload.objects : [];
+    objects = rawObjects.map((entry) => normalizeObjectEntry(entry, fallbackCatalogueId));
+  }
+  if (catalogues.length === 0) {
+    const fallback = normalizeCatalogueEntry({
+      id: 'primary',
+      name: 'Catalogue principal',
+      abbreviation: 'CAT',
+      observationWeights: { visual: 1, astrophoto: 1, research: 1 },
+      defaultSelected: true
+    });
+    catalogues = [fallback];
+    objects = objects.map((entry) => normalizeObjectEntry(entry, fallback.id));
+  }
+  catalogueDefinitions = catalogues;
+  catalogueMetaMap.clear();
+  catalogueDefinitions.forEach((catalogue) => {
+    catalogueMetaMap.set(catalogue.id, catalogue);
+  });
+  catalogueSelectionByMode.clear();
+  objectsCatalog = enrichCatalogueData(objects);
   populateTypeFilter();
+  populateCatalogueSelection(catalogueDefinitions, objectsCatalog);
+  activeObservationMode = getActiveObservationMode() || activeObservationMode;
+  applyObservationModeContext(activeObservationMode);
 }
 
 function setupContextPanels() {
@@ -175,6 +235,259 @@ function collapseContextPanel(panelId) {
 }
 
 setupContextPanels();
+
+function clampWeight(value, fallback = 1) {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.max(0, Math.min(1.5, value));
+}
+
+function getActiveObservationMode() {
+  const inputs = Array.from(observationModeInputs ?? []);
+  const checked = inputs.find((input) => input.checked);
+  return checked ? checked.value : activeObservationMode;
+}
+
+function getObservationWeight(catalogueId, mode) {
+  if (!catalogueId) return 1;
+  const catalogue = catalogueMetaMap.get(catalogueId);
+  if (!catalogue) return 1;
+  const weights = catalogue.observationWeights || {};
+  const value = clampWeight(weights[mode], 1);
+  return value || 0.1;
+}
+
+function getObservationWeights(mode) {
+  const weights = new Map();
+  catalogueMetaMap.forEach((catalogue, id) => {
+    weights.set(id, getObservationWeight(id, mode));
+  });
+  return weights;
+}
+
+function formatCatalogueList(ids = []) {
+  if (!ids || ids.length === 0) {
+    return '—';
+  }
+  return ids
+    .map((id) => {
+      const catalogue = catalogueMetaMap.get(id);
+      if (!catalogue) return id.toUpperCase();
+      if (catalogue.abbreviation) {
+        return `${catalogue.abbreviation}`;
+      }
+      return catalogue.name;
+    })
+    .join(' • ');
+}
+
+function updateRecommendedStyles(mode) {
+  const recommended = new Set(OBSERVATION_MODES[mode]?.recommended ?? []);
+  catalogueCheckboxMap.forEach(({ label }, id) => {
+    label.classList.toggle('catalogue-option--recommended', recommended.has(id));
+  });
+}
+
+function updateCatalogueHint(mode = getActiveObservationMode()) {
+  if (!catalogueHint) return;
+  const profile = OBSERVATION_MODES[mode] || OBSERVATION_MODES.visual;
+  const selected = getSelectedCatalogueIds();
+  const weights = getObservationWeights(mode);
+  const selectionText =
+    selected.length === 0
+      ? 'Sélectionne au moins un catalogue.'
+      : selected
+          .map((id) => {
+            const catalogue = catalogueMetaMap.get(id);
+            const label = catalogue?.abbreviation || catalogue?.name || id.toUpperCase();
+            const weight = weights.get(id);
+            const weightText = Number.isFinite(weight) ? `${Math.round(weight * 100)} %` : '—';
+            return `${label} (${weightText})`;
+          })
+          .join(' · ');
+  const recommendedText = (profile?.recommended || [])
+    .map((id) => catalogueMetaMap.get(id)?.abbreviation || catalogueMetaMap.get(id)?.name || id.toUpperCase())
+    .join(', ');
+  const icon = profile?.icon ? `${profile.icon} ` : '';
+  catalogueHint.textContent = `${icon}${profile?.label ?? 'Mode'} — priorité : ${
+    recommendedText || '—'
+  }. Sélection actuelle : ${selectionText}`;
+}
+
+function getSelectedCatalogueIds() {
+  if (!catalogueSelection) return [];
+  return Array.from(catalogueSelection.querySelectorAll('input[type="checkbox"]:checked')).map((input) => input.value);
+}
+
+function setSelectedCatalogueIds(ids = []) {
+  const values = Array.isArray(ids) ? new Set(ids.filter(Boolean)) : new Set();
+  const applied = [];
+  catalogueCheckboxMap.forEach(({ checkbox }) => {
+    const shouldSelect = values.size === 0 ? false : values.has(checkbox.value);
+    checkbox.checked = shouldSelect;
+    if (shouldSelect) {
+      applied.push(checkbox.value);
+    }
+  });
+  if (applied.length === 0 && catalogueCheckboxMap.size > 0) {
+    const first = catalogueCheckboxMap.values().next().value;
+    if (first) {
+      first.checkbox.checked = true;
+      applied.push(first.checkbox.value);
+    }
+  }
+  return applied;
+}
+
+function applyObservationModeContext(mode, options = {}) {
+  if (!catalogueSelection || catalogueCheckboxMap.size === 0) return;
+  const { selectionOverride = null } = options;
+  updateRecommendedStyles(mode);
+  let selection = Array.isArray(selectionOverride) ? selectionOverride.filter(Boolean) : null;
+  if (!selection || selection.length === 0) {
+    selection = catalogueSelectionByMode.get(mode);
+  }
+  if (!selection || selection.length === 0) {
+    selection = OBSERVATION_MODES[mode]?.recommended || [];
+  }
+  const applied = setSelectedCatalogueIds(selection);
+  catalogueSelectionByMode.set(mode, applied);
+  updateCatalogueHint(mode);
+}
+
+function filterObjectsByCatalogue(objects = [], catalogueIds = []) {
+  const active = Array.isArray(catalogueIds) ? catalogueIds.filter(Boolean) : [];
+  if (active.length === 0) return objects;
+  const allowed = new Set(active);
+  return objects.filter((object) => {
+    const refs = Array.isArray(object.catalogueRefs) ? object.catalogueRefs : [];
+    if (refs.length === 0) return false;
+    return refs.some((id) => allowed.has(id));
+  });
+}
+
+function applyObservationWeights(entries = [], mode) {
+  if (!Array.isArray(entries)) return [];
+  const weights = getObservationWeights(mode);
+  return entries.map((entry) => {
+    const refs = Array.isArray(entry.object?.catalogueRefs) ? entry.object.catalogueRefs : [];
+    const fallbackId = entry.object?.primaryCatalogueId;
+    const identifiers = refs.length > 0 ? refs : fallbackId ? [fallbackId] : [];
+    let factor = 0;
+    identifiers.forEach((id) => {
+      const weight = weights.get(id);
+      if (Number.isFinite(weight)) {
+        factor = Math.max(factor, weight);
+      }
+    });
+    if (!Number.isFinite(factor) || factor <= 0) {
+      factor = 1;
+    }
+    const rawBaseScore = Number.isFinite(entry.rawBaseScore) ? entry.rawBaseScore : Number(entry.baseScore) || 0;
+    const rawScore = Number.isFinite(entry.rawScore) ? entry.rawScore : Number(entry.score) || 0;
+    const weightedBase = rawBaseScore * factor;
+    const weightedScore = rawScore * factor;
+    return {
+      ...entry,
+      rawBaseScore,
+      rawScore,
+      baseScore: weightedBase,
+      score: weightedScore,
+      weightFactor: factor,
+      weightMode: mode,
+      weightCatalogueRefs: identifiers
+    };
+  });
+}
+
+function buildCatalogueWeightSnapshot(ids = [], mode) {
+  const snapshot = {};
+  if (!Array.isArray(ids)) return snapshot;
+  ids.forEach((id) => {
+    if (!id) return;
+    const weight = getObservationWeight(id, mode);
+    if (Number.isFinite(weight)) {
+      snapshot[id] = weight;
+    }
+  });
+  return snapshot;
+}
+
+function normalizeCatalogueEntry(entry = {}) {
+  const weights = entry.observationWeights || {};
+  return {
+    ...entry,
+    observationWeights: {
+      visual: clampWeight(weights.visual, 1),
+      astrophoto: clampWeight(weights.astrophoto, 1),
+      research: clampWeight(weights.research, 1)
+    }
+  };
+}
+
+function normalizeObjectEntry(entry = {}, fallbackCatalogueId = null) {
+  const refs = Array.isArray(entry.catalogueRefs) ? entry.catalogueRefs.filter(Boolean) : [];
+  const primary = entry.primaryCatalogueId || refs[0] || fallbackCatalogueId;
+  const uniqueRefs = Array.from(new Set(refs.length > 0 ? refs : primary ? [primary] : []));
+  return {
+    ...entry,
+    primaryCatalogueId: primary,
+    catalogueRefs: uniqueRefs,
+    angularSizeArcmin: Number.isFinite(entry.angularSizeArcmin) ? entry.angularSizeArcmin : null,
+    surfaceBrightness: Number.isFinite(entry.surfaceBrightness) ? entry.surfaceBrightness : null
+  };
+}
+
+function populateCatalogueSelection(catalogues = [], objects = []) {
+  if (!catalogueSelection) return;
+  catalogueSelection.innerHTML = '';
+  catalogueCheckboxMap.clear();
+  if (!Array.isArray(catalogues) || catalogues.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'help-text';
+    empty.textContent = 'Aucun catalogue disponible.';
+    catalogueSelection.appendChild(empty);
+    return;
+  }
+  const counts = new Map();
+  objects.forEach((object) => {
+    const refs = Array.isArray(object.catalogueRefs) ? object.catalogueRefs : [];
+    refs.forEach((id) => {
+      counts.set(id, (counts.get(id) ?? 0) + 1);
+    });
+  });
+  catalogues.forEach((catalogue) => {
+    const label = document.createElement('label');
+    label.className = 'catalogue-option';
+    label.dataset.catalogue = catalogue.id;
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = catalogue.id;
+    checkbox.name = 'catalogueIds';
+    const content = document.createElement('div');
+    content.className = 'catalogue-option__content';
+    const title = document.createElement('span');
+    title.className = 'catalogue-option__title';
+    const abbrev = catalogue.abbreviation ? `${catalogue.abbreviation} — ` : '';
+    title.textContent = `${abbrev}${catalogue.name}`;
+    const meta = document.createElement('span');
+    meta.className = 'catalogue-option__meta';
+    const count = counts.get(catalogue.id) ?? 0;
+    const countLabel = count === 0 ? 'Aucun objet' : `${count} objet${count > 1 ? 's' : ''}`;
+    const typeLabel = catalogue.type ? catalogue.type : '';
+    meta.textContent = typeLabel ? `${countLabel} • ${typeLabel}` : countLabel;
+    content.appendChild(title);
+    content.appendChild(meta);
+    label.appendChild(checkbox);
+    label.appendChild(content);
+    catalogueSelection.appendChild(label);
+    catalogueCheckboxMap.set(catalogue.id, { checkbox, label });
+    checkbox.addEventListener('change', () => {
+      const mode = getActiveObservationMode();
+      catalogueSelectionByMode.set(mode, getSelectedCatalogueIds());
+      updateCatalogueHint(mode);
+    });
+  });
+}
 
 function shiftDateValue(dateValue, offsetDays) {
   if (!dateValue) return null;
@@ -393,6 +706,29 @@ function initDefaults() {
   }
 
   cachedContext = context && Object.keys(context).length > 0 ? { ...context } : null;
+
+  const storedMode = typeof context.observationMode === 'string' ? context.observationMode : null;
+  const storedCatalogueIds = Array.isArray(context.catalogueIds) ? context.catalogueIds.filter(Boolean) : [];
+  if (observationModeInputs && observationModeInputs.length > 0) {
+    if (storedMode && OBSERVATION_MODES[storedMode]) {
+      observationModeInputs.forEach((input) => {
+        input.checked = input.value === storedMode;
+      });
+      activeObservationMode = storedMode;
+    } else {
+      activeObservationMode = getActiveObservationMode() || activeObservationMode;
+    }
+    if (catalogueSelection && catalogueCheckboxMap.size > 0) {
+      if (storedCatalogueIds.length > 0) {
+        const applied = setSelectedCatalogueIds(storedCatalogueIds);
+        catalogueSelectionByMode.set(activeObservationMode, applied);
+        updateRecommendedStyles(activeObservationMode);
+        updateCatalogueHint(activeObservationMode);
+      } else {
+        applyObservationModeContext(activeObservationMode);
+      }
+    }
+  }
 
   triggerCoordinateUpdates();
 
@@ -897,6 +1233,16 @@ function renderTargets(targets, stats = {}) {
       coveragePercent === null ? '—' : `${coveragePercent}%${visibleSamples !== null ? ` (${visibleSamples} ${sampleLabel})` : ''}`;
     const drift = Number.isFinite(entry.altitudeDrift) ? entry.altitudeDrift : null;
     const driftText = drift === null ? '—' : `${drift >= 0 ? '+' : ''}${drift.toFixed(0)}°`;
+    const weightFactor = Number.isFinite(entry.weightFactor) ? entry.weightFactor : 1;
+    const weightPercent = Math.round(Math.max(0, weightFactor) * 100);
+    const weightedCatalogues =
+      Array.isArray(entry.weightCatalogueRefs) && entry.weightCatalogueRefs.length > 0
+        ? entry.weightCatalogueRefs
+        : entry.object?.catalogueRefs;
+    const uniqueCatalogues = Array.isArray(weightedCatalogues)
+      ? Array.from(new Set(weightedCatalogues))
+      : [];
+    const catalogueLabel = formatCatalogueList(uniqueCatalogues);
     card.innerHTML = `
       <header class="target-card__header">
         <div>
@@ -916,6 +1262,7 @@ function renderTargets(targets, stats = {}) {
       <details class="target-details">
         <summary>Détails visibilité</summary>
         <ul>
+          <li>Catalogues pondérés : ${catalogueLabel} (${weightPercent}%)</li>
           <li>Type : ${typeLabel}</li>
           <li>Magnitude apparente : Mag ${magnitudeText}</li>
           <li>Direction optimale : ${direction}</li>
@@ -1330,6 +1677,21 @@ async function handleSessionSubmit(event) {
 
   astrophotoSettings = readAstrophotoSettings();
 
+  const observationMode = getActiveObservationMode();
+  const selectedCatalogues = getSelectedCatalogueIds();
+  if (!selectedCatalogues || selectedCatalogues.length === 0) {
+    resultsHint.textContent = 'Sélectionne au moins un catalogue avant de lancer une analyse.';
+    resultsPanel.classList.remove('hidden');
+    return;
+  }
+  const filteredObjects = filterObjectsByCatalogue(objectsCatalog, selectedCatalogues);
+  if (!filteredObjects || filteredObjects.length === 0) {
+    resultsHint.textContent =
+      "Aucun objet n'est disponible dans les catalogues choisis. Active un catalogue supplémentaire pour continuer.";
+    resultsPanel.classList.remove('hidden');
+    return;
+  }
+
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
     resultsHint.textContent = 'Merci de renseigner une latitude et une longitude valides.';
     return;
@@ -1344,7 +1706,7 @@ async function handleSessionSubmit(event) {
     renderWeather(weather);
     renderMoon(moon);
     renderEvents(events);
-    const evaluated = evaluateTargets(objectsCatalog, {
+    const evaluated = evaluateTargets(filteredObjects, {
       lat,
       lon,
       bortle,
@@ -1353,7 +1715,9 @@ async function handleSessionSubmit(event) {
       moonIllumination: moon.illumination
     });
     const scoredEntries = applyWeather(evaluated, weather);
-    cachedResults = scoredEntries;
+    const weightedEntries = applyObservationWeights(scoredEntries, observationMode);
+    const catalogueWeightSnapshot = buildCatalogueWeightSnapshot(selectedCatalogues, observationMode);
+    cachedResults = weightedEntries;
     cachedWeather = weather;
     cachedMoon = moon;
     cachedEvents = events;
@@ -1366,19 +1730,22 @@ async function handleSessionSubmit(event) {
       durationHours: duration,
       dateISO: observationDateUTC.toISOString(),
       date: observationDateUTC,
-      bortleSummary: lastBortleSummary || bortleHint?.textContent || ''
+      bortleSummary: lastBortleSummary || bortleHint?.textContent || '',
+      observationMode,
+      catalogueIds: selectedCatalogues,
+      catalogueWeights: catalogueWeightSnapshot
     };
     updateFilterSummary();
     const selected = getActiveTypeFilters();
-    const matches = selectTopTargets(scoredEntries, { limit: scoredEntries.length, typeFilter: selected });
+    const matches = selectTopTargets(weightedEntries, { limit: weightedEntries.length, typeFilter: selected });
     const display = matches.slice(0, 8);
-    renderTargets(display, { total: scoredEntries.length, matchCount: matches.length });
+    renderTargets(display, { total: weightedEntries.length, matchCount: matches.length });
     prepareSkyMap(cachedContext, display);
-    const decision = computeDecisionInsights(scoredEntries, {
+    const decision = computeDecisionInsights(weightedEntries, {
       weather,
       moon,
       context: cachedContext,
-      objects: objectsCatalog,
+      objects: filteredObjects,
       equipment: astrophotoSettings,
       nights: 4
     });
@@ -1394,10 +1761,13 @@ async function handleSessionSubmit(event) {
       weather,
       moon,
       events,
-      entries: scoredEntries,
+      entries: weightedEntries,
       decisionSupport: decision,
       astroSettings: astrophotoSettings,
-      bortleSummary: lastBortleSummary || bortleHint?.textContent || ''
+      bortleSummary: lastBortleSummary || bortleHint?.textContent || '',
+      observationMode,
+      catalogueIds: selectedCatalogues,
+      catalogueWeights: catalogueWeightSnapshot
     });
   } catch (error) {
     console.error(error);
@@ -1449,6 +1819,21 @@ addressInput.addEventListener('keydown', (event) => {
     resolveAddress();
   }
 });
+
+if (observationModeInputs && observationModeInputs.length > 0) {
+  observationModeInputs.forEach((input) => {
+    input.addEventListener('change', () => {
+      if (!input.checked) return;
+      const previousMode = activeObservationMode;
+      if (catalogueSelection && catalogueCheckboxMap.size > 0) {
+        catalogueSelectionByMode.set(previousMode, getSelectedCatalogueIds());
+      }
+      activeObservationMode = input.value;
+      applyObservationModeContext(activeObservationMode);
+    });
+  });
+}
+
 spinnerButtons.forEach((button) => {
   button.addEventListener('click', () => {
     const targetId = button.dataset.target;
@@ -1682,7 +2067,10 @@ function storeSessionSnapshot({
   entries,
   decisionSupport,
   astroSettings,
-  bortleSummary
+  bortleSummary,
+  observationMode,
+  catalogueIds,
+  catalogueWeights
 }) {
   try {
     const snapshot = {
@@ -1696,7 +2084,10 @@ function storeSessionSnapshot({
         localTime: timeValue,
         durationHours: duration,
         dateISO: observationDateUTC.toISOString(),
-        bortleSummary: typeof bortleSummary === 'string' ? bortleSummary : ''
+        bortleSummary: typeof bortleSummary === 'string' ? bortleSummary : '',
+        observationMode: observationMode || getActiveObservationMode(),
+        catalogueIds: Array.isArray(catalogueIds) ? catalogueIds : [],
+        catalogueWeights: catalogueWeights && typeof catalogueWeights === 'object' ? catalogueWeights : {}
       },
       weather,
       moon,
@@ -1719,6 +2110,7 @@ function storeSessionSnapshot({
         bortleFactor: entry.bortleFactor,
         moonFactor: entry.moonFactor,
         baseScore: entry.baseScore,
+        rawBaseScore: entry.rawBaseScore,
         weatherFactor: entry.weatherFactor,
         seeingFactor: entry.seeingFactor,
         transparencyFactor: entry.transparencyFactor,
@@ -1730,6 +2122,10 @@ function storeSessionSnapshot({
         dewRiskText: entry.dewRiskText,
         aerosolText: entry.aerosolText,
         score: entry.score,
+        rawScore: entry.rawScore,
+        weightFactor: entry.weightFactor,
+        weightMode: entry.weightMode,
+        weightCatalogueRefs: entry.weightCatalogueRefs,
         weatherWindow: entry.weatherWindow,
         atmosphereFactor: entry.atmosphereFactor,
         weatherConditionFactor: entry.weatherConditionFactor,
