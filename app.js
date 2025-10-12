@@ -52,7 +52,7 @@ const filterSummary = document.getElementById('filterSummary');
 const typeFilterOptions = document.getElementById('typeFilterOptions');
 const spinnerButtons = document.querySelectorAll('.spinner-btn');
 
-const SESSION_SNAPSHOT_VERSION = 3;
+const SESSION_SNAPSHOT_VERSION = 4;
 let objectsCatalog = [];
 let cachedSunsetTime = null;
 let sunsetDebounce = null;
@@ -276,7 +276,7 @@ function renderTargets(targets, stats = {}) {
         "Aucune cible satisfaisante pour cette fenêtre : tente de changer l'heure, la date ou vise un ciel plus dégagé.";
     }
   } else {
-    const base = `Top ${targets.length} cibles optimisées selon la météo, la hauteur, la saison et la Lune.`;
+    const base = `Top ${targets.length} cibles optimisées selon la météo, la hauteur moyenne, la saison et la Lune.`;
     const filterNote = selectedTypes.length > 0 ? ` Filtre type : ${selectedTypes.join(', ')}.` : '';
     const matchNote = matchCount > targets.length ? ` (${targets.length} sur ${matchCount} correspondances)` : '';
     resultsHint.textContent = `${base}${filterNote}${matchNote}`;
@@ -297,25 +297,45 @@ function renderTargets(targets, stats = {}) {
     const bestMoment = formatLocalTime(entry.bestTime);
     const direction = describeAzimuth(entry.azimuth);
     const startDirection = describeAzimuth(entry.startAzimuth);
+    const endDirection = describeAzimuth(entry.endAzimuth);
+    const typeLabel = entry.object.category || entry.object.type || 'Objet céleste';
+    const magnitudeText = Number.isFinite(entry.object.magnitude) ? entry.object.magnitude.toFixed(1) : '—';
+    const averageAltitudeText = formatAltitude(entry.averageAltitude);
+    const minAltitudeText = formatAltitude(entry.minAltitude);
+    const endAltitudeText = formatAltitude(entry.endAltitude);
+    const coveragePercent = Number.isFinite(entry.visibilityRatio) ? Math.round(entry.visibilityRatio * 100) : null;
+    const visibleSamples = Number.isFinite(entry.visibleSamples) ? entry.visibleSamples : null;
+    const sampleLabel = visibleSamples === 1 ? 'point' : 'points';
+    const coverageText =
+      coveragePercent === null ? '—' : `${coveragePercent}%${visibleSamples !== null ? ` (${visibleSamples} ${sampleLabel})` : ''}`;
+    const drift = Number.isFinite(entry.altitudeDrift) ? entry.altitudeDrift : null;
+    const driftText = drift === null ? '—' : `${drift >= 0 ? '+' : ''}${drift.toFixed(0)}°`;
     card.innerHTML = `
       <header class="target-card__header">
         <div>
           <h3>${entry.object.name}</h3>
-          <div class="meta">${entry.object.category || entry.object.type} • ${entry.object.constellation} • Mag ${entry.object.magnitude}</div>
+          <div class="meta">${typeLabel} • ${entry.object.constellation} • Mag ${magnitudeText}</div>
         </div>
         <span class="score-chip">${Math.max(0, Math.min(100, scoreValue))}/100</span>
       </header>
       <p>${entry.object.description}</p>
       <dl class="target-metrics">
         <div><dt>Hauteur max</dt><dd>${formatAltitude(entry.altitude)}</dd></div>
-        <div><dt>Direction</dt><dd>${direction}</dd></div>
+        <div><dt>Altitude moyenne</dt><dd>${averageAltitudeText}</dd></div>
         <div><dt>Moment idéal</dt><dd>${bestMoment}</dd></div>
       </dl>
       <div class="score-bar" aria-hidden="true"><span style="width:${Math.max(0, Math.min(100, scoreValue))}%"></span></div>
       <details class="target-details">
         <summary>Détails visibilité</summary>
         <ul>
+          <li>Type : ${typeLabel}</li>
+          <li>Magnitude apparente : Mag ${magnitudeText}</li>
+          <li>Direction optimale : ${direction}</li>
           <li>Début de session : ${formatAltitude(entry.startAltitude)} • ${startDirection}</li>
+          <li>Fin de session : ${endAltitudeText} • ${endDirection}</li>
+          <li>Altitude moyenne : ${averageAltitudeText} (min ${minAltitudeText})</li>
+          <li>Variation sur la fenêtre : ${driftText}</li>
+          <li>Temps au-dessus de 15° : ${coverageText}</li>
           <li>Saison : ${monthValue}%</li>
           <li>Pollution lumineuse : ${bortleValuePct}%</li>
           <li>Influence lunaire : ${moonValue}%</li>
@@ -709,7 +729,14 @@ function storeSessionSnapshot({
         azimuth: entry.azimuth,
         startAltitude: entry.startAltitude,
         startAzimuth: entry.startAzimuth,
+        endAltitude: entry.endAltitude,
+        endAzimuth: entry.endAzimuth,
         bestTime: entry.bestTime,
+        averageAltitude: entry.averageAltitude,
+        minAltitude: entry.minAltitude,
+        visibilityRatio: entry.visibilityRatio,
+        visibleSamples: entry.visibleSamples,
+        altitudeDrift: entry.altitudeDrift,
         monthFactor: entry.monthFactor,
         bortleFactor: entry.bortleFactor,
         moonFactor: entry.moonFactor,

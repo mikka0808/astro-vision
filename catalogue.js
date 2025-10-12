@@ -413,18 +413,31 @@ function buildCard(object, metrics) {
   const bestTime = formatLocalTime(metrics?.bestTime);
   const direction = describeAzimuth(metrics?.azimuth);
   const startDirection = describeAzimuth(metrics?.startAzimuth);
+  const endDirection = describeAzimuth(metrics?.endAzimuth);
+  const typeLabel = object.category || object.type || 'Objet céleste';
+  const magnitudeText = Number.isFinite(object.magnitude) ? object.magnitude.toFixed(1) : '—';
+  const averageAltitudeText = formatAltitude(metrics?.averageAltitude);
+  const minAltitudeText = formatAltitude(metrics?.minAltitude);
+  const endAltitudeText = formatAltitude(metrics?.endAltitude);
+  const coveragePercent = Number.isFinite(metrics?.visibilityRatio) ? Math.round(metrics.visibilityRatio * 100) : null;
+  const visibleSamples = Number.isFinite(metrics?.visibleSamples) ? metrics.visibleSamples : null;
+  const sampleLabel = visibleSamples === 1 ? 'point' : 'points';
+  const coverageText =
+    coveragePercent === null ? '—' : `${coveragePercent}%${visibleSamples !== null ? ` (${visibleSamples} ${sampleLabel})` : ''}`;
+  const drift = Number.isFinite(metrics?.altitudeDrift) ? metrics.altitudeDrift : null;
+  const driftText = drift === null ? '—' : `${drift >= 0 ? '+' : ''}${drift.toFixed(0)}°`;
   text.innerHTML = `
     <header class="catalogue-card__header">
       <div>
         <h3>${object.name}</h3>
-        <div class="meta">${object.category || object.type} • ${object.constellation} • Mag ${object.magnitude}</div>
+        <div class="meta">${typeLabel} • ${object.constellation} • Mag ${magnitudeText}</div>
       </div>
       <span class="score-chip">${scoreDisplay}/100</span>
     </header>
     <p>${object.description}</p>
     <dl class="target-metrics">
       <div><dt>Hauteur max</dt><dd>${formatAltitude(metrics?.altitude)}</dd></div>
-      <div><dt>Direction</dt><dd>${direction}</dd></div>
+      <div><dt>Altitude moyenne</dt><dd>${averageAltitudeText}</dd></div>
       <div><dt>Moment idéal</dt><dd>${bestTime}</dd></div>
     </dl>
     <div class="score-bar" aria-hidden="true"><span style="width:${barWidth}%"></span></div>
@@ -433,6 +446,14 @@ function buildCard(object, metrics) {
   const factors = document.createElement('ul');
   factors.className = 'factor-list';
   factors.innerHTML = `
+    <li>Type : <strong>${typeLabel}</strong></li>
+    <li>Magnitude : <strong>Mag ${magnitudeText}</strong></li>
+    <li>Direction optimale : <strong>${direction}</strong></li>
+    <li>Début de session : <strong>${formatAltitude(metrics?.startAltitude)} • ${startDirection}</strong></li>
+    <li>Fin de session : <strong>${endAltitudeText} • ${endDirection}</strong></li>
+    <li>Altitude moyenne : <strong>${averageAltitudeText} (min ${minAltitudeText})</strong></li>
+    <li>Variation sur la fenêtre : <strong>${driftText}</strong></li>
+    <li>Temps au-dessus de 15° : <strong>${coverageText}</strong></li>
     <li>Saison : <strong>${formatFactor(metrics?.monthFactor)}</strong></li>
     <li>Pollution lumineuse : <strong>${formatFactor(metrics?.bortleFactor)}</strong></li>
     <li>Influence lunaire : <strong>${formatFactor(metrics?.moonFactor)}</strong></li>
@@ -440,7 +461,6 @@ function buildCard(object, metrics) {
     <li>Seeing : <strong>${formatFactor(metrics?.seeingFactor ?? metrics?.seeingIndex ?? 1)}</strong></li>
     <li>Transparence : <strong>${formatFactor(metrics?.transparencyFactor ?? metrics?.transparencyIndex ?? 1)}</strong></li>
     <li>Sécurité anti-buée : <strong>${formatFactor(metrics?.dewFactor ?? metrics?.dewIndex ?? 1)}</strong></li>
-    <li>Début de session : <strong>${formatAltitude(metrics?.startAltitude)} • ${startDirection}</strong></li>
   `;
   text.appendChild(factors);
 

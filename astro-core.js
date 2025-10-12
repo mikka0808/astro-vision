@@ -134,6 +134,54 @@ const METEOR_SHOWERS = [
   }
 ];
 
+const RARE_EVENT_SERIES = [
+  {
+    label: 'Phénomène planétaire',
+    name: 'Opposition de Saturne',
+    icon: '🪐',
+    start: Date.UTC(2024, 8, 8, 0, 0, 0),
+    periodDays: 378,
+    description:
+      "Saturne culmine autour de l'opposition : visible toute la nuit avec ses anneaux bien inclinés. Date indicative, à vérifier selon ta longitude."
+  },
+  {
+    label: 'Phénomène planétaire',
+    name: 'Opposition de Jupiter',
+    icon: '♃',
+    start: Date.UTC(2023, 10, 3, 0, 0, 0),
+    periodDays: 399,
+    description:
+      "Jupiter est en opposition : disque énorme, bandes nuageuses contrastées et transits de satellites visibles toute la nuit. Date approximative — confirme l'heure précise."
+  },
+  {
+    label: 'Phénomène planétaire',
+    name: 'Opposition de Mars',
+    icon: '♂️',
+    start: Date.UTC(2025, 0, 16, 0, 0, 0),
+    periodDays: 780,
+    description:
+      'Mars revient en opposition (cycle de ~26 mois) : fenêtre rare pour ses détails de surface. Profite du diamètre apparent maximal.'
+  },
+  {
+    label: 'Éclipse lunaire',
+    name: 'Saison d’éclipse lunaire',
+    icon: '🌕',
+    start: Date.UTC(2024, 2, 25, 0, 0, 0),
+    periodDays: 177,
+    description:
+      "Une éclipse lunaire est attendue autour de cette date. La visibilité dépend de ta localisation : consulte un almanach pour l'horaire exact."
+  },
+  {
+    label: 'Éclipse solaire',
+    name: 'Saison d’éclipse solaire',
+    icon: '🌞',
+    start: Date.UTC(2024, 3, 8, 0, 0, 0),
+    periodDays: 177,
+    description:
+      "Fenêtre pour une éclipse solaire (totale ou annulaire selon la zone). Prépare un filtre adapté et vérifie les horaires officiels."
+  }
+];
+
 const COMPASS_SECTORS = [
   'N',
   'NNE',
@@ -287,19 +335,22 @@ export function getUpcomingEvents(observationDate, moonPhase) {
   const referencePhase = moonPhase || computeMoonPhase(baseDate);
   const events = [];
 
-  events.push(
+  const moonEvents = [
     buildMoonEvent(baseDate, referencePhase.ageDays, 0, 'Nouvelle Lune', '🌑'),
-    buildMoonEvent(baseDate, referencePhase.ageDays, SYNODIC_MONTH / 2, 'Pleine Lune', '🌕')
-  );
+    buildMoonEvent(baseDate, referencePhase.ageDays, SYNODIC_MONTH / 2, 'Pleine Lune', '🌕'),
+    buildMoonEvent(baseDate, referencePhase.ageDays, SYNODIC_MONTH / 4, 'Premier quartier', '🌓'),
+    buildMoonEvent(baseDate, referencePhase.ageDays, (3 * SYNODIC_MONTH) / 4, 'Dernier quartier', '🌗')
+  ];
 
-  const firstQuarterAge = SYNODIC_MONTH / 4;
-  const lastQuarterAge = (3 * SYNODIC_MONTH) / 4;
-  events.push(
-    buildMoonEvent(baseDate, referencePhase.ageDays, firstQuarterAge, 'Premier quartier', '🌓'),
-    buildMoonEvent(baseDate, referencePhase.ageDays, lastQuarterAge, 'Dernier quartier', '🌗')
-  );
+  const withinDays = (event, maxDays) => {
+    if (!event?.occursAt) return true;
+    const diff = new Date(event.occursAt).getTime() - baseDate.getTime();
+    return diff >= 0 && diff <= maxDays * 86400000;
+  };
 
-  const nextMeteor = METEOR_SHOWERS.map((shower) => {
+  moonEvents.filter((event) => withinDays(event, 40)).forEach((event) => events.push(event));
+
+  const meteorEvents = METEOR_SHOWERS.map((shower) => {
     const occurrence = normaliseDay(shower.month, shower.day, baseDate);
     return {
       type: 'Pluie de météores',
@@ -308,11 +359,35 @@ export function getUpcomingEvents(observationDate, moonPhase) {
       occursAt: occurrence.toISOString(),
       description: `${formatMeteorDescription(shower)} Radiant : ${shower.radiant}.`
     };
-  }).sort((a, b) => new Date(a.occursAt).getTime() - new Date(b.occursAt).getTime())[0];
+  }).sort((a, b) => new Date(a.occursAt).getTime() - new Date(b.occursAt).getTime());
 
-  if (nextMeteor) {
-    events.push(nextMeteor);
-  }
+  const meteorWindow = meteorEvents.filter((event) => withinDays(event, 60));
+  const selectedMeteors = meteorWindow.length > 0 ? meteorWindow.slice(0, 2) : meteorEvents.slice(0, 1);
+  selectedMeteors.forEach((event) => events.push(event));
+
+  const seriesEvents = RARE_EVENT_SERIES.map((series) => {
+    const periodMs = series.periodDays * 86400000;
+    if (!Number.isFinite(periodMs) || periodMs <= 0) return null;
+    let occurrence = series.start;
+    if (!Number.isFinite(occurrence)) return null;
+    if (occurrence < baseDate.getTime()) {
+      const steps = Math.ceil((baseDate.getTime() - occurrence) / periodMs);
+      occurrence += steps * periodMs;
+    }
+    const diffDays = (occurrence - baseDate.getTime()) / 86400000;
+    if (diffDays > 400) {
+      return null;
+    }
+    return {
+      type: series.label,
+      name: series.name,
+      icon: series.icon,
+      occursAt: new Date(occurrence).toISOString(),
+      description: `${series.description} (${Math.round(diffDays)} jours).`
+    };
+  }).filter(Boolean);
+
+  seriesEvents.forEach((event) => events.push(event));
 
   events.push({
     type: 'Passage ISS',
@@ -320,7 +395,7 @@ export function getUpcomingEvents(observationDate, moonPhase) {
     icon: '🚀',
     occursAt: null,
     description:
-      'Consulte Heavens-Above ou Spot The Station 24 h avant la session pour connaître l\'heure exacte des passages visibles.'
+      "Consulte Heavens-Above ou Spot The Station 24 h avant la session pour connaître l'heure exacte des passages visibles."
   });
 
   return events.sort((a, b) => {
@@ -446,11 +521,31 @@ function moonFactorForObject(object, illumination, altitude) {
 }
 
 export function buildScore(object, context) {
-  const { altitude, monthFactor, bortleFactor, weatherFactor = 1, moonFactor = 1 } = context;
-  if (altitude <= 5) return 0; // trop bas
-  const altitudeFactor = Math.min(1, Math.max(0, (altitude - 10) / 70));
+  const {
+    altitude,
+    averageAltitude = altitude,
+    startAltitude = altitude,
+    visibilityRatio = 1,
+    monthFactor = 0,
+    bortleFactor = 0,
+    weatherFactor = 1,
+    moonFactor = 1
+  } = context;
+  if (!Number.isFinite(altitude) || altitude <= 5) return 0; // trop bas
+  const clamp = (value) => Math.min(1, Math.max(0, value));
+  const altitudeFactor = clamp((altitude - 10) / 70);
+  const averageFactor = clamp((averageAltitude - 15) / 60);
+  const startFactor = clamp((startAltitude - 10) / 60);
+  const windowFactor = clamp(visibilityRatio);
   const brightnessFactor = brightnessScore(object.magnitude);
-  const baseScore = altitudeFactor * 0.45 + monthFactor * 0.2 + brightnessFactor * 0.2 + bortleFactor * 0.15;
+  const baseScore =
+    altitudeFactor * 0.3 +
+    averageFactor * 0.2 +
+    startFactor * 0.1 +
+    windowFactor * 0.1 +
+    clamp(monthFactor) * 0.1 +
+    brightnessFactor * 0.1 +
+    clamp(bortleFactor) * 0.1;
   return baseScore * weatherFactor * moonFactor;
 }
 
@@ -466,24 +561,52 @@ export function evaluateTargets(objects, { lat, lon, bortle, date, durationHours
       return { ...coords, sampleDate };
     });
     const startPosition = horizontalCoordinates(object, location, date);
-    let bestPosition = positions[0] || { ...startPosition, sampleDate: date };
-    positions.forEach((pos) => {
+    const track = positions.length > 0 ? positions : [{ ...startPosition, sampleDate: date }];
+    let bestPosition = track[0] || { ...startPosition, sampleDate: date };
+    track.forEach((pos) => {
       if (!bestPosition || pos.altitude > bestPosition.altitude) {
         bestPosition = pos;
       }
     });
     const altitude = bestPosition.altitude;
+    const endPosition = track[track.length - 1] || { ...startPosition, sampleDate: date };
+    const altitudes = track
+      .map((pos) => pos.altitude)
+      .filter((value) => Number.isFinite(value));
+    const averageAltitude =
+      altitudes.length > 0 ? altitudes.reduce((sum, value) => sum + value, 0) / altitudes.length : startPosition.altitude;
+    const minAltitude = altitudes.length > 0 ? Math.min(...altitudes) : startPosition.altitude;
+    const visibleThreshold = 15;
+    const visibleSamples = altitudes.filter((value) => value >= visibleThreshold).length;
+    const visibilityRatio = altitudes.length > 0 ? visibleSamples / altitudes.length : 0;
+    const altitudeDrift = endPosition.altitude - startPosition.altitude;
     const monthFactor = monthScore(object.bestMonths, month);
     const bortleFactor = bortleScore(bortle, object.minBortle);
     const moonFactor = moonFactorForObject(object, moonIllumination, altitude);
-    const baseScore = buildScore(object, { altitude, monthFactor, bortleFactor, weatherFactor, moonFactor });
+    const baseScore = buildScore(object, {
+      altitude,
+      averageAltitude,
+      startAltitude: startPosition.altitude,
+      visibilityRatio,
+      monthFactor,
+      bortleFactor,
+      weatherFactor,
+      moonFactor
+    });
     return {
       object,
       altitude,
       azimuth: bestPosition.azimuth,
       startAltitude: startPosition.altitude,
       startAzimuth: startPosition.azimuth,
+      endAltitude: endPosition.altitude,
+      endAzimuth: endPosition.azimuth,
       bestTime: bestPosition.sampleDate.toISOString(),
+      averageAltitude,
+      minAltitude,
+      visibilityRatio,
+      visibleSamples,
+      altitudeDrift,
       monthFactor,
       bortleFactor,
       moonFactor,
@@ -516,7 +639,10 @@ export function selectTopTargets(results, options = {}) {
   const { limit = 8, typeFilter = [] } = options;
   const normalizedFilter = Array.isArray(typeFilter) ? typeFilter.filter(Boolean) : [];
   return results
-    .filter((entry) => entry.altitude > 15 && entry.score > 0.05)
+    .filter((entry) => {
+      const ratio = Number.isFinite(entry.visibilityRatio) ? entry.visibilityRatio : 1;
+      return entry.altitude > 15 && entry.score > 0.05 && ratio > 0.2;
+    })
     .filter((entry) =>
       normalizedFilter.length === 0 ? true : normalizedFilter.includes(entry.object.category || entry.object.type)
     )
