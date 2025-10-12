@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Astro Soir — Fiche Messier</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="messier-page">
+  <header class="hero hero--compact">
+    <div class="hero-content">
+      <div>
+        <h1 id="objectHeading">Fiche Messier</h1>
+        <p id="objectBaseline">Sélectionne un objet depuis le catalogue pour afficher ses détails.</p>
+      </div>
+      <nav class="top-nav">
+        <a class="nav-link" href="catalogue.html">← Retour au catalogue</a>
+        <a class="nav-link" href="index.html">Préparer une nouvelle session</a>
+      </nav>
+    </div>
+  </header>
+  <main id="objectMain" aria-live="polite">
+    <article id="objectArticle" class="object-article" hidden>
+      <header class="object-hero">
+        <div id="objectMedia" class="object-media"></div>
+        <div class="object-summary">
+          <p class="object-label" id="objectLabel"></p>
+          <h2 id="objectTitle"></h2>
+          <p class="object-subtitle" id="objectSubtitle"></p>
+          <dl class="object-facts" id="objectFacts"></dl>
+        </div>
+      </header>
+
+      <section class="object-section" id="objectStorySection">
+        <h3>Histoire &amp; singularités</h3>
+        <p id="objectStory"></p>
+        <p id="objectObservation"></p>
+      </section>
+
+      <section class="object-section" id="objectSourcesSection">
+        <h3>Sources astronomiques</h3>
+        <ul id="objectSources" class="object-source-list"></ul>
+      </section>
+
+      <section class="object-section" id="objectSessionSection">
+        <h3>Contexte de ta session</h3>
+        <div class="object-session-grid">
+          <p class="help-text" id="objectSessionSummary"></p>
+          <dl class="object-session-facts" id="objectSessionFacts"></dl>
+        </div>
+      </section>
+    </article>
+    <p id="objectMessage" class="help-text"></p>
+  </main>
+  <footer>
+    <nav class="footer-nav">
+      <a class="nav-link" href="catalogue.html">Catalogue Messier</a>
+      <a class="nav-link" href="index.html">Préparer la session</a>
+    </nav>
+    <small>Astro Soir consolide les données météo Open‑Meteo et les référentiels Messier.</small>
+  </footer>
+  <script type="module" src="catalogue-detail.js"></script>
+</body>
+</html>

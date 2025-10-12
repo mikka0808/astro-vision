@@ -17,6 +17,7 @@ import {
   formatLocalDateTime,
   formatLocalTime
 } from './astro-core.js';
+import { createObservationPreview } from './catalogue-media.js';
 
 const catalogueGrid = document.getElementById('catalogueGrid');
 const catalogueHint = document.getElementById('catalogueHint');
@@ -42,48 +43,8 @@ const SCORE_CLASSES = {
   none: 'score-none'
 };
 
-const DEFAULT_IMAGE_CREDIT = 'ESO / ESA / Hubble';
-
-const IMAGE_OVERRIDES = {
-  31: {
-    sources: [
-      'https://cdn.eso.org/images/wallpaper1/m31.jpg',
-      'https://cdn.eso.org/images/screen/messier31.jpg'
-    ],
-    credit: 'ESO'
-  },
-  42: {
-    sources: [
-      'https://cdn.eso.org/images/wallpaper1/m42.jpg',
-      'https://cdn.eso.org/images/screen/messier42.jpg'
-    ],
-    credit: 'ESO / DSS2'
-  },
-  45: {
-    sources: [
-      'https://cdn.eso.org/images/wallpaper1/m45.jpg',
-      'https://cdn.eso.org/images/screen/messier45.jpg'
-    ],
-    credit: 'ESO / Pleïades'
-  },
-  51: {
-    sources: [
-      'https://cdn.eso.org/images/wallpaper1/m51.jpg',
-      'https://cdn.eso.org/images/screen/messier51.jpg'
-    ],
-    credit: 'ESO / NASA'
-  },
-  57: {
-    sources: [
-      'https://cdn.eso.org/images/wallpaper1/m57.jpg',
-      'https://cdn.eso.org/images/screen/messier57.jpg'
-    ],
-    credit: 'ESO / NASA'
-  }
-};
-
 let catalogueEntries = [];
-let currentSort = SORT_BY.number;
+let currentSort = SORT_BY.score;
 let activeTypeFilters = [];
 
 function normaliseScore(value) {
@@ -322,240 +283,6 @@ function classifyScore(score) {
   return SCORE_CLASSES.low;
 }
 
-function hashString(value) {
-  let hash = 0;
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash << 5) - hash + value.charCodeAt(i);
-    hash |= 0;
-  }
-  return hash >>> 0;
-}
-
-function createRandom(seed) {
-  let state = seed + 0x6d2b79f5;
-  return function random() {
-    state |= 0;
-    state = (state + 0x6d2b79f5) | 0;
-    let t = Math.imul(state ^ (state >>> 15), 1 | state);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function drawGalaxy(ctx, random) {
-  const cx = ctx.canvas.width / 2;
-  const cy = ctx.canvas.height / 2;
-  const angle = random() * Math.PI;
-  const major = 40 + random() * 40;
-  const minor = major * (0.35 + random() * 0.15);
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(angle);
-  const steps = 40;
-  for (let i = steps; i >= 1; i -= 1) {
-    const t = i / steps;
-    ctx.globalAlpha = 0.06 + 0.6 * Math.pow(1 - t, 1.5);
-    ctx.fillStyle = `rgb(${Math.round(20 + t * 220)}, ${Math.round(20 + t * 220)}, ${Math.round(20 + t * 220)})`;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, major * t, minor * t, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 0.9;
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  ctx.arc(0, 0, 4 + random() * 3, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-}
-
-function drawNebula(ctx, random) {
-  const cx = ctx.canvas.width / 2;
-  const cy = ctx.canvas.height / 2;
-  const blobs = 6 + Math.floor(random() * 6);
-  for (let i = 0; i < blobs; i += 1) {
-    const size = 25 + random() * 40;
-    const x = cx + (random() - 0.5) * 60;
-    const y = cy + (random() - 0.5) * 60;
-    ctx.globalAlpha = 0.08 + random() * 0.15;
-    const grey = Math.round(100 + random() * 120);
-    ctx.fillStyle = `rgb(${grey}, ${grey}, ${grey})`;
-    ctx.beginPath();
-    ctx.ellipse(x, y, size, size * (0.6 + random() * 0.6), random() * Math.PI, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 0.9;
-  ctx.fillStyle = '#f5f5f5';
-  ctx.beginPath();
-  ctx.arc(cx, cy, 6, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function drawCluster(ctx, random) {
-  const count = 90;
-  for (let i = 0; i < count; i += 1) {
-    const x = random() * ctx.canvas.width;
-    const y = random() * ctx.canvas.height;
-    const size = random() * 2.4;
-    const light = Math.round(180 + random() * 75);
-    ctx.globalAlpha = 0.4 + random() * 0.6;
-    ctx.fillStyle = `rgb(${light}, ${light}, ${light})`;
-    ctx.beginPath();
-    ctx.arc(x, y, size, 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-
-function drawOther(ctx, random) {
-  const cx = ctx.canvas.width / 2;
-  const cy = ctx.canvas.height / 2;
-  ctx.globalAlpha = 0.7;
-  ctx.strokeStyle = 'rgba(220,220,220,0.6)';
-  ctx.lineWidth = 2;
-  const radius = 30 + random() * 40;
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.globalAlpha = 0.6;
-  ctx.fillStyle = 'rgba(255,255,255,0.2)';
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius * 0.5, 0, Math.PI * 2);
-  ctx.fill();
-  for (let i = 0; i < 25; i += 1) {
-    const angle = random() * Math.PI * 2;
-    const r = radius * random();
-    const x = cx + Math.cos(angle) * r;
-    const y = cy + Math.sin(angle) * r;
-    ctx.globalAlpha = 0.5 + random() * 0.4;
-    const shade = Math.round(160 + random() * 80);
-    ctx.fillStyle = `rgb(${shade}, ${shade}, ${shade})`;
-    ctx.beginPath();
-    ctx.arc(x, y, 1 + random() * 1.5, 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-
-function normaliseMessierNumber(number) {
-  if (!Number.isFinite(number)) return null;
-  return String(number);
-}
-
-function buildImageCandidates(number) {
-  const id = normaliseMessierNumber(number);
-  if (!id) {
-    return [];
-  }
-  const padded2 = id.padStart(2, '0');
-  const padded3 = id.padStart(3, '0');
-  return [
-    `https://cdn.eso.org/images/wallpaper1/messier${id}.jpg`,
-    `https://cdn.eso.org/images/wallpaper1/messier${padded2}.jpg`,
-    `https://cdn.eso.org/images/wallpaper1/messier${padded3}.jpg`,
-    `https://cdn.eso.org/images/screen/messier${id}.jpg`,
-    `https://cdn.eso.org/images/screen/messier${padded2}.jpg`,
-    `https://cdn.eso.org/images/screen/messier${padded3}.jpg`,
-    `https://www.eso.org/public/archives/images/screen/messier${id}.jpg`,
-    `https://messier.seds.org/Pics/Jpg/m${id}.jpg`,
-    `https://messier.seds.org/Pics/Jpg/m${padded2}.jpg`,
-    `https://messier.seds.org/Pics/Jpg/m${padded3}.jpg`,
-    `https://www.messier-objects.com/wp-content/uploads/2012/01/messier-${id}.jpg`
-  ];
-}
-
-function resolveImageSources(object) {
-  const number = Number(object?.number);
-  if (!Number.isFinite(number)) {
-    return null;
-  }
-  const override = IMAGE_OVERRIDES[number];
-  if (override) {
-    return {
-      sources: [...override.sources],
-      credit: override.credit || DEFAULT_IMAGE_CREDIT
-    };
-  }
-  return {
-    sources: buildImageCandidates(number),
-    credit: DEFAULT_IMAGE_CREDIT
-  };
-}
-
-function createCanvasPreview(object) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 160;
-  canvas.height = 160;
-  canvas.className = 'preview-canvas';
-  canvas.setAttribute('aria-hidden', 'true');
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#030303';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  const random = createRandom(hashString(object.name));
-  const type = object.type.toLowerCase();
-  if (type.includes('galaxie')) {
-    drawGalaxy(ctx, random);
-  } else if (type.includes('nébuleuse')) {
-    drawNebula(ctx, random);
-  } else if (type.includes('amas')) {
-    drawCluster(ctx, random);
-  } else {
-    drawOther(ctx, random);
-  }
-  return canvas;
-}
-
-function createObservationPreview(object) {
-  const sources = resolveImageSources(object);
-  if (!sources || !Array.isArray(sources.sources) || sources.sources.length === 0) {
-    return createCanvasPreview(object);
-  }
-
-  const figure = document.createElement('figure');
-  figure.className = 'preview-figure';
-
-  const img = document.createElement('img');
-  img.loading = 'lazy';
-  img.decoding = 'async';
-  img.className = 'preview-image';
-  img.alt = `Observation télescopique monochrome de ${object.name}`;
-  img.referrerPolicy = 'no-referrer';
-
-  const credit = document.createElement('figcaption');
-  credit.className = 'preview-credit';
-  credit.textContent = sources.credit ? `Crédit : ${sources.credit}` : 'Crédit : Source télescopique';
-
-  figure.appendChild(img);
-  figure.appendChild(credit);
-
-  const candidates = Array.from(new Set(sources.sources.filter(Boolean)));
-  let index = 0;
-
-  const loadNextCandidate = () => {
-    if (index >= candidates.length) {
-      img.removeEventListener('error', loadNextCandidate);
-      img.remove();
-      const fallback = createCanvasPreview(object);
-      figure.insertBefore(fallback, credit);
-      credit.textContent = 'Visualisation générée par Astro Soir';
-      return;
-    }
-    const candidate = candidates[index];
-    index += 1;
-    if (candidate) {
-      img.src = candidate;
-    } else {
-      loadNextCandidate();
-    }
-  };
-
-  img.addEventListener('error', loadNextCandidate);
-  img.addEventListener('load', () => {
-    img.removeEventListener('error', loadNextCandidate);
-  });
-
-  loadNextCandidate();
-
-  return figure;
-}
-
 function formatFactor(value) {
   if (!Number.isFinite(value)) return '—';
   return `${Math.round(value * 100)}%`;
@@ -570,8 +297,15 @@ function buildCard(object, metrics) {
     card.dataset.messier = `M${object.number}`;
   }
 
-  const previewWrapper = document.createElement('div');
+  const previewWrapper = document.createElement('a');
   previewWrapper.className = 'preview-wrapper';
+  if (Number.isFinite(object.number)) {
+    previewWrapper.href = `messier.html?m=${object.number}`;
+  } else {
+    previewWrapper.href = 'messier.html';
+  }
+  previewWrapper.setAttribute('aria-label', `Voir la fiche détaillée de ${object.name}`);
+  previewWrapper.title = 'Ouvrir la fiche détaillée';
   previewWrapper.appendChild(createObservationPreview(object));
 
   const text = document.createElement('div');
@@ -696,10 +430,11 @@ async function bootstrap() {
     populateCatalogueTypeFilter(merged.map(({ object }) => object));
     updateCatalogue();
     if (snapshot) {
-      catalogueHint.textContent = `${objects.length} objets listés — utilise le tri pour afficher les meilleures cibles en premier.`;
+      catalogueHint.textContent =
+        `${objects.length} objets listés — triés automatiquement par score décroissant. Clique sur une vignette pour ouvrir la fiche détaillée.`;
     } else {
       catalogueHint.textContent = `${objects.length} objets listés. `
-        + 'Lance une analyse depuis la page principale pour obtenir les scores de visibilité.';
+        + 'Lance une analyse depuis la page principale pour obtenir les scores de visibilité et clique sur une vignette pour consulter la fiche.';
     }
     if (!snapshot && sessionPanel) {
       sessionPanel.classList.add('warning');
@@ -711,13 +446,13 @@ async function bootstrap() {
 }
 
 if (sortSelect) {
-  sortSelect.value = SORT_BY.number;
+  sortSelect.value = SORT_BY.score;
   sortSelect.addEventListener('change', (event) => {
     const selected = event.target.value;
     if (selected === currentSort) {
       return;
     }
-    currentSort = Object.values(SORT_BY).includes(selected) ? selected : SORT_BY.number;
+    currentSort = Object.values(SORT_BY).includes(selected) ? selected : SORT_BY.score;
     updateCatalogue();
   });
 }

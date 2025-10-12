@@ -641,6 +641,20 @@ p.help-text {
   flex-direction: column;
   justify-content: center;
   align-items: stretch;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.preview-wrapper:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(15, 20, 40, 0.35);
+}
+
+.preview-wrapper:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
 }
 
 .catalogue-card.score-good .preview-wrapper {
@@ -717,6 +731,205 @@ p.help-text {
 
 .catalogue-page .panel.warning {
   border-color: var(--score-medium);
+}
+
+.messier-page main {
+  max-width: 1100px;
+}
+
+.object-article {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem;
+  border-radius: 1.4rem;
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 12, 28, 0.92);
+  backdrop-filter: blur(12px);
+}
+
+.object-hero {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.object-media {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.object-preview {
+  width: 100%;
+}
+
+.object-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.object-label {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+.object-subtitle {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 1rem;
+}
+
+.object-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin: 0;
+}
+
+.object-facts div {
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(5, 8, 20, 0.7);
+}
+
+.object-facts dt {
+  margin: 0 0 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  color: var(--text-soft);
+}
+
+.object-facts dd {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.object-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.6rem;
+  border-radius: 1.2rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(10, 14, 32, 0.85);
+}
+
+.object-section h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.object-section p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.6;
+}
+
+.object-source-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.object-source-list li ul {
+  margin: 0.5rem 0 0 1.1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.object-source-list a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.object-source-list a:hover,
+.object-source-list a:focus {
+  text-decoration: underline;
+}
+
+.object-session-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 280px) 1fr;
+  gap: 1.4rem;
+  align-items: start;
+}
+
+.object-session-grid .help-text {
+  margin: 0;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(5, 8, 18, 0.65);
+  color: var(--text-soft);
+}
+
+.object-session-facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.object-session-facts div {
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(5, 8, 18, 0.65);
+}
+
+.object-session-facts dt {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-soft);
+}
+
+.object-session-facts dd {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 900px) {
+  .object-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .object-media {
+    max-width: 320px;
+    margin: 0 auto;
+  }
+
+  .object-session-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .object-article {
+    padding: 1.5rem;
+  }
+
+  .object-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .object-session-facts {
+    grid-template-columns: 1fr;
+  }
 }
 
 .target-card {
