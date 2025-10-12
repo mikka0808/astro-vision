@@ -523,7 +523,7 @@ function julianDate(date) {
   return date.getTime() / 86400000 + 2440587.5;
 }
 
-function localSiderealTime(date, longitudeDegrees) {
+export function localSiderealTime(date, longitudeDegrees) {
   const jd = julianDate(date);
   const jd0 = Math.floor(jd - 0.5) + 0.5;
   const H = (jd - jd0) * 24; // hours since midnight UTC
@@ -643,11 +643,18 @@ export function buildScore(object, context) {
 export function evaluateTargets(objects, { lat, lon, bortle, date, durationHours, moonIllumination = 0 }) {
   const month = date.getMonth() + 1;
   const weatherFactor = 1;
+  const location = { latitude: lat, longitude: lon };
+  const normalizedDurationHours = Number.isFinite(durationHours) ? Math.max(0.5, durationHours) : 1;
+  const sessionSpanMs = normalizedDurationHours * 60 * 60 * 1000;
+  const sampleIntervalMinutes =
+    normalizedDurationHours <= 2 ? 15 : normalizedDurationHours <= 4 ? 30 : 60;
+  const sampleIntervalMs = sampleIntervalMinutes * 60 * 1000;
+  const stepCount = Math.max(1, Math.floor(sessionSpanMs / sampleIntervalMs));
+
   return objects.map((object) => {
-    const samples = Math.max(1, Math.round(durationHours));
-    const location = { latitude: lat, longitude: lon };
-    const positions = Array.from({ length: samples }, (_, i) => {
-      const sampleDate = new Date(date.getTime() + i * 60 * 60 * 1000);
+    const positions = Array.from({ length: stepCount + 1 }, (_, index) => {
+      const offset = Math.min(sessionSpanMs, index * sampleIntervalMs);
+      const sampleDate = new Date(date.getTime() + offset);
       const coords = horizontalCoordinates(object, location, sampleDate);
       return { ...coords, sampleDate };
     });
@@ -684,6 +691,11 @@ export function evaluateTargets(objects, { lat, lon, bortle, date, durationHours
       weatherFactor,
       moonFactor
     });
+    const visibilityTrack = track.map((pos) => ({
+      timeISO: pos.sampleDate.toISOString(),
+      altitude: pos.altitude,
+      azimuth: pos.azimuth
+    }));
     return {
       object,
       altitude,
@@ -701,7 +713,10 @@ export function evaluateTargets(objects, { lat, lon, bortle, date, durationHours
       monthFactor,
       bortleFactor,
       moonFactor,
-      baseScore
+      baseScore,
+      track: visibilityTrack,
+      sessionStart: date.toISOString(),
+      sessionDurationHours: normalizedDurationHours
     };
   });
 }

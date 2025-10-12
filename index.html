@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Astro Soir — Cibles idéales</title>
   <link rel="stylesheet" href="styles.css">
+  <link
+    rel="stylesheet"
+    href="https://aladin.u-strasbg.fr/AladinLite/api/v3/latest/aladinLite.min.css"
+    crossorigin="anonymous"
+  >
 </head>
 <body>
   <header class="hero">
@@ -17,6 +22,7 @@
         <a class="nav-link" href="dashboard.html">Tableau de bord</a>
         <a class="nav-link" href="catalogue.html">Catalogue Messier</a>
       </nav>
+      <button type="button" id="nightModeToggle" class="night-toggle" aria-pressed="false">🔦 Mode nuit</button>
     </div>
   </header>
   <main>
@@ -156,6 +162,34 @@
           <p class="stat-value" id="moonIllumination">—</p>
         </article>
         <ul id="moonDetails" class="data-list"></ul>
+      </div>
+    </section>
+
+    <section class="panel panel--data hidden" id="skyMapPanel" aria-live="polite">
+      <div class="panel-header">
+        <div class="panel-heading">
+          <h2>Carte du ciel dynamique</h2>
+          <p id="skyMapSummary">Lance une analyse pour afficher le ciel correspondant à ta session.</p>
+        </div>
+        <button
+          type="button"
+          class="panel-toggle"
+          data-panel-toggle
+          data-label-show="Afficher la carte du ciel"
+          data-label-hide="Masquer la carte du ciel"
+          aria-expanded="false"
+          aria-controls="skyMapBody"
+        >
+          Afficher la carte du ciel
+        </button>
+      </div>
+      <div class="panel-body contextual-body" id="skyMapBody" hidden>
+        <div class="sky-map-controls">
+          <label for="skyMapTime">Heure locale</label>
+          <input id="skyMapTime" name="skyMapTime" type="time" step="60" aria-describedby="skyMapLocationHint">
+          <p id="skyMapLocationHint" class="help-text">Les coordonnées seront renseignées après l'analyse.</p>
+        </div>
+        <div id="skyMapContainer" class="sky-map-container" role="presentation" aria-hidden="true"></div>
       </div>
     </section>
 

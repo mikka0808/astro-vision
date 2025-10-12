@@ -18,6 +18,7 @@ import {
   formatLocalDateTime,
   formatLocalTime,
   formatCoordinate,
+  localSiderealTime,
   getUpcomingEvents,
   parseCoordinate,
   selectTopTargets,
@@ -71,10 +72,18 @@ const astrophotoSummary = document.getElementById('astrophotoSummary');
 const enableAstrophotoInput = document.getElementById('enableAstrophoto');
 const equipmentSelect = document.getElementById('equipmentProfile');
 const panelToggleButtons = document.querySelectorAll('[data-panel-toggle]');
+const nightModeToggle = document.getElementById('nightModeToggle');
+const skyMapPanel = document.getElementById('skyMapPanel');
+const skyMapSummary = document.getElementById('skyMapSummary');
+const skyMapBody = document.getElementById('skyMapBody');
+const skyMapContainer = document.getElementById('skyMapContainer');
+const skyMapTimeInput = document.getElementById('skyMapTime');
+const skyMapLocationHint = document.getElementById('skyMapLocationHint');
 
 const contextPanels = new Map();
 
-const SESSION_SNAPSHOT_VERSION = 6;
+const SESSION_SNAPSHOT_VERSION = 7;
+const NIGHT_MODE_STORAGE_KEY = 'astroSoir:nightMode';
 let objectsCatalog = [];
 let cachedSunsetTime = null;
 let sunsetDebounce = null;
@@ -87,6 +96,10 @@ let cachedDecision = null;
 let astrophotoSettings = { enabled: false, profileId: 'visual' };
 let bortleDebounce = null;
 let lastBortleSummary = '';
+let skyMapLoaderPromise = null;
+let skyMapInstance = null;
+let skyMapOverlay = null;
+const skyMapState = { context: null, targets: [], selectedISO: null, ready: false };
 
 const sunTimesCache = new Map();
 
@@ -598,6 +611,348 @@ function renderEvents(events) {
   setContextPanelReady('eventsBody', true);
 }
 
+function loadSkyMapLibrary() {
+  if (window.A && typeof window.A.aladin === 'function') {
+    return Promise.resolve(window.A);
+  }
+  if (skyMapLoaderPromise) {
+    return skyMapLoaderPromise;
+  }
+  skyMapLoaderPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://aladin.u-strasbg.fr/AladinLite/api/v3/latest/aladinLite.min.js';
+    script.crossOrigin = 'anonymous';
+    script.async = true;
+    script.onload = () => {
+      if (window.A && typeof window.A.aladin === 'function') {
+        resolve(window.A);
+      } else {
+        reject(new Error('Aladin Lite indisponible'));
+      }
+    };
+    script.onerror = () => reject(new Error('Impossible de charger Aladin Lite'));
+    document.head.appendChild(script);
+  })
+    .catch((error) => {
+      skyMapLoaderPromise = null;
+      throw error;
+    });
+  return skyMapLoaderPromise;
+}
+
+function resetSkyMapPanel() {
+  skyMapState.context = null;
+  skyMapState.targets = [];
+  skyMapState.selectedISO = null;
+  skyMapState.ready = false;
+  if (skyMapSummary) {
+    skyMapSummary.textContent = 'Lance une analyse pour afficher la carte du ciel de ta session.';
+  }
+  if (skyMapLocationHint) {
+    skyMapLocationHint.textContent = '';
+  }
+  if (skyMapPanel) {
+    skyMapPanel.classList.add('hidden');
+  }
+  setContextPanelReady('skyMapBody', false);
+  if (skyMapOverlay && skyMapInstance) {
+    try {
+      skyMapInstance.removeOverlay(skyMapOverlay);
+    } catch (error) {
+      console.warn('Impossible de retirer la couche de cibles :', error);
+    }
+  }
+  skyMapOverlay = null;
+}
+
+function updateSkyMapSummary() {
+  if (!skyMapSummary || !skyMapState.context) return;
+  const lat = Number(skyMapState.context.latitude);
+  const lon = Number(skyMapState.context.longitude);
+  const timeISO = skyMapState.selectedISO;
+  const timeLabel = timeISO
+    ? formatLocalDateTime(timeISO)
+    : `${skyMapState.context.localTime ?? ''} ${skyMapState.context.localDate ?? ''}`;
+  const latText = Number.isFinite(lat) ? `${formatCoordinate(lat)}°` : 'lat inconnue';
+  const lonText = Number.isFinite(lon) ? `${formatCoordinate(lon)}°` : 'lon inconnue';
+  skyMapSummary.textContent = `Zenith local ${timeLabel} — Lat ${latText} • Lon ${lonText}`;
+  if (skyMapLocationHint) {
+    skyMapLocationHint.textContent =
+      "Les cibles les mieux notées apparaissent en surbrillance. Ajuste l'heure pour voir le ciel évoluer.";
+  }
+}
+
+function updateSkyMapView(date) {
+  if (!skyMapInstance || !skyMapState.context) return;
+  const lat = Number(skyMapState.context.latitude);
+  const lon = Number(skyMapState.context.longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+  const raHours = localSiderealTime(date, lon);
+  const raDeg = ((raHours % 24) + 24) % 24 * 15;
+  const decDeg = Math.max(-90, Math.min(90, lat));
+  try {
+    skyMapInstance.gotoRaDec(raDeg, decDeg);
+  } catch (error) {
+    console.warn('Impossible de positionner la carte du ciel :', error);
+  }
+}
+
+function updateSkyMapTargets(entries = []) {
+  skyMapState.targets = Array.isArray(entries) ? entries : [];
+  if (!skyMapInstance || !skyMapState.ready) return;
+  const overlayColor = document.body.classList.contains('night-mode') ? '#ff7d7d' : '#ffd86b';
+  if (skyMapOverlay) {
+    try {
+      skyMapInstance.removeOverlay(skyMapOverlay);
+    } catch (error) {
+      console.warn('Impossible de nettoyer la couche existante :', error);
+    }
+    skyMapOverlay = null;
+  }
+  if (!window.A || typeof window.A.graphicOverlay !== 'function') {
+    return;
+  }
+  const overlay = window.A.graphicOverlay({ name: 'Cibles recommandées', color: overlayColor });
+  skyMapState.targets.slice(0, 5).forEach((entry) => {
+    const raHours = entry?.object?.raHours;
+    const decDeg = entry?.object?.decDeg;
+    if (!Number.isFinite(raHours) || !Number.isFinite(decDeg)) return;
+    const popupParts = [];
+    popupParts.push(`Hauteur max ${formatAltitude(entry.altitude)}`);
+    const bestMoment = formatLocalTime(entry.bestTime);
+    if (bestMoment !== '—') {
+      popupParts.push(`Moment idéal ${bestMoment}`);
+    }
+    overlay.add(
+      window.A.marker(raHours * 15, decDeg, {
+        popupTitle: entry.object?.name ?? 'Cible',
+        popupDesc: popupParts.join(' • ')
+      })
+    );
+  });
+  try {
+    skyMapInstance.addOverlay(overlay);
+    skyMapOverlay = overlay;
+  } catch (error) {
+    console.warn("Impossible d'afficher les marqueurs de cibles :", error);
+  }
+}
+
+async function prepareSkyMap(context, targets = []) {
+  if (!skyMapPanel || !skyMapContainer) return;
+  if (!context) {
+    resetSkyMapPanel();
+    return;
+  }
+  const latitude = Number(context.latitude ?? context.lat);
+  const longitude = Number(context.longitude ?? context.lon);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    resetSkyMapPanel();
+    return;
+  }
+  skyMapState.context = {
+    ...context,
+    latitude,
+    longitude
+  };
+  if (skyMapTimeInput) {
+    const baseTime = typeof context.localTime === 'string' && context.localTime ? context.localTime : skyMapTimeInput.value;
+    if (baseTime) {
+      skyMapTimeInput.value = baseTime;
+    }
+  }
+  let observationDate;
+  try {
+    const dateValue = context.localDate || dateInput.value;
+    const timeValue = skyMapTimeInput?.value || context.localTime;
+    if (dateValue && timeValue) {
+      observationDate = buildObservationDate(dateValue, timeValue);
+    } else if (context.dateISO) {
+      observationDate = new Date(context.dateISO);
+    } else {
+      observationDate = new Date();
+    }
+  } catch (error) {
+    observationDate = new Date();
+  }
+  skyMapState.selectedISO = observationDate.toISOString();
+  if (skyMapSummary) {
+    skyMapSummary.textContent = 'Chargement de la carte du ciel…';
+  }
+  try {
+    const A = await loadSkyMapLibrary();
+    if (!skyMapInstance) {
+      skyMapInstance = A.aladin('#skyMapContainer', {
+        survey: 'P/DSS2/color',
+        fov: 100,
+        showReticle: false,
+        showProjectionControl: false,
+        showCoordinateGrid: true,
+        showZoomControl: true,
+        showFullscreenControl: false
+      });
+    }
+    skyMapState.ready = true;
+    updateSkyMapView(observationDate);
+    updateSkyMapSummary();
+    skyMapPanel.classList.remove('hidden');
+    setContextPanelReady('skyMapBody', true);
+    updateSkyMapTargets(targets);
+  } catch (error) {
+    console.warn('Carte du ciel indisponible :', error);
+    if (skyMapSummary) {
+      skyMapSummary.textContent =
+        "Impossible de charger la carte du ciel dynamique (vérifie ta connexion internet ou réessaie plus tard).";
+    }
+    skyMapState.ready = false;
+    setContextPanelReady('skyMapBody', false);
+  }
+}
+
+function handleSkyMapTimeChange() {
+  if (!skyMapTimeInput || !skyMapState.context) return;
+  const value = skyMapTimeInput.value;
+  if (!value || !/^\d{2}:\d{2}$/.test(value)) return;
+  const dateValue = skyMapState.context.localDate;
+  let nextDate = null;
+  if (dateValue) {
+    try {
+      nextDate = buildObservationDate(dateValue, value);
+    } catch (error) {
+      console.warn('Heure invalide pour la carte du ciel :', error);
+    }
+  }
+  if (!nextDate && skyMapState.selectedISO) {
+    nextDate = new Date(skyMapState.selectedISO);
+    nextDate.setHours(Number(value.slice(0, 2)), Number(value.slice(3, 5)));
+  }
+  if (!nextDate) return;
+  skyMapState.selectedISO = nextDate.toISOString();
+  updateSkyMapSummary();
+  updateSkyMapView(nextDate);
+}
+
+function renderVisibilityChart(card, entry) {
+  const container = card.querySelector('.visibility-chart');
+  if (!container) return;
+  const objectName = entry?.object?.name ?? 'la cible';
+  container.setAttribute('aria-label', `Évolution de l'altitude de ${objectName} durant la session`);
+  container.innerHTML = '';
+  const track = Array.isArray(entry.track)
+    ? entry.track
+        .map((point) => {
+          if (!point || !point.timeISO) return null;
+          const date = new Date(point.timeISO);
+          const altitude = Number(point.altitude);
+          if (Number.isNaN(date.getTime()) || !Number.isFinite(altitude)) return null;
+          return { date, altitude };
+        })
+        .filter(Boolean)
+    : [];
+  if (track.length === 0) {
+    container.classList.add('visibility-chart--empty');
+    const fallback = document.createElement('p');
+    fallback.className = 'visibility-chart__empty';
+    fallback.textContent = 'Courbe de visibilité indisponible pour cet objet.';
+    container.appendChild(fallback);
+    return;
+  }
+  container.classList.remove('visibility-chart--empty');
+  track.sort((a, b) => a.date.getTime() - b.date.getTime());
+  const minTime = track[0].date.getTime();
+  const maxTime = track[track.length - 1].date.getTime();
+  const span = Math.max(1, maxTime - minTime);
+  const viewWidth = 280;
+  const viewHeight = 140;
+  const margin = { top: 12, right: 12, bottom: 26, left: 32 };
+  const chartWidth = viewWidth - margin.left - margin.right;
+  const chartHeight = viewHeight - margin.top - margin.bottom;
+  const clampAltitude = (value) => Math.max(0, Math.min(90, value));
+  const scaleX = (time) => margin.left + ((time - minTime) / span) * chartWidth;
+  const scaleY = (altitude) => margin.top + chartHeight - (clampAltitude(altitude) / 90) * chartHeight;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', `0 0 ${viewWidth} ${viewHeight}`);
+  svg.setAttribute('aria-hidden', 'true');
+  const desc = document.createElementNS('http://www.w3.org/2000/svg', 'desc');
+  const intervalMinutes =
+    track.length > 1 ? Math.round((track[1].date.getTime() - track[0].date.getTime()) / 60000) : null;
+  desc.textContent = `Hauteur horaire de ${objectName}${
+    intervalMinutes ? ` toutes les ${intervalMinutes} minutes` : ''
+  }.`;
+  svg.appendChild(desc);
+
+  const baseline = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  baseline.setAttribute('x1', margin.left);
+  baseline.setAttribute('x2', margin.left + chartWidth);
+  baseline.setAttribute('y1', margin.top + chartHeight);
+  baseline.setAttribute('y2', margin.top + chartHeight);
+  baseline.setAttribute('class', 'visibility-chart__axis');
+  svg.appendChild(baseline);
+
+  const thresholdY = scaleY(15);
+  const threshold = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  threshold.setAttribute('x1', margin.left);
+  threshold.setAttribute('x2', margin.left + chartWidth);
+  threshold.setAttribute('y1', thresholdY);
+  threshold.setAttribute('y2', thresholdY);
+  threshold.setAttribute('class', 'visibility-chart__threshold');
+  svg.appendChild(threshold);
+
+  const firstX = scaleX(track[0].date.getTime());
+  const lastX = scaleX(track[track.length - 1].date.getTime());
+  const areaPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  areaPath.setAttribute(
+    'd',
+    `M ${firstX} ${margin.top + chartHeight} ` +
+      track
+        .map((point) => `L ${scaleX(point.date.getTime())} ${scaleY(point.altitude)}`)
+        .join(' ') +
+      ` L ${lastX} ${margin.top + chartHeight} Z`
+  );
+  areaPath.setAttribute('class', 'visibility-chart__area');
+  svg.appendChild(areaPath);
+
+  const linePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  linePath.setAttribute(
+    'd',
+    track
+      .map((point, index) => `${index === 0 ? 'M' : 'L'} ${scaleX(point.date.getTime())} ${scaleY(point.altitude)}`)
+      .join(' ')
+  );
+  linePath.setAttribute('class', 'visibility-chart__line');
+  svg.appendChild(linePath);
+
+  track.forEach((point, index) => {
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('cx', scaleX(point.date.getTime()));
+    dot.setAttribute('cy', scaleY(point.altitude));
+    dot.setAttribute('r', index === 0 || index === track.length - 1 ? 3.5 : 2.5);
+    dot.setAttribute('class', 'visibility-chart__dot');
+    svg.appendChild(dot);
+  });
+
+  const altLabels = [15, 45, 75];
+  altLabels.forEach((alt) => {
+    const y = scaleY(alt);
+    if (y <= margin.top || y >= margin.top + chartHeight) return;
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', 6);
+    text.setAttribute('y', y + 4);
+    text.setAttribute('class', 'visibility-chart__label');
+    text.textContent = `${alt}°`;
+    svg.appendChild(text);
+  });
+
+  container.appendChild(svg);
+  const times = document.createElement('div');
+  times.className = 'visibility-chart__times';
+  const firstLabel = formatLocalTime(track[0].date.toISOString());
+  const middleLabel = formatLocalTime(track[Math.floor(track.length / 2)].date.toISOString());
+  const lastLabel = formatLocalTime(track[track.length - 1].date.toISOString());
+  times.innerHTML = `<span>${firstLabel}</span><span>${middleLabel}</span><span>${lastLabel}</span>`;
+  container.appendChild(times);
+}
+
 function renderTargets(targets, stats = {}) {
   targetsList.innerHTML = '';
   const selectedTypes = getActiveTypeFilters();
@@ -668,6 +1023,7 @@ function renderTargets(targets, stats = {}) {
         <div><dt>Altitude moyenne</dt><dd>${averageAltitudeText}</dd></div>
         <div><dt>Moment idéal</dt><dd>${bestMoment}</dd></div>
       </dl>
+      <div class="visibility-chart" role="img" aria-label="Evolution de l'altitude durant la session"></div>
       <div class="score-bar" aria-hidden="true"><span style="width:${Math.max(0, Math.min(100, scoreValue))}%"></span></div>
       <details class="target-details">
         <summary>Détails visibilité</summary>
@@ -691,10 +1047,42 @@ function renderTargets(targets, stats = {}) {
         </ul>
       </details>
     `;
+    renderVisibilityChart(card, entry);
     targetsList.appendChild(card);
   });
 
+  updateSkyMapTargets(targets);
   resultsPanel.classList.remove('hidden');
+}
+
+function applyNightMode(enabled, { persist = true } = {}) {
+  document.body.classList.toggle('night-mode', enabled);
+  if (nightModeToggle) {
+    nightModeToggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+    nightModeToggle.classList.toggle('is-active', enabled);
+    nightModeToggle.textContent = enabled ? '🌅 Mode jour' : '🔦 Mode nuit';
+  }
+  if (persist) {
+    try {
+      localStorage.setItem(NIGHT_MODE_STORAGE_KEY, enabled ? '1' : '0');
+    } catch (error) {
+      console.warn('Impossible de sauvegarder le mode nuit :', error);
+    }
+  }
+  if (skyMapState.ready) {
+    updateSkyMapTargets(skyMapState.targets);
+  }
+}
+
+function initNightMode() {
+  let stored = null;
+  try {
+    stored = localStorage.getItem(NIGHT_MODE_STORAGE_KEY);
+  } catch (error) {
+    stored = null;
+  }
+  const enabled = stored === '1' || stored === 'true';
+  applyNightMode(enabled, { persist: false });
 }
 
 function renderDecisionSupport(decision) {
@@ -1033,6 +1421,7 @@ async function handleSessionSubmit(event) {
       decisionSummary.textContent = 'Analyse en attente…';
     }
   }
+  resetSkyMapPanel();
   resultsHint.textContent = 'Analyse en cours...';
   targetsList.innerHTML = '';
   cachedResults = [];
@@ -1096,6 +1485,7 @@ async function handleSessionSubmit(event) {
     const matches = selectTopTargets(scoredEntries, { limit: scoredEntries.length, typeFilter: selected });
     const display = matches.slice(0, 8);
     renderTargets(display, { total: scoredEntries.length, matchCount: matches.length });
+    prepareSkyMap(cachedContext, display);
     const decision = computeDecisionInsights(scoredEntries, {
       weather,
       moon,
@@ -1204,6 +1594,24 @@ useSunsetBtn.addEventListener('click', () => {
 });
 refreshBortleBtn.addEventListener('click', autoFetchBortle);
 sessionForm.addEventListener('submit', handleSessionSubmit);
+
+if (skyMapTimeInput) {
+  skyMapTimeInput.addEventListener('change', handleSkyMapTimeChange);
+  skyMapTimeInput.addEventListener('input', () => {
+    if (skyMapState.ready) {
+      handleSkyMapTimeChange();
+    }
+  });
+}
+
+if (nightModeToggle) {
+  nightModeToggle.addEventListener('click', () => {
+    const next = !document.body.classList.contains('night-mode');
+    applyNightMode(next);
+  });
+}
+
+initNightMode();
 
 (async function bootstrap() {
   try {
@@ -1436,7 +1844,10 @@ function storeSessionSnapshot({
         score: entry.score,
         weatherWindow: entry.weatherWindow,
         atmosphereFactor: entry.atmosphereFactor,
-        weatherConditionFactor: entry.weatherConditionFactor
+        weatherConditionFactor: entry.weatherConditionFactor,
+        track: entry.track,
+        sessionStart: entry.sessionStart,
+        sessionDurationHours: entry.sessionDurationHours
       })),
       decisionSupport: decisionSupport || null,
       astroSettings: astroSettings || null
