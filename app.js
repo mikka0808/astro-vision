@@ -6,12 +6,14 @@ import {
   bortleDescriptions,
   computeMoonPhase,
   describeAzimuth,
+  describeAerosolLoad,
   describeDewRisk,
   describeSeeingQuality,
   describeTransparencyQuality,
   enrichCatalogueData,
   evaluateTargets,
   formatAltitude,
+  formatArcseconds,
   formatIllumination,
   formatLocalDateTime,
   formatLocalTime,
@@ -52,7 +54,7 @@ const filterSummary = document.getElementById('filterSummary');
 const typeFilterOptions = document.getElementById('typeFilterOptions');
 const spinnerButtons = document.querySelectorAll('.spinner-btn');
 
-const SESSION_SNAPSHOT_VERSION = 4;
+const SESSION_SNAPSHOT_VERSION = 5;
 let objectsCatalog = [];
 let cachedSunsetTime = null;
 let sunsetDebounce = null;
@@ -192,20 +194,34 @@ function renderWeather(data) {
   weatherSummary.textContent = buildWeatherSummary(data);
   const humidity = Number.isFinite(data.humidity) ? `${Math.round(data.humidity)} %` : '—';
   const visibility = Number.isFinite(data.visibilityKm) ? `${Math.round(data.visibilityKm)} km` : '—';
+  const pressure = Number.isFinite(data.pressure) ? `${Math.round(data.pressure)} hPa` : '—';
   const seeing = Number.isFinite(data.seeingIndex) ? `${Math.round(data.seeingIndex * 100)} %` : '—';
   const transparency = Number.isFinite(data.transparencyIndex) ? `${Math.round(data.transparencyIndex * 100)} %` : '—';
   const dewSpread = Number.isFinite(data.dewPointSpread) ? `${data.dewPointSpread.toFixed(1)} °C` : '—';
   const dewSafety = Number.isFinite(data.dewFactor) ? `${Math.round(data.dewFactor * 100)} %` : '—';
   const dewPoint = Number.isFinite(data.dewPoint) ? `${data.dewPoint.toFixed(1)} °C` : '—';
+  const temperature = Number.isFinite(data.temperature) ? `${data.temperature.toFixed(1)} °C` : '—';
+  const wind = Number.isFinite(data.wind) ? `${Math.round(data.wind)} km/h` : '—';
+  const gust = Number.isFinite(data.gust) ? `${Math.round(data.gust)} km/h` : '—';
+  const jetStream = Number.isFinite(data.jetStream) ? `${Math.round(data.jetStream)} km/h` : '—';
+  const shear = Number.isFinite(data.windShear) ? `${Math.round(data.windShear)} km/h` : '—';
+  const seeingArcsec = formatArcseconds(data.seeingArcsec);
+  const aerosolFactor = Number.isFinite(data.aerosolFactor) ? `${Math.round(data.aerosolFactor * 100)} %` : '—';
+  const pm10 = Number.isFinite(data.pm10) ? `${Math.round(data.pm10)} µg/m³` : '—';
+  const pm25 = Number.isFinite(data.pm25) ? `${Math.round(data.pm25)} µg/m³` : '—';
+  const aerosolText = data.aerosolText ?? describeAerosolLoad(data.pm10, data.pm25);
   weatherDetails.innerHTML = `
     <li>Couverture nuageuse totale : ${Math.round(data.cover)} %</li>
     <li>Nébulosité basse / moyenne / haute : ${Math.round(data.low)} % / ${Math.round(data.mid)} % / ${Math.round(data.high)} %</li>
     <li>Probabilité de précipitations : ${Math.round(data.precipProb)} %</li>
-    <li>Température : ${data.temperature.toFixed(1)} °C</li>
-    <li>Vent moyen : ${Math.round(data.wind)} km/h</li>
+    <li>Température : ${temperature}</li>
+    <li>Vent moyen / rafales : ${wind} / ${gust}</li>
+    <li>Pression : ${pressure}</li>
     <li>Humidité : ${humidity} • Visibilité : ${visibility}</li>
-    <li>Seeing : ${data.seeingText ?? describeSeeingQuality(data.seeingIndex)} (${seeing})</li>
+    <li>Jet stream / cisaillement : ${jetStream} / Δ ${shear}</li>
+    <li>Seeing : ${data.seeingText ?? describeSeeingQuality(data.seeingIndex)} (${seeing}, FWHM ${seeingArcsec})</li>
     <li>Transparence : ${data.transparencyText ?? describeTransparencyQuality(data.transparencyIndex)} (${transparency})</li>
+    <li>Aérosols (PM10 / PM2,5) : ${pm10} / ${pm25} — ${aerosolText} (${aerosolFactor})</li>
     <li>Écart T/Td : ${dewSpread} — ${data.dewRiskText ?? describeDewRisk(data.dewPointSpread)} (Td ${dewPoint}, sécurité optique ${dewSafety})</li>
   `;
   weatherPanel.classList.remove('hidden');
@@ -292,6 +308,13 @@ function renderTargets(targets, stats = {}) {
     const seeingValue = Math.round((entry.seeingFactor ?? entry.seeingIndex ?? 1) * 100);
     const transparencyValue = Math.round((entry.transparencyFactor ?? entry.transparencyIndex ?? 1) * 100);
     const dewValue = Math.round((entry.dewFactor ?? entry.dewIndex ?? 1) * 100);
+    const aerosolValue = Math.round((entry.aerosolFactor ?? cachedWeather?.aerosolFactor ?? 1) * 100);
+    const seeingQuality = entry.seeingText ?? describeSeeingQuality(entry.seeingFactor);
+    const transparencyQuality = entry.transparencyText ?? describeTransparencyQuality(entry.transparencyFactor);
+    const aerosolQuality =
+      entry.aerosolText ?? (cachedWeather ? describeAerosolLoad(cachedWeather.pm10, cachedWeather.pm25) : 'charge particulaire inconnue');
+    const dewRiskQuality = entry.dewRiskText ?? describeDewRisk(cachedWeather?.dewPointSpread);
+    const seeingArcsecText = formatArcseconds(entry.seeingArcsec);
     const monthValue = Math.round((entry.monthFactor ?? 0) * 100);
     const bortleValuePct = Math.round((entry.bortleFactor ?? 0) * 100);
     const bestMoment = formatLocalTime(entry.bestTime);
@@ -340,9 +363,10 @@ function renderTargets(targets, stats = {}) {
           <li>Pollution lumineuse : ${bortleValuePct}%</li>
           <li>Influence lunaire : ${moonValue}%</li>
           <li>Météo : ${weatherValue}%</li>
-          <li>Seeing : ${Math.max(0, Math.min(100, seeingValue))}%</li>
-          <li>Transparence : ${Math.max(0, Math.min(100, transparencyValue))}%</li>
-          <li>Sécurité anti-buée : ${Math.max(0, Math.min(100, dewValue))}%</li>
+          <li>Seeing : ${seeingQuality} (${Math.max(0, Math.min(100, seeingValue))}%, ${seeingArcsecText})</li>
+          <li>Transparence : ${transparencyQuality} (${Math.max(0, Math.min(100, transparencyValue))}%)</li>
+          <li>Aérosols : ${aerosolQuality} (${Math.max(0, Math.min(100, aerosolValue))}%)</li>
+          <li>Sécurité anti-buée : ${dewRiskQuality} (${Math.max(0, Math.min(100, dewValue))}%)</li>
         </ul>
       </details>
     `;
@@ -364,7 +388,7 @@ async function fetchWeather(lat, lon, localDate, localTime, durationHours) {
     latitude: lat,
     longitude: lon,
     hourly:
-      'cloudcover,cloudcover_low,cloudcover_mid,cloudcover_high,precipitation_probability,weathercode,temperature_2m,dewpoint_2m,relativehumidity_2m,visibility,windspeed_10m,windgusts_10m',
+      'cloudcover,cloudcover_low,cloudcover_mid,cloudcover_high,precipitation_probability,weathercode,temperature_2m,dewpoint_2m,relativehumidity_2m,visibility,windspeed_10m,windgusts_10m,pressure_msl,windspeed_80m,windspeed_120m',
     timezone: 'auto',
     start_date: queryDate,
     end_date: queryDate
@@ -374,6 +398,25 @@ async function fetchWeather(lat, lon, localDate, localTime, durationHours) {
     throw new Error('Impossible de récupérer la météo.');
   }
   const data = await response.json();
+
+  let airData = null;
+  try {
+    const airParams = new URLSearchParams({
+      latitude: lat,
+      longitude: lon,
+      hourly: 'pm10,pm2_5',
+      start_date: queryDate,
+      end_date: queryDate,
+      timezone: 'auto'
+    });
+    const airResponse = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?${airParams.toString()}`);
+    if (airResponse.ok) {
+      airData = await airResponse.json();
+    }
+  } catch (error) {
+    console.warn('Impossible de récupérer la qualité de l’air :', error);
+  }
+
   const times = data.hourly.time;
   const targetISO = `${localDate}T${localTime}`;
   const startIndex = findHourIndex(times, targetISO);
@@ -387,6 +430,27 @@ async function fetchWeather(lat, lon, localDate, localTime, durationHours) {
     return values.reduce((sum, val) => sum + val, 0) / values.length;
   };
 
+  const targetTimes = indices.map((idx) => times[idx]);
+  const averageAir = (seriesName) => {
+    if (!airData?.hourly?.[seriesName]) return null;
+    const series = airData.hourly[seriesName];
+    const airTimes = airData.hourly.time || [];
+    const timeMap = new Map(airTimes.map((iso, index) => [iso, index]));
+    const values = targetTimes
+      .map((iso) => {
+        let index = timeMap.get(iso);
+        if (index === undefined) {
+          index = airTimes.findIndex((time) => Math.abs(new Date(time).getTime() - new Date(iso).getTime()) <= 60 * 60 * 1000);
+        }
+        if (index === -1 || index === undefined) return null;
+        const value = series[index];
+        return typeof value === 'number' ? value : null;
+      })
+      .filter((value) => value !== null);
+    if (values.length === 0) return null;
+    return values.reduce((sum, val) => sum + val, 0) / values.length;
+  };
+
   const pick = (value, fallback) => (Number.isFinite(value) ? value : fallback);
 
   const cover = pick(average(data.hourly.cloudcover), 100);
@@ -396,6 +460,8 @@ async function fetchWeather(lat, lon, localDate, localTime, durationHours) {
   const periodLabel = `${localTime} → ${endTime}`;
   const wind = pick(average(data.hourly.windspeed_10m ?? data.hourly.wind_speed_10m), 0);
   const gust = pick(average(data.hourly.windgusts_10m ?? data.hourly.wind_gusts_10m), wind);
+  const jetStream = pick(average(data.hourly.windspeed_120m ?? data.hourly.wind_speed_120m), null);
+  const upperWind = pick(average(data.hourly.windspeed_80m ?? data.hourly.wind_speed_80m), jetStream);
   const low = pick(average(data.hourly.cloudcover_low), cover);
   const mid = pick(average(data.hourly.cloudcover_mid), cover);
   const high = pick(average(data.hourly.cloudcover_high), cover);
@@ -406,6 +472,12 @@ async function fetchWeather(lat, lon, localDate, localTime, durationHours) {
   const visibility = pick(average(data.hourly.visibility), null);
   const visibilityKm = Number.isFinite(visibility) ? visibility / 1000 : null;
   const visibilityFactor = Number.isFinite(visibility) ? Math.min(1, Math.max(0, visibility / 20000)) : null;
+  const pressure = pick(average(data.hourly.pressure_msl), null);
+  const pm10 = averageAir('pm10');
+  const pm25 = averageAir('pm2_5');
+
+  const shearSource = Number.isFinite(jetStream) ? jetStream : upperWind;
+  const windShear = Number.isFinite(shearSource) ? Math.abs(shearSource - wind) : null;
 
   const clamp = (value, fallback = 0) => {
     const numeric = Number(value);
@@ -415,19 +487,37 @@ async function fetchWeather(lat, lon, localDate, localTime, durationHours) {
     return numeric;
   };
 
-  const windPenalty = clamp((wind + gust * 0.3) / 50);
-  const highPenalty = clamp(high / 90);
-  const seeingIndex = clamp(1 - (windPenalty * 0.6 + highPenalty * 0.4), 0.2);
+  const aerosolPenalties = [];
+  if (Number.isFinite(pm10)) aerosolPenalties.push(Math.min(1, Math.max(0, pm10 / 80)));
+  if (Number.isFinite(pm25)) aerosolPenalties.push(Math.min(1, Math.max(0, pm25 / 35)));
+  const aerosolPenalty = aerosolPenalties.length > 0 ? aerosolPenalties.reduce((sum, value) => sum + value, 0) / aerosolPenalties.length : null;
+  const aerosolFactor = clamp(1 - (aerosolPenalty ?? 0), 1);
+
+  const windPenalty = clamp(wind / 45);
+  const gustPenalty = clamp(gust / 70);
+  const shearPenalty = clamp((windShear ?? 0) / 70);
+  const highTurbulence = clamp(high / 95);
+  const thermalPenalty = clamp(Number.isFinite(dewPointSpread) ? Math.max(0, (5 - dewPointSpread) / 10) : 0);
+  const seeingIndex = clamp(
+    1 - (windPenalty * 0.35 + gustPenalty * 0.15 + highTurbulence * 0.2 + shearPenalty * 0.2 + thermalPenalty * 0.1),
+    0.15
+  );
+  const seeingArcsec = Number.isFinite(seeingIndex) ? 0.5 + (1 - seeingIndex) * 2.5 : null;
 
   const humidityPenalty = clamp((humidity ?? 70) / 100);
   const midPenalty = clamp(mid / 100);
+  const highPenalty = clamp(high / 100);
   const visibilityPenalty = clamp(1 - (visibilityFactor ?? 1));
-  const transparencyIndex = clamp(1 - (humidityPenalty * 0.5 + midPenalty * 0.3 + visibilityPenalty * 0.2));
+  const aerosolContribution = clamp(aerosolPenalty ?? 0);
+  const transparencyIndex = clamp(
+    1 - (humidityPenalty * 0.3 + midPenalty * 0.2 + highPenalty * 0.15 + visibilityPenalty * 0.15 + aerosolContribution * 0.2)
+  );
 
   const dewFactor = clamp(Number.isFinite(dewPointSpread) ? (dewPointSpread - 1) / 7 : 1, 1);
   const dewRiskText = describeDewRisk(dewPointSpread);
   const seeingText = describeSeeingQuality(seeingIndex);
   const transparencyText = describeTransparencyQuality(transparencyIndex);
+  const aerosolText = describeAerosolLoad(pm10, pm25);
 
   return {
     cover,
@@ -438,6 +528,7 @@ async function fetchWeather(lat, lon, localDate, localTime, durationHours) {
     weatherCode,
     temperature,
     wind,
+    gust,
     humidity,
     dewPoint,
     dewPointSpread,
@@ -446,7 +537,15 @@ async function fetchWeather(lat, lon, localDate, localTime, durationHours) {
     visibility,
     visibilityKm,
     visibilityFactor,
+    pressure,
+    jetStream,
+    windShear,
+    pm10,
+    pm25,
+    aerosolFactor,
+    aerosolText,
     seeingIndex,
+    seeingArcsec,
     seeingText,
     transparencyIndex,
     transparencyText,
@@ -745,6 +844,12 @@ function storeSessionSnapshot({
         seeingFactor: entry.seeingFactor,
         transparencyFactor: entry.transparencyFactor,
         dewFactor: entry.dewFactor,
+        aerosolFactor: entry.aerosolFactor,
+        seeingArcsec: entry.seeingArcsec,
+        seeingText: entry.seeingText,
+        transparencyText: entry.transparencyText,
+        dewRiskText: entry.dewRiskText,
+        aerosolText: entry.aerosolText,
         score: entry.score
       }))
     };

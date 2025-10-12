@@ -238,6 +238,21 @@ export function describeTransparencyQuality(value) {
   });
 }
 
+export function describeAerosolLoad(pm10, pm25) {
+  const pm10Value = Number(pm10);
+  const pm25Value = Number(pm25);
+  if (!Number.isFinite(pm10Value) && !Number.isFinite(pm25Value)) {
+    return 'charge particulaire inconnue';
+  }
+  const fine = Number.isFinite(pm25Value) ? pm25Value : pm10Value * 0.6;
+  const coarse = Number.isFinite(pm10Value) ? pm10Value : pm25Value * 1.4;
+  if (fine <= 8 && coarse <= 20) return 'air très limpide';
+  if (fine <= 12 && coarse <= 30) return 'faible voile';
+  if (fine <= 18 && coarse <= 45) return 'voile notable';
+  if (fine <= 25 && coarse <= 60) return 'voile prononcé';
+  return 'aérosols importants';
+}
+
 export function describeDewRisk(spread) {
   if (!Number.isFinite(spread)) return "Risque de buée indéterminé";
   if (spread >= 8) return 'Optique au sec';
@@ -264,6 +279,11 @@ export function formatAzimuth(deg) {
 export function formatIllumination(fraction) {
   if (!Number.isFinite(fraction)) return '—';
   return `${Math.round(fraction * 100)}%`;
+}
+
+export function formatArcseconds(value) {
+  if (!Number.isFinite(value)) return '—';
+  return `${value.toFixed(1)}″`;
 }
 
 export function formatLocalTime(isoString) {
@@ -624,14 +644,28 @@ export function applyWeather(results, weather = {}) {
   const seeingFactor = clamp01(weather.seeingIndex ?? weather.seeingFactor ?? 1, 1);
   const transparencyFactor = clamp01(weather.transparencyIndex ?? weather.transparencyFactor ?? 1, 1);
   const dewFactor = clamp01(weather.dewFactor ?? weather.dewIndex ?? 1, 1);
+  const aerosolFactor = clamp01(weather.aerosolFactor ?? weather.transparencyIndex ?? 1, 1);
   const code = weather.weatherCode ?? 0;
   const conditionFactor = code >= 80 ? 0.25 : code >= 60 ? 0.4 : code >= 45 ? 0.6 : 1;
   const skyWindow = clamp01(cloudFactor * 0.55 + precipFactor * 0.25 + visibilityFactor * 0.2, 0);
-  const atmosphere = clamp01(transparencyFactor * 0.5 + seeingFactor * 0.35 + dewFactor * 0.15, 0);
+  const atmosphere = clamp01(transparencyFactor * 0.45 + seeingFactor * 0.3 + dewFactor * 0.15 + aerosolFactor * 0.1, 0);
   return results.map((entry) => {
     const weatherFactor = clamp01(skyWindow * atmosphere * conditionFactor, 0);
     const score = entry.baseScore * weatherFactor;
-    return { ...entry, weatherFactor, seeingFactor, transparencyFactor, dewFactor, score };
+    return {
+      ...entry,
+      weatherFactor,
+      seeingFactor,
+      transparencyFactor,
+      dewFactor,
+      aerosolFactor,
+      seeingArcsec: weather.seeingArcsec,
+      seeingText: weather.seeingText,
+      transparencyText: weather.transparencyText,
+      dewRiskText: weather.dewRiskText,
+      aerosolText: weather.aerosolText,
+      score
+    };
   });
 }
 
@@ -691,12 +725,17 @@ export function buildWeatherSummary(data) {
   const codeText = weatherCodes[weatherCode] || 'Condition inconnue';
   const seeingText = data.seeingText || describeSeeingQuality(data.seeingIndex);
   const transparencyText = data.transparencyText || describeTransparencyQuality(data.transparencyIndex);
+  const seeingArcsec = Number.isFinite(data.seeingArcsec) ? `${data.seeingArcsec.toFixed(1)}″` : '';
+  const aerosolText = data.aerosolText || describeAerosolLoad(data.pm10, data.pm25);
   const spreadText = Number.isFinite(data.dewPointSpread) ? `${data.dewPointSpread.toFixed(1)}°C` : '—';
   const dewText = data.dewRiskText || describeDewRisk(data.dewPointSpread);
   return (
     `Fenêtre ${periodLabel} : ciel ${sky} (${codeText.toLowerCase()}, ${Math.round(cover)}% de nébulosité moyenne, ${Math.round(
       precipProb
     )}% de précipitations, vent ${Math.round(wind)} km/h). ` +
-    `Seeing ${seeingText}, transparence ${transparencyText}, écart T/Td ${spreadText} (${dewText.toLowerCase()}).`
+    `Indices astro : seeing ${seeingText}${seeingArcsec ? ` (~${seeingArcsec})` : ''}, transparence ${transparencyText} (aérosols ${
+      aerosolText
+    }). ` +
+    `Point de rosée : écart ${spreadText} (${dewText.toLowerCase()}).`
   );
 }
