@@ -449,28 +449,43 @@ function mergeMetrics(objects, snapshot) {
   }
   const context = snapshot?.context;
   const weather = snapshot?.weather;
+  const lat = Number(context?.latitude ?? context?.lat);
+  const lon = Number(context?.longitude ?? context?.lon);
+  const bortle = Number(context?.bortle);
+  const durationHours = Number(context?.durationHours ?? context?.duration ?? 2);
   const observationDate = context?.dateISO ? new Date(context.dateISO) : null;
   const moonIllumination = snapshot?.moon?.illumination ?? (observationDate ? computeMoonPhase(observationDate).illumination : 0);
   objects.forEach((object) => {
     let metrics = map.get(object.name);
+    const needsRebuild =
+      !metrics ||
+      !Array.isArray(metrics.track) ||
+      metrics.track.length === 0 ||
+      !metrics.bestTime ||
+      !Number.isFinite(metrics.altitude);
+
     if (
-      !metrics &&
-      context &&
-      weather &&
+      Number.isFinite(lat) &&
+      Number.isFinite(lon) &&
       observationDate instanceof Date &&
-      !Number.isNaN(observationDate.getTime())
+      !Number.isNaN(observationDate.getTime()) &&
+      needsRebuild
     ) {
       const evaluated = evaluateTargets([object], {
-        lat: context.latitude,
-        lon: context.longitude,
-        bortle: context.bortle,
+        lat,
+        lon,
+        bortle,
         date: observationDate,
-        durationHours: context.durationHours,
+        durationHours,
         moonIllumination
       });
-      const scored = applyWeather(evaluated, weather);
-      metrics = scored[0];
+      const scored = weather ? applyWeather(evaluated, weather) : evaluated;
+      const rebuilt = scored[0];
+      if (rebuilt) {
+        metrics = metrics ? { ...metrics, ...rebuilt } : rebuilt;
+      }
     }
+
     results.push({ object, metrics });
   });
   return results;

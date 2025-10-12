@@ -3,6 +3,8 @@ import {
   NIGHT_MODE_STORAGE_KEY,
   buildWeatherSummary,
   computeDecisionInsights,
+  evaluateTargets,
+  applyWeather,
   formatAltitude,
   formatCoordinate,
   formatIllumination,
@@ -107,6 +109,90 @@ function pickTopEntries(snapshot, limit = 4) {
   if (!snapshot || !Array.isArray(snapshot.entries)) return [];
   const sorted = [...snapshot.entries].sort((a, b) => getEntryScore(b) - getEntryScore(a));
   return sorted.filter((entry) => Array.isArray(entry.track) && entry.track.length > 0).slice(0, limit);
+}
+
+function parseContextDate(context = {}) {
+  if (!context) return null;
+  if (context.dateISO) {
+    const isoDate = new Date(context.dateISO);
+    if (!Number.isNaN(isoDate.getTime())) {
+      return isoDate;
+    }
+  }
+  if (context.localDate && context.localTime) {
+    try {
+      const local = new Date(`${context.localDate}T${context.localTime}`);
+      if (!Number.isNaN(local.getTime())) {
+        return new Date(local.getTime() - local.getTimezoneOffset() * 60000);
+      }
+    } catch (error) {
+      console.warn('Impossible de reconstruire la date locale :', error);
+    }
+  }
+  return null;
+}
+
+function enrichEntriesWithTrack(snapshot) {
+  if (!snapshot || !Array.isArray(snapshot.entries) || snapshot.entries.length === 0) {
+    return snapshot;
+  }
+
+  const hasCompleteTrack = snapshot.entries.every(
+    (entry) => Array.isArray(entry.track) && entry.track.length > 0 && entry.bestTime
+  );
+  if (hasCompleteTrack) {
+    return snapshot;
+  }
+
+  const context = snapshot.context || {};
+  const lat = Number(context.latitude ?? context.lat);
+  const lon = Number(context.longitude ?? context.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    return snapshot;
+  }
+
+  const duration = Number(context.durationHours ?? context.duration ?? 2);
+  const date = parseContextDate(context);
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return snapshot;
+  }
+
+  const objects = snapshot.entries
+    .map((entry) => entry.object)
+    .filter((object) => object && object.name);
+  if (objects.length === 0) {
+    return snapshot;
+  }
+
+  try {
+    const evaluated = evaluateTargets(objects, {
+      lat,
+      lon,
+      bortle: Number(context.bortle),
+      date,
+      durationHours: duration,
+      moonIllumination: snapshot?.moon?.illumination ?? 0
+    });
+    const enriched = snapshot.weather ? applyWeather(evaluated, snapshot.weather) : evaluated;
+    const byName = new Map(enriched.map((entry) => [entry.object?.name, entry]));
+    const mergedEntries = snapshot.entries.map((entry) => {
+      const update = byName.get(entry.object?.name);
+      if (!update) {
+        return entry;
+      }
+      return { ...entry, ...update };
+    });
+    const hydrated = { ...snapshot, entries: mergedEntries };
+    try {
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(hydrated));
+    } catch (error) {
+      console.warn('Impossible de ré-enregistrer la session enrichie :', error);
+    }
+    return hydrated;
+  } catch (error) {
+    console.warn('Impossible de reconstruire les courbes de visibilité :', error);
+    return snapshot;
+  }
 }
 
 function renderContext(snapshot) {
@@ -544,7 +630,7 @@ function renderSummary(decision, snapshot) {
 }
 
 function bootstrap() {
-  const snapshot = readSnapshot();
+  const snapshot = enrichEntriesWithTrack(readSnapshot());
   const decision = ensureDecision(snapshot);
   renderSummary(decision, snapshot);
   renderScore(decision, snapshot);
