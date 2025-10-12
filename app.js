@@ -241,6 +241,50 @@ function clampWeight(value, fallback = 1) {
   return Math.max(0, Math.min(1.5, value));
 }
 
+function slugify(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
+}
+
+function buildObjectSlug(entry = {}, primaryCatalogueId) {
+  const catalogue = primaryCatalogueId || entry.primaryCatalogueId || null;
+  const cataloguePart = catalogue ? slugify(catalogue) : 'catalogue';
+  const number = Number(entry.number);
+  if (Number.isFinite(number) && number > 0) {
+    const padded =
+      number < 1000
+        ? String(Math.round(number)).padStart(catalogue === 'messier' ? 3 : 2, '0')
+        : String(Math.round(number));
+    return `${cataloguePart}-${padded}`;
+  }
+  const designation =
+    entry.designation || entry.catalogueNumber || (Array.isArray(entry.catalogueRefs) ? entry.catalogueRefs[0] : null);
+  const designationSlug = slugify(designation);
+  if (designationSlug) {
+    return `${cataloguePart}-${designationSlug}`;
+  }
+  const nameSlug = slugify(entry.name);
+  if (nameSlug) {
+    return `${cataloguePart}-${nameSlug}`;
+  }
+  const refsSlug = Array.isArray(entry.catalogueRefs)
+    ? slugify(entry.catalogueRefs.filter(Boolean).join('-'))
+    : '';
+  if (refsSlug) {
+    return `${cataloguePart}-${refsSlug}`;
+  }
+  const ra = Number(entry.raHours);
+  const dec = Number(entry.decDeg);
+  if (Number.isFinite(ra) && Number.isFinite(dec)) {
+    return `${cataloguePart}-${Math.round(ra * 1000)}-${Math.round(dec * 1000)}`;
+  }
+  return `${cataloguePart}-${Date.now()}`;
+}
+
 function getActiveObservationMode() {
   const inputs = Array.from(observationModeInputs ?? []);
   const checked = inputs.find((input) => input.checked);
@@ -428,10 +472,12 @@ function normalizeObjectEntry(entry = {}, fallbackCatalogueId = null) {
   const refs = Array.isArray(entry.catalogueRefs) ? entry.catalogueRefs.filter(Boolean) : [];
   const primary = entry.primaryCatalogueId || refs[0] || fallbackCatalogueId;
   const uniqueRefs = Array.from(new Set(refs.length > 0 ? refs : primary ? [primary] : []));
+  const slug = entry.slug || buildObjectSlug({ ...entry, catalogueRefs: uniqueRefs }, primary);
   return {
     ...entry,
     primaryCatalogueId: primary,
     catalogueRefs: uniqueRefs,
+    slug,
     angularSizeArcmin: Number.isFinite(entry.angularSizeArcmin) ? entry.angularSizeArcmin : null,
     surfaceBrightness: Number.isFinite(entry.surfaceBrightness) ? entry.surfaceBrightness : null
   };

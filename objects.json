@@ -2664,6 +2664,326 @@
       ],
       "angularSizeArcmin": null,
       "surfaceBrightness": null
+    },
+    {
+      "designation": "C14",
+      "name": "C14 - Double amas de Persée",
+      "type": "Amas ouvert",
+      "constellation": "Persée",
+      "raHours": 2.32,
+      "decDeg": 57.15,
+      "magnitude": 4,
+      "bestMonths": [
+        9,
+        10,
+        11,
+        12
+      ],
+      "minBortle": 7,
+      "description": "Deux amas ouverts stellaires voisins formant une paire spectaculaire visible à l’œil nu sous un ciel limpide.",
+      "primaryCatalogueId": "caldwell",
+      "catalogueRefs": [
+        "caldwell",
+        "ngc"
+      ],
+      "angularSizeArcmin": 60,
+      "surfaceBrightness": 13.2,
+      "distanceLy": 7600
+    },
+    {
+      "designation": "C33",
+      "name": "C33 - Nébuleuse du Voile Est",
+      "type": "Nébuleuse en émission",
+      "constellation": "Cygne",
+      "raHours": 20.83,
+      "decDeg": 31.03,
+      "magnitude": 5,
+      "bestMonths": [
+        7,
+        8,
+        9,
+        10
+      ],
+      "minBortle": 5,
+      "description": "Filaments lumineux du rémanent de supernova du Voile, visibles en photo comme en visuel avec filtres OIII.",
+      "primaryCatalogueId": "caldwell",
+      "catalogueRefs": [
+        "caldwell",
+        "ngc"
+      ],
+      "angularSizeArcmin": 70,
+      "surfaceBrightness": 14.2,
+      "distanceLy": 2400
+    },
+    {
+      "designation": "NGC 253",
+      "name": "NGC 253 - Galaxie du Sculpteur",
+      "type": "Galaxie spirale",
+      "constellation": "Sculpteur",
+      "raHours": 0.79,
+      "decDeg": -25.29,
+      "magnitude": 7.1,
+      "bestMonths": [
+        9,
+        10,
+        11,
+        12
+      ],
+      "minBortle": 5,
+      "description": "Galaxie spirale barrée brillante présentant un noyau actif et une bande poussiéreuse mise en valeur en photo.",
+      "primaryCatalogueId": "ngc",
+      "catalogueRefs": [
+        "ngc",
+        "caldwell"
+      ],
+      "angularSizeArcmin": 27,
+      "surfaceBrightness": 12.7,
+      "distanceLy": 11000000
+    },
+    {
+      "designation": "NGC 891",
+      "name": "NGC 891 - Galaxie de la Fumée",
+      "type": "Galaxie spirale",
+      "constellation": "Andromède",
+      "raHours": 2.38,
+      "decDeg": 42.35,
+      "magnitude": 10,
+      "bestMonths": [
+        9,
+        10,
+        11,
+        12
+      ],
+      "minBortle": 4,
+      "description": "Galaxie vue par la tranche laissant apparaître une bande de poussière centrale contrastée.",
+      "primaryCatalogueId": "ngc",
+      "catalogueRefs": [
+        "ngc"
+      ],
+      "angularSizeArcmin": 13,
+      "surfaceBrightness": 13.5,
+      "distanceLy": 32000000
+    },
+    {
+      "designation": "IC 434",
+      "name": "IC 434 - Nébuleuse de la Tête de Cheval",
+      "type": "Nébuleuse en émission",
+      "constellation": "Orion",
+      "raHours": 5.88,
+      "decDeg": -2.0,
+      "magnitude": 7.3,
+      "bestMonths": [
+        11,
+        12,
+        1,
+        2
+      ],
+      "minBortle": 4,
+      "description": "Rideau de gaz ionisé projeté derrière la silhouette sombre de la Tête de Cheval, cible emblématique en photo.",
+      "primaryCatalogueId": "ic",
+      "catalogueRefs": [
+        "ic",
+        "ngc"
+      ],
+      "angularSizeArcmin": 60,
+      "surfaceBrightness": 15.2,
+      "distanceLy": 1350
+    },
+    {
+      "designation": "IC 1396",
+      "name": "IC 1396 - Nébuleuse de la Trompe d'Éléphant",
+      "type": "Nébuleuse en émission",
+      "constellation": "Céphée",
+      "raHours": 21.65,
+      "decDeg": 57.5,
+      "magnitude": 5.6,
+      "bestMonths": [
+        7,
+        8,
+        9,
+        10
+      ],
+      "minBortle": 5,
+      "description": "Grande région HII contenant des globules sombres et des proto-étoiles, spectaculaire sur de longues poses.",
+      "primaryCatalogueId": "ic",
+      "catalogueRefs": [
+        "ic",
+        "caldwell"
+      ],
+      "angularSizeArcmin": 170,
+      "surfaceBrightness": 14.8,
+      "distanceLy": 3000
+    },
+    {
+      "designation": "Sh2-101",
+      "name": "Sh2-101 - Nébuleuse de la Tulipe",
+      "type": "Nébuleuse en émission",
+      "constellation": "Cygne",
+      "raHours": 20.21,
+      "decDeg": 38.5,
+      "magnitude": 8,
+      "bestMonths": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "minBortle": 4,
+      "description": "Région en émission aux formes de fleur, popularisée par les images SHO mettant en valeur ses contrastes.",
+      "primaryCatalogueId": "sharpless",
+      "catalogueRefs": [
+        "sharpless",
+        "ic"
+      ],
+      "angularSizeArcmin": 16,
+      "surfaceBrightness": 15.5,
+      "distanceLy": 6000
+    },
+    {
+      "designation": "LDN 1235",
+      "name": "LDN 1235 - Nébuleuse du Requin",
+      "type": "Nébuleuse obscure",
+      "constellation": "Céphée",
+      "raHours": 23.75,
+      "decDeg": 75.3,
+      "magnitude": null,
+      "bestMonths": [
+        7,
+        8,
+        9
+      ],
+      "minBortle": 3,
+      "description": "Nuage moléculaire sombre dont les contours évoquent un requin, idéal pour les poses longues grand champ.",
+      "primaryCatalogueId": "ldn",
+      "catalogueRefs": [
+        "ldn"
+      ],
+      "angularSizeArcmin": 120,
+      "surfaceBrightness": null,
+      "distanceLy": 650
+    },
+    {
+      "designation": "vdB 142",
+      "name": "vdB 142 - Trompe d'Éléphant",
+      "type": "Nébuleuse par réflexion",
+      "constellation": "Céphée",
+      "raHours": 21.33,
+      "decDeg": 57.5,
+      "magnitude": 9.5,
+      "bestMonths": [
+        7,
+        8,
+        9,
+        10
+      ],
+      "minBortle": 4,
+      "description": "Piliers de poussière illuminés au cœur d'IC 1396, offrant un contraste saisissant en photo longue pose.",
+      "primaryCatalogueId": "vdb",
+      "catalogueRefs": [
+        "vdb",
+        "ic"
+      ],
+      "angularSizeArcmin": 10,
+      "surfaceBrightness": 14.9,
+      "distanceLy": 2400
+    },
+    {
+      "designation": "Gaia 1",
+      "name": "Gaia 1 - Amas ouvert",
+      "type": "Amas ouvert",
+      "constellation": "Colombe",
+      "raHours": 4.9,
+      "decDeg": -30.0,
+      "magnitude": 9,
+      "bestMonths": [
+        10,
+        11,
+        12,
+        1
+      ],
+      "minBortle": 5,
+      "description": "Amas ouvert découvert par la mission Gaia, immergé dans la bande de la Voie lactée australe.",
+      "primaryCatalogueId": "gaia",
+      "catalogueRefs": [
+        "gaia"
+      ],
+      "angularSizeArcmin": 12,
+      "surfaceBrightness": 13.8,
+      "distanceLy": 15000
+    },
+    {
+      "designation": "UGC 2885",
+      "name": "UGC 2885 - Galaxie de Rubin",
+      "type": "Galaxie spirale",
+      "constellation": "Grande Ourse",
+      "raHours": 3.62,
+      "decDeg": 63.53,
+      "magnitude": 12.3,
+      "bestMonths": [
+        10,
+        11,
+        12,
+        1
+      ],
+      "minBortle": 3,
+      "description": "Galaxie spirale géante étudiée par Vera Rubin, remarquable pour sa taille et sa vitesse de rotation.",
+      "primaryCatalogueId": "ugc",
+      "catalogueRefs": [
+        "ugc"
+      ],
+      "angularSizeArcmin": 6,
+      "surfaceBrightness": 14.5,
+      "distanceLy": 232000000
+    },
+    {
+      "designation": "Arp 273",
+      "name": "Arp 273 - Galaxies de la Rose",
+      "type": "Galaxies en interaction",
+      "constellation": "Andromède",
+      "raHours": 11.32,
+      "decDeg": 54.4,
+      "magnitude": 13.9,
+      "bestMonths": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "minBortle": 3,
+      "description": "Galaxies en interaction dont les bras spiralés forment une structure rappelant une fleur.",
+      "primaryCatalogueId": "arp",
+      "catalogueRefs": [
+        "arp",
+        "ugc"
+      ],
+      "angularSizeArcmin": 2.8,
+      "surfaceBrightness": 15.1,
+      "distanceLy": 300000000
+    },
+    {
+      "designation": "PGC 6240",
+      "name": "PGC 6240 - Galaxie en interaction",
+      "type": "Galaxie lenticulaire",
+      "constellation": "Ophiuchus",
+      "raHours": 16.96,
+      "decDeg": 2.4,
+      "magnitude": 13.7,
+      "bestMonths": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "minBortle": 3,
+      "description": "Galaxie active issue de la fusion de deux noyaux, brillante en infrarouge et radio.",
+      "primaryCatalogueId": "pgc",
+      "catalogueRefs": [
+        "pgc",
+        "ugc"
+      ],
+      "angularSizeArcmin": 2.1,
+      "surfaceBrightness": 14.9,
+      "distanceLy": 400000000
     }
   ]
 }

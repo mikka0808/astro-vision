@@ -33,11 +33,144 @@ const sortSelect = document.getElementById('catalogueSort');
 const catalogueFilterSummary = document.getElementById('catalogueFilterSummary');
 const catalogueTypeOptions = document.getElementById('catalogueTypeOptions');
 const nightModeToggle = document.getElementById('nightModeToggle');
+const catalogueHeading = document.getElementById('catalogueTitle');
+const catalogueSubheading = document.getElementById('catalogueSubtitle');
 
 const SORT_BY = {
-  number: 'number',
-  score: 'score'
+  score: 'score',
+  name: 'name',
+  magnitude: 'magnitude'
 };
+
+function slugify(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
+}
+
+function buildObjectSlug(entry = {}, primaryCatalogueId) {
+  const catalogue = primaryCatalogueId || entry.primaryCatalogueId || null;
+  const cataloguePart = catalogue ? slugify(catalogue) : 'catalogue';
+  const number = Number(entry.number);
+  if (Number.isFinite(number) && number > 0) {
+    const padded =
+      number < 1000
+        ? String(Math.round(number)).padStart(catalogue === 'messier' ? 3 : 2, '0')
+        : String(Math.round(number));
+    return `${cataloguePart}-${padded}`;
+  }
+  const designation =
+    entry.designation || entry.catalogueNumber || (Array.isArray(entry.catalogueRefs) ? entry.catalogueRefs[0] : null);
+  const designationSlug = slugify(designation);
+  if (designationSlug) {
+    return `${cataloguePart}-${designationSlug}`;
+  }
+  const nameSlug = slugify(entry.name);
+  if (nameSlug) {
+    return `${cataloguePart}-${nameSlug}`;
+  }
+  const refsSlug = Array.isArray(entry.catalogueRefs)
+    ? slugify(entry.catalogueRefs.filter(Boolean).join('-'))
+    : '';
+  if (refsSlug) {
+    return `${cataloguePart}-${refsSlug}`;
+  }
+  const ra = Number(entry.raHours);
+  const dec = Number(entry.decDeg);
+  if (Number.isFinite(ra) && Number.isFinite(dec)) {
+    return `${cataloguePart}-${Math.round(ra * 1000)}-${Math.round(dec * 1000)}`;
+  }
+  return `${cataloguePart}-${Date.now()}`;
+}
+
+function clampWeight(value, fallback = 1) {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.max(0, Math.min(1.5, value));
+}
+
+function normalizeCatalogueEntry(entry = {}) {
+  const weights = entry.observationWeights || {};
+  return {
+    ...entry,
+    observationWeights: {
+      visual: clampWeight(weights.visual, 1),
+      astrophoto: clampWeight(weights.astrophoto, 1),
+      research: clampWeight(weights.research, 1)
+    }
+  };
+}
+
+function normalizeObjectEntry(entry = {}, fallbackCatalogueId = null) {
+  const refs = Array.isArray(entry.catalogueRefs) ? entry.catalogueRefs.filter(Boolean) : [];
+  const primary = entry.primaryCatalogueId || refs[0] || fallbackCatalogueId;
+  const uniqueRefs = Array.from(new Set(refs.length > 0 ? refs : primary ? [primary] : []));
+  const slug = entry.slug || buildObjectSlug({ ...entry, catalogueRefs: uniqueRefs }, primary);
+  return {
+    ...entry,
+    primaryCatalogueId: primary,
+    catalogueRefs: uniqueRefs,
+    slug,
+    angularSizeArcmin: Number.isFinite(entry.angularSizeArcmin) ? entry.angularSizeArcmin : null,
+    surfaceBrightness: Number.isFinite(entry.surfaceBrightness) ? entry.surfaceBrightness : null
+  };
+}
+
+function parseCataloguePayload(payload) {
+  if (Array.isArray(payload)) {
+    const objects = payload.map((entry) => normalizeObjectEntry(entry));
+    return { catalogues: [], objects };
+  }
+  const rawCatalogues = Array.isArray(payload?.catalogues) ? payload.catalogues : [];
+  const catalogues = rawCatalogues.map((entry) => normalizeCatalogueEntry(entry));
+  const fallbackCatalogueId = catalogues.find((item) => item.defaultSelected)?.id || catalogues[0]?.id || null;
+  const rawObjects = Array.isArray(payload?.objects) ? payload.objects : [];
+  const objects = rawObjects.map((entry) => normalizeObjectEntry(entry, fallbackCatalogueId));
+  return { catalogues, objects };
+}
+
+function filterObjectsByCatalogue(objects = [], catalogueIds = []) {
+  if (!Array.isArray(objects) || objects.length === 0) return [];
+  const active = Array.isArray(catalogueIds) ? catalogueIds.filter(Boolean) : [];
+  if (active.length === 0) return objects;
+  const allowed = new Set(active);
+  return objects.filter((object) => {
+    const refs = Array.isArray(object.catalogueRefs) ? object.catalogueRefs : [];
+    if (refs.length === 0) return false;
+    return refs.some((id) => allowed.has(id));
+  });
+}
+
+function formatCatalogueList(ids = [], catalogues = []) {
+  if (!ids || ids.length === 0) {
+    return '—';
+  }
+  const meta = new Map();
+  catalogues.forEach((catalogue) => {
+    meta.set(catalogue.id, catalogue);
+  });
+  return ids
+    .map((id) => {
+      const catalogue = meta.get(id);
+      if (!catalogue) return id.toUpperCase();
+      if (catalogue.abbreviation) {
+        return `${catalogue.abbreviation}`;
+      }
+      return catalogue.name;
+    })
+    .join(' • ');
+}
+
+function formatObservationModeLabel(mode) {
+  if (!mode) return null;
+  const normalized = mode.toLowerCase();
+  if (normalized === 'visual') return 'Observation visuelle';
+  if (normalized === 'astrophoto') return 'Astrophotographie';
+  if (normalized === 'research') return 'Recherche scientifique';
+  return mode;
+}
 
 function applyNightMode(enabled, { persist = true } = {}) {
   document.body.classList.toggle('night-mode', enabled);
@@ -81,6 +214,8 @@ const SCORE_CLASSES = {
   none: 'score-none'
 };
 
+let catalogueDefinitions = [];
+let activeCatalogueIds = [];
 let catalogueEntries = [];
 let currentSort = SORT_BY.score;
 let activeTypeFilters = [];
@@ -97,11 +232,21 @@ function sortEntries(entries, sortMode) {
       if (scoreDiff !== 0) {
         return scoreDiff;
       }
-      return (a.object.number ?? 0) - (b.object.number ?? 0);
+      return (a.object.name || '').localeCompare(b.object.name || '', 'fr', { sensitivity: 'base' });
     });
     return sorted;
   }
-  sorted.sort((a, b) => (a.object.number ?? 0) - (b.object.number ?? 0));
+  if (sortMode === SORT_BY.magnitude) {
+    sorted.sort((a, b) => {
+      const magDiff = (a.object.magnitude ?? Infinity) - (b.object.magnitude ?? Infinity);
+      if (magDiff !== 0) {
+        return magDiff;
+      }
+      return (a.object.name || '').localeCompare(b.object.name || '', 'fr', { sensitivity: 'base' });
+    });
+    return sorted;
+  }
+  sorted.sort((a, b) => (a.object.name || '').localeCompare(b.object.name || '', 'fr', { sensitivity: 'base' }));
   return sorted;
 }
 
@@ -184,7 +329,17 @@ function renderCatalogue(entries) {
 
 function updateCatalogue() {
   if (!Array.isArray(catalogueEntries) || catalogueEntries.length === 0) {
-    catalogueGrid.innerHTML = '';
+    if (catalogueGrid) {
+      catalogueGrid.innerHTML = '';
+      const empty = document.createElement('p');
+      empty.className = 'help-text';
+      const selectionText = formatCatalogueList(activeCatalogueIds, catalogueDefinitions);
+      empty.textContent =
+        selectionText && selectionText !== '—'
+          ? `Aucun objet trouvé pour la sélection ${selectionText}. Ajuste les filtres ou choisis un autre catalogue.`
+          : 'Aucun objet disponible. Vérifie les catalogues sélectionnés.';
+      catalogueGrid.appendChild(empty);
+    }
     updateCatalogueFilterSummary(0, 0);
     return;
   }
@@ -208,10 +363,10 @@ function readSessionSnapshot() {
 async function loadCatalog() {
   const response = await fetch('objects.json');
   if (!response.ok) {
-    throw new Error('Impossible de charger les objets Messier.');
+    throw new Error('Impossible de charger les catalogues.');
   }
-  const data = await response.json();
-  return enrichCatalogueData(data);
+  const payload = await response.json();
+  return parseCataloguePayload(payload);
 }
 
 function formatSessionContext(snapshot) {
@@ -328,15 +483,33 @@ function formatFactor(value) {
 
 function buildCard(object, metrics) {
   const score = metrics?.score ?? 0;
-  const destination = Number.isFinite(object.number) ? `messier.html?m=${object.number}` : 'messier.html';
+  const detailParams = new URLSearchParams();
+  if (object.slug) {
+    detailParams.set('id', object.slug);
+  }
+  if (object.primaryCatalogueId) {
+    detailParams.set('catalogue', object.primaryCatalogueId);
+  }
+  if (object.primaryCatalogueId === 'messier' && Number.isFinite(object.number)) {
+    detailParams.set('m', object.number);
+  } else if (Number.isFinite(object.number)) {
+    detailParams.set('number', object.number);
+  }
+  const destination = `messier.html?${detailParams.toString()}`;
   const card = document.createElement('a');
   card.className = `catalogue-card ${classifyScore(score)}`;
   card.href = destination;
   card.setAttribute('role', 'listitem');
   card.setAttribute('aria-label', `Voir la fiche détaillée de ${object.name}`);
   card.title = 'Ouvrir la fiche détaillée';
-  if (Number.isFinite(object.number)) {
+  if (Number.isFinite(object.number) && object.primaryCatalogueId === 'messier') {
     card.dataset.messier = `M${object.number}`;
+  }
+  if (object.primaryCatalogueId) {
+    card.dataset.catalogue = object.primaryCatalogueId;
+  }
+  if (object.slug) {
+    card.dataset.slug = object.slug;
   }
 
   const previewWrapper = document.createElement('div');
@@ -354,6 +527,14 @@ function buildCard(object, metrics) {
   const endDirection = describeAzimuth(metrics?.endAzimuth);
   const typeLabel = object.category || object.type || 'Objet céleste';
   const magnitudeText = Number.isFinite(object.magnitude) ? object.magnitude.toFixed(1) : '—';
+  const catalogueLabel = formatCatalogueList(
+    Array.isArray(object.catalogueRefs) && object.catalogueRefs.length > 0
+      ? object.catalogueRefs
+      : object.primaryCatalogueId
+      ? [object.primaryCatalogueId]
+      : [],
+    catalogueDefinitions
+  );
   const altitudeText = formatAltitude(metrics?.altitude);
   const averageAltitudeText = formatAltitude(metrics?.averageAltitude);
   const minAltitudeText = formatAltitude(metrics?.minAltitude);
@@ -380,6 +561,7 @@ function buildCard(object, metrics) {
       <div>
         <h3>${object.name}</h3>
         <div class="meta">${typeLabel} • ${object.constellation} • Mag ${magnitudeText}</div>
+        <div class="meta meta--catalogue">Catalogue : ${catalogueLabel}</div>
       </div>
       <span class="score-chip">${scoreDisplay}/100</span>
     </header>
@@ -416,6 +598,7 @@ function buildCard(object, metrics) {
   factors.className = 'factor-list';
   factors.innerHTML = `
     <li>Type : <strong>${typeLabel}</strong></li>
+    <li>Catalogue(s) : <strong>${catalogueLabel || '—'}</strong></li>
     <li>Magnitude : <strong>Mag ${magnitudeText}</strong></li>
     <li>Direction optimale : <strong>${direction}</strong></li>
     <li>Début de session : <strong>${formatAltitude(metrics?.startAltitude)} • ${startDirection}</strong></li>
@@ -444,7 +627,21 @@ function mergeMetrics(objects, snapshot) {
   const map = new Map();
   if (snapshot?.entries) {
     snapshot.entries.forEach((entry) => {
-      map.set(entry.object.name, entry);
+      const slugKey = entry.object?.slug || entry.objectSlug;
+      const numberKey =
+        entry.object?.primaryCatalogueId && Number.isFinite(entry.object?.number)
+          ? `${entry.object.primaryCatalogueId}:${entry.object.number}`
+          : null;
+      const nameKey = entry.object?.name;
+      if (slugKey) {
+        map.set(slugKey, entry);
+      }
+      if (numberKey) {
+        map.set(numberKey, entry);
+      }
+      if (nameKey) {
+        map.set(nameKey, entry);
+      }
     });
   }
   const context = snapshot?.context;
@@ -456,7 +653,19 @@ function mergeMetrics(objects, snapshot) {
   const observationDate = context?.dateISO ? new Date(context.dateISO) : null;
   const moonIllumination = snapshot?.moon?.illumination ?? (observationDate ? computeMoonPhase(observationDate).illumination : 0);
   objects.forEach((object) => {
-    let metrics = map.get(object.name);
+    const slugKey = object.slug || null;
+    const numberKey =
+      object.primaryCatalogueId && Number.isFinite(object.number)
+        ? `${object.primaryCatalogueId}:${object.number}`
+        : null;
+    let metrics = null;
+    if (slugKey && map.has(slugKey)) {
+      metrics = map.get(slugKey);
+    } else if (numberKey && map.has(numberKey)) {
+      metrics = map.get(numberKey);
+    } else if (map.has(object.name)) {
+      metrics = map.get(object.name);
+    }
     const needsRebuild =
       !metrics ||
       !Array.isArray(metrics.track) ||
@@ -491,21 +700,64 @@ function mergeMetrics(objects, snapshot) {
   return results;
 }
 
+function resolveCatalogueSelection(snapshot, catalogues = []) {
+  const knownIds = new Set(catalogues.map((catalogue) => catalogue.id));
+  const stored = Array.isArray(snapshot?.context?.catalogueIds)
+    ? snapshot.context.catalogueIds.filter((id) => knownIds.has(id))
+    : [];
+  if (stored.length > 0) {
+    return stored;
+  }
+  const defaults = catalogues.filter((catalogue) => catalogue.defaultSelected).map((catalogue) => catalogue.id);
+  if (defaults.length > 0) {
+    return defaults;
+  }
+  if (catalogues.length > 0) {
+    return [catalogues[0].id];
+  }
+  return [];
+}
+
 async function bootstrap() {
   try {
-    const [objects, snapshot] = await Promise.all([loadCatalog(), Promise.resolve(readSessionSnapshot())]);
+    const [{ catalogues, objects }, snapshot] = await Promise.all([
+      loadCatalog(),
+      Promise.resolve(readSessionSnapshot())
+    ]);
+    catalogueDefinitions = catalogues;
     sessionSummary.textContent = formatSessionContext(snapshot);
     renderSessionDetails(snapshot);
-    const merged = mergeMetrics(objects, snapshot);
+    const enrichedObjects = enrichCatalogueData(objects);
+    activeCatalogueIds = resolveCatalogueSelection(snapshot, catalogues);
+    const filteredObjects = filterObjectsByCatalogue(enrichedObjects, activeCatalogueIds);
+    const merged = mergeMetrics(filteredObjects, snapshot);
     catalogueEntries = merged;
-    populateCatalogueTypeFilter(merged.map(({ object }) => object));
+    populateCatalogueTypeFilter(filteredObjects);
     updateCatalogue();
-    if (snapshot) {
-      catalogueHint.textContent =
-        `${objects.length} objets listés — triés automatiquement par score décroissant. Clique sur une vignette pour ouvrir la fiche détaillée.`;
-    } else {
-      catalogueHint.textContent = `${objects.length} objets listés. `
-        + 'Lance une analyse depuis la page principale pour obtenir les scores de visibilité et clique sur une vignette pour consulter la fiche.';
+    const selectedLabel = formatCatalogueList(activeCatalogueIds, catalogues);
+    const displayedSelection = selectedLabel && selectedLabel !== '—' ? selectedLabel : 'aucun catalogue';
+    const total = filteredObjects.length;
+    const pool = enrichedObjects.length;
+    const baseMessage =
+      total === pool
+        ? `${total} objets disponibles`
+        : `${total} objets filtrés sur ${pool} disponibles`;
+    const suffix = snapshot
+      ? 'Triés automatiquement par score décroissant. Clique sur une vignette pour ouvrir la fiche détaillée.'
+      :
+          'Lance une analyse depuis la page principale pour obtenir les scores de visibilité et clique sur une vignette pour consulter la fiche détaillée.';
+    catalogueHint.textContent = `${baseMessage} — sélection : ${displayedSelection}. ${suffix}`;
+    if (catalogueHeading) {
+      const titleLabel = activeCatalogueIds.length <= 1 ? displayedSelection : displayedSelection;
+      catalogueHeading.textContent =
+        titleLabel && titleLabel !== 'aucun catalogue' ? `Catalogue : ${titleLabel}` : 'Catalogue d’observation';
+    }
+    if (catalogueSubheading) {
+      const modeLabel = formatObservationModeLabel(snapshot?.context?.observationMode);
+      const modeText = modeLabel
+        ? `Mode ${modeLabel} — catalogues ${displayedSelection}`
+        : `Catalogues sélectionnés : ${displayedSelection}`;
+      catalogueSubheading.textContent = modeText;
     }
     if (!snapshot && sessionPanel) {
       sessionPanel.classList.add('warning');

@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Astro Soir — Catalogue Messier</title>
+  <title>Astro Soir — Catalogue d'observation</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="catalogue-page">
   <header class="hero hero--compact">
     <div class="hero-content">
       <div>
-        <h1>Catalogue Messier</h1>
-        <p>Consulte toutes les entrées du catalogue avec leur score de visibilité pour ta session actuelle.</p>
+        <h1 id="catalogueTitle">Catalogue d’observation</h1>
+        <p id="catalogueSubtitle">Consulte les catalogues sélectionnés et leurs scores de visibilité.</p>
       </div>
       <nav class="top-nav">
         <a class="nav-link" href="index.html">← Retour à l'analyse</a>
@@ -34,14 +34,15 @@
 
     <section class="panel" id="cataloguePanel">
       <div class="panel-header">
-        <h2>Objets du catalogue Messier</h2>
-        <p id="catalogueHint">Chargement des objets...</p>
+        <h2>Objets sélectionnés</h2>
+        <p id="catalogueHint">Chargement des catalogues...</p>
       </div>
       <div class="catalogue-controls">
         <label for="catalogueSort">Trier par</label>
         <select id="catalogueSort" aria-label="Trier les objets du catalogue">
-          <option value="number">Numéro M (M1 → M110)</option>
           <option value="score" selected>Score décroissant</option>
+          <option value="name">Nom (A → Z)</option>
+          <option value="magnitude">Magnitude croissante</option>
         </select>
         <details class="filter-details">
           <summary>Filtrer par type</summary>
@@ -57,7 +58,7 @@
       <a class="nav-link" href="index.html">Page principale</a>
       <a class="nav-link" href="dashboard.html">Tableau de bord</a>
     </nav>
-    <small>Sources météo : <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open‑Meteo</a>. Données Messier enrichies par Astro Soir.</small>
+    <small>Sources météo : <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open‑Meteo</a>. Catalogues et métadonnées consolidés par Astro Soir.</small>
   </footer>
   <script type="module" src="catalogue.js"></script>
 </body>

@@ -52,17 +52,139 @@ const sessionSection = document.getElementById('objectSessionSection');
 const sessionSummary = document.getElementById('objectSessionSummary');
 const sessionFacts = document.getElementById('objectSessionFacts');
 
-function parseMessierNumber() {
+const catalogueMetaMap = new Map();
+let catalogueDefinitions = [];
+
+function slugify(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
+}
+
+function buildObjectSlug(entry = {}, primaryCatalogueId) {
+  const catalogue = primaryCatalogueId || entry.primaryCatalogueId || null;
+  const cataloguePart = catalogue ? slugify(catalogue) : 'catalogue';
+  const number = Number(entry.number);
+  if (Number.isFinite(number) && number > 0) {
+    const padded =
+      number < 1000
+        ? String(Math.round(number)).padStart(catalogue === 'messier' ? 3 : 2, '0')
+        : String(Math.round(number));
+    return `${cataloguePart}-${padded}`;
+  }
+  const designation =
+    entry.designation || entry.catalogueNumber || (Array.isArray(entry.catalogueRefs) ? entry.catalogueRefs[0] : null);
+  const designationSlug = slugify(designation);
+  if (designationSlug) {
+    return `${cataloguePart}-${designationSlug}`;
+  }
+  const nameSlug = slugify(entry.name);
+  if (nameSlug) {
+    return `${cataloguePart}-${nameSlug}`;
+  }
+  const refsSlug = Array.isArray(entry.catalogueRefs)
+    ? slugify(entry.catalogueRefs.filter(Boolean).join('-'))
+    : '';
+  if (refsSlug) {
+    return `${cataloguePart}-${refsSlug}`;
+  }
+  const ra = Number(entry.raHours);
+  const dec = Number(entry.decDeg);
+  if (Number.isFinite(ra) && Number.isFinite(dec)) {
+    return `${cataloguePart}-${Math.round(ra * 1000)}-${Math.round(dec * 1000)}`;
+  }
+  return `${cataloguePart}-${Date.now()}`;
+}
+
+function clampWeight(value, fallback = 1) {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.max(0, Math.min(1.5, value));
+}
+
+function normalizeCatalogueEntry(entry = {}) {
+  const weights = entry.observationWeights || {};
+  return {
+    ...entry,
+    observationWeights: {
+      visual: clampWeight(weights.visual, 1),
+      astrophoto: clampWeight(weights.astrophoto, 1),
+      research: clampWeight(weights.research, 1)
+    }
+  };
+}
+
+function normalizeObjectEntry(entry = {}, fallbackCatalogueId = null) {
+  const refs = Array.isArray(entry.catalogueRefs) ? entry.catalogueRefs.filter(Boolean) : [];
+  const primary = entry.primaryCatalogueId || refs[0] || fallbackCatalogueId;
+  const uniqueRefs = Array.from(new Set(refs.length > 0 ? refs : primary ? [primary] : []));
+  const slug = entry.slug || buildObjectSlug({ ...entry, catalogueRefs: uniqueRefs }, primary);
+  return {
+    ...entry,
+    primaryCatalogueId: primary,
+    catalogueRefs: uniqueRefs,
+    slug,
+    angularSizeArcmin: Number.isFinite(entry.angularSizeArcmin) ? entry.angularSizeArcmin : null,
+    surfaceBrightness: Number.isFinite(entry.surfaceBrightness) ? entry.surfaceBrightness : null
+  };
+}
+
+function parseCataloguePayload(payload) {
+  if (Array.isArray(payload)) {
+    const objects = payload.map((entry) => normalizeObjectEntry(entry));
+    return { catalogues: [], objects };
+  }
+  const rawCatalogues = Array.isArray(payload?.catalogues) ? payload.catalogues : [];
+  const catalogues = rawCatalogues.map((entry) => normalizeCatalogueEntry(entry));
+  const fallbackCatalogueId = catalogues.find((item) => item.defaultSelected)?.id || catalogues[0]?.id || null;
+  const rawObjects = Array.isArray(payload?.objects) ? payload.objects : [];
+  const objects = rawObjects.map((entry) => normalizeObjectEntry(entry, fallbackCatalogueId));
+  return { catalogues, objects };
+}
+
+function formatCatalogueList(ids = []) {
+  if (!ids || ids.length === 0) {
+    return '—';
+  }
+  return ids
+    .map((id) => {
+      const catalogue = catalogueMetaMap.get(id);
+      if (!catalogue) return id.toUpperCase();
+      return catalogue.abbreviation || catalogue.name || id.toUpperCase();
+    })
+    .join(' • ');
+}
+
+function buildObjectLabel(object) {
+  if (!object) return 'Objet';
+  if (object.primaryCatalogueId === 'messier' && Number.isFinite(object.number)) {
+    return `M${object.number}`;
+  }
+  if (object.designation) {
+    return object.designation;
+  }
+  const refs = Array.isArray(object.catalogueRefs) ? object.catalogueRefs.filter(Boolean) : [];
+  if (refs.length > 0) {
+    return formatCatalogueList(refs);
+  }
+  return object.name || 'Objet';
+}
+
+function parseObjectRequest() {
   const params = new URLSearchParams(window.location.search);
-  const raw = params.get('m') || params.get('number') || params.get('id');
-  if (!raw) {
-    return null;
+  const slug = params.get('id') || params.get('slug') || null;
+  const catalogueId = params.get('catalogue') || params.get('cat') || null;
+  const rawNumber = params.get('m') || params.get('number');
+  let number = null;
+  if (rawNumber) {
+    const parsed = Number.parseInt(rawNumber.replace(/[^0-9-]/g, ''), 10);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      number = parsed;
+    }
   }
-  const value = Number.parseInt(raw.replace(/[^0-9-]/g, ''), 10);
-  if (!Number.isFinite(value) || value <= 0) {
-    return null;
-  }
-  return value;
+  return { slug, catalogueId, number };
 }
 
 function formatRightAscension(hours) {
@@ -93,9 +215,17 @@ function formatDistance(distanceLy) {
   return `${distanceLy.toLocaleString('fr-FR')} a.l.`;
 }
 
-function formatAngularSize(size) {
-  if (!size) return '—';
-  return size;
+function formatAngularSize(size, fallbackValue = null) {
+  if (Number.isFinite(size)) {
+    return `${size.toFixed(size >= 10 ? 0 : 1)}′`;
+  }
+  if (typeof size === 'string' && size.trim().length > 0) {
+    return size;
+  }
+  if (Number.isFinite(fallbackValue)) {
+    return `${fallbackValue.toFixed(fallbackValue >= 10 ? 0 : 1)}′`;
+  }
+  return '—';
 }
 
 function formatMonths(months) {
@@ -150,14 +280,38 @@ function readSessionSnapshot() {
   }
 }
 
-async function loadCatalogueObject(number) {
+async function loadCatalogueObject(request) {
   const response = await fetch('objects.json');
   if (!response.ok) {
-    throw new Error('Impossible de charger les objets Messier.');
+    throw new Error('Impossible de charger les catalogues.');
   }
-  const data = await response.json();
-  const enriched = enrichCatalogueData(data);
-  return enriched.find((entry) => Number(entry.number) === number) || null;
+  const payload = await response.json();
+  const { catalogues, objects } = parseCataloguePayload(payload);
+  catalogueDefinitions = catalogues;
+  catalogueMetaMap.clear();
+  catalogues.forEach((catalogue) => {
+    if (catalogue?.id) {
+      catalogueMetaMap.set(catalogue.id, catalogue);
+    }
+  });
+  const enriched = enrichCatalogueData(objects);
+  let target = null;
+  if (request?.slug) {
+    target = enriched.find((entry) => entry.slug === request.slug);
+  }
+  if (!target && request?.catalogueId && Number.isFinite(request.number)) {
+    target = enriched.find(
+      (entry) => entry.primaryCatalogueId === request.catalogueId && Number(entry.number) === Number(request.number)
+    );
+  }
+  if (!target && Number.isFinite(request?.number)) {
+    target = enriched.find((entry) => entry.primaryCatalogueId === 'messier' && Number(entry.number) === Number(request.number));
+  }
+  if (!target && request?.slug) {
+    const normalizedSlug = request.slug.toLowerCase();
+    target = enriched.find((entry) => entry.slug === normalizedSlug);
+  }
+  return { object: target || null, catalogues, objects: enriched };
 }
 
 function normaliseEntry(entry) {
@@ -175,9 +329,17 @@ function findMetrics(snapshot, object) {
     return null;
   }
   const entries = Array.isArray(snapshot.entries) ? snapshot.entries : [];
+  const slugKey = object.slug;
+  const bySlug = slugKey ? entries.find((entry) => entry.object?.slug === slugKey || entry.objectSlug === slugKey) : null;
+  const byCatalogueNumber = entries.find(
+    (entry) =>
+      entry.object?.primaryCatalogueId === object.primaryCatalogueId &&
+      Number(entry.object?.number ?? entry.objectNumber) === Number(object.number)
+  );
   const byNumber = entries.find((entry) => Number(entry.object?.number ?? entry.objectNumber) === Number(object.number));
   const byName = entries.find((entry) => entry.object?.name === object.name);
-  const candidate = normaliseEntry(byNumber) || normaliseEntry(byName);
+  const candidate =
+    normaliseEntry(bySlug) || normaliseEntry(byCatalogueNumber) || normaliseEntry(byNumber) || normaliseEntry(byName);
   if (candidate && Number.isFinite(candidate.score)) {
     return candidate;
   }
@@ -219,18 +381,30 @@ function renderMedia(object) {
 
 function renderFacts(object, dossier) {
   facts.innerHTML = '';
-  const typeLabel = object.category || object.type || 'Objet Messier';
+  const typeLabel = object.category || object.type || 'Objet du catalogue';
   const magnitudeText = Number.isFinite(object.magnitude) ? `Mag ${object.magnitude.toFixed(1)}` : '—';
   const distanceText = formatDistance(dossier?.distanceLy ?? object.distanceLy);
-  const angularSizeText = formatAngularSize(dossier?.angularSize || object.angularSize);
+  const angularSizeText = formatAngularSize(dossier?.angularSize, object.angularSizeArcmin ?? object.angularSize);
   const raText = formatRightAscension(object.raHours);
   const decText = formatDeclination(object.decDeg);
   const bortleText = Number.isFinite(object.minBortle) ? `Bortle ${object.minBortle}` : '—';
   const monthsText = formatMonths(object.bestMonths);
+  const surfaceBrightnessText = Number.isFinite(object.surfaceBrightness)
+    ? `${object.surfaceBrightness.toFixed(1)} mag/arcsec²`
+    : '—';
+  const cataloguesText = formatCatalogueList(
+    Array.isArray(object.catalogueRefs) && object.catalogueRefs.length > 0
+      ? object.catalogueRefs
+      : object.primaryCatalogueId
+      ? [object.primaryCatalogueId]
+      : []
+  );
 
   [
     ['Classification', typeLabel],
+    ['Catalogue(s)', cataloguesText],
     ['Magnitude', magnitudeText],
+    ['Brillance surfacique', surfaceBrightnessText],
     ['Constellation', object.constellation || '—'],
     ['Ascension droite', raText],
     ['Déclinaison', decText],
@@ -245,7 +419,7 @@ function renderFacts(object, dossier) {
 
 function renderNarrative(object, dossier) {
   const story = dossier?.story || object.description ||
-    "Cette entrée Messier attend encore son récit détaillé.";
+    "Cette entrée attend encore son récit détaillé.";
   const observation = dossier?.observation ||
     "Ajoute cette cible à ta liste pour documenter tes propres impressions d'observation.";
   storyParagraph.textContent = story;
@@ -381,34 +555,49 @@ function renderSession(snapshot, metrics) {
 }
 
 async function bootstrap() {
-  const messierNumber = parseMessierNumber();
-  if (!messierNumber) {
-    message.textContent = 'Aucun numéro Messier valide fourni. Retourne au catalogue pour sélectionner un objet.';
+  const request = parseObjectRequest();
+  if (!request.slug && !Number.isFinite(request.number)) {
+    message.textContent =
+      'Aucun identifiant de catalogue valide fourni. Retourne au catalogue pour sélectionner une cible.';
     article.hidden = true;
     return;
   }
 
   try {
-    const [object, snapshot] = await Promise.all([
-      loadCatalogueObject(messierNumber),
+    const [{ object }, snapshot] = await Promise.all([
+      loadCatalogueObject(request),
       Promise.resolve(readSessionSnapshot())
     ]);
 
     if (!object) {
-      message.textContent = `Impossible de trouver M${messierNumber} dans le catalogue.`;
+      message.textContent =
+        "Impossible de trouver cette cible dans les catalogues chargés. Vérifie ta sélection depuis la page principale.";
       article.hidden = true;
       return;
     }
 
-    const dossier = getObjectDossier(messierNumber);
+    const dossier = object.primaryCatalogueId === 'messier' ? getObjectDossier(object.number) : null;
     const metrics = findMetrics(snapshot, object);
+    const displayLabel = buildObjectLabel(object);
+    const catalogueLabel = formatCatalogueList(
+      Array.isArray(object.catalogueRefs) && object.catalogueRefs.length > 0
+        ? object.catalogueRefs
+        : object.primaryCatalogueId
+        ? [object.primaryCatalogueId]
+        : []
+    );
 
-    heading.textContent = `Fiche Messier — M${messierNumber}`;
+    heading.textContent = `Fiche catalogue — ${displayLabel}`;
     baseline.textContent = `Analyse détaillée de ${object.name}.`;
-    label.textContent = `M${messierNumber}`;
+    label.textContent = displayLabel;
     title.textContent = object.name;
-    const typeLabel = object.category || object.type || 'Objet Messier';
-    subtitle.textContent = [typeLabel, object.constellation].filter(Boolean).join(' • ');
+    const typeLabel = object.category || object.type || 'Objet du catalogue';
+    const subtitleParts = [typeLabel, object.constellation];
+    if (catalogueLabel && catalogueLabel !== '—') {
+      subtitleParts.push(catalogueLabel);
+    }
+    subtitle.textContent = subtitleParts.filter(Boolean).join(' • ');
+    document.title = `Astro Soir — ${object.name}`;
 
     renderMedia(object);
     renderFacts(object, dossier);
