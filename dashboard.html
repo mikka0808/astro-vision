@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Astro Soir — Tableau de bord</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="catalogue-page">
+  <header class="hero hero--compact">
+    <div class="hero-content">
+      <div>
+        <h1>Tableau de bord</h1>
+        <p>Visualise la synthèse de ta session : score global, alertes horaires et fenêtres optimales.</p>
+      </div>
+      <nav class="top-nav">
+        <a class="nav-link" href="index.html">← Retour à l'analyse</a>
+        <a class="nav-link" href="catalogue.html">Catalogue</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    <section class="panel" id="dashboardPanel" aria-live="polite">
+      <div class="panel-header">
+        <h2>Synthèse de visibilité</h2>
+        <p id="dashboardSummary">Charge la dernière analyse pour afficher la synthèse.</p>
+      </div>
+      <div class="decision-grid">
+        <article class="decision-card">
+          <h3>Score global</h3>
+          <p class="decision-score" id="dashboardScore">—</p>
+          <div class="score-meter" aria-hidden="true"><span id="dashboardGauge"></span></div>
+          <p class="help-text" id="dashboardDetails">Aucune session récente.</p>
+        </article>
+        <article class="decision-card">
+          <h3>Contexte</h3>
+          <p class="help-text" id="dashboardContext">Position et créneau en attente…</p>
+          <p class="help-text" id="dashboardWeather">Résumé météo indisponible.</p>
+          <p class="help-text" id="dashboardMoon">Phase lunaire non calculée.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel" id="dashboardAlertsPanel">
+      <div class="panel-header">
+        <h2>Alertes & recommandations du soir</h2>
+        <p class="help-text">Fenêtres horaires idéales pour les meilleurs objets.</p>
+      </div>
+      <ul class="decision-list" id="dashboardAlerts"></ul>
+    </section>
+
+    <section class="panel" id="dashboardCalendarPanel">
+      <div class="panel-header">
+        <h2>Calendrier des fenêtres optimales</h2>
+        <p class="help-text">Projection sur les prochaines nuits (J+3).</p>
+      </div>
+      <ul class="decision-list" id="dashboardCalendar"></ul>
+    </section>
+
+    <section class="panel" id="dashboardAstroPanel">
+      <div class="panel-header">
+        <h2>Mode astrophotographie</h2>
+        <p class="help-text" id="dashboardAstroSummary">Active le mode photo sur la page principale pour obtenir des suggestions ciblées.</p>
+      </div>
+      <ul class="decision-list" id="dashboardAstroList"></ul>
+    </section>
+  </main>
+  <footer>
+    <nav class="footer-nav">
+      <a class="nav-link" href="index.html">Page principale</a>
+      <a class="nav-link" href="catalogue.html">Catalogue Messier</a>
+    </nav>
+    <small>Les données affichées proviennent de ta dernière analyse locale. Relance une analyse pour mettre à jour le tableau de bord.</small>
+  </footer>
+  <script type="module" src="dashboard.js"></script>
+</body>
+</html>

@@ -20,7 +20,8 @@ import {
   formatCoordinate,
   getUpcomingEvents,
   parseCoordinate,
-  selectTopTargets
+  selectTopTargets,
+  computeDecisionInsights
 } from './astro-core.js';
 
 const sessionForm = document.getElementById('sessionForm');
@@ -53,8 +54,19 @@ const targetsList = document.getElementById('targets');
 const filterSummary = document.getElementById('filterSummary');
 const typeFilterOptions = document.getElementById('typeFilterOptions');
 const spinnerButtons = document.querySelectorAll('.spinner-btn');
+const decisionPanel = document.getElementById('decisionPanel');
+const decisionSummary = document.getElementById('decisionSummary');
+const globalScoreValue = document.getElementById('globalScoreValue');
+const globalScoreGauge = document.getElementById('globalScoreGauge');
+const globalScoreDetails = document.getElementById('globalScoreDetails');
+const decisionCalendarList = document.getElementById('decisionCalendarList');
+const decisionAlertsList = document.getElementById('decisionAlertsList');
+const decisionAstrophotoList = document.getElementById('decisionAstrophotoList');
+const astrophotoSummary = document.getElementById('astrophotoSummary');
+const enableAstrophotoInput = document.getElementById('enableAstrophoto');
+const equipmentSelect = document.getElementById('equipmentProfile');
 
-const SESSION_SNAPSHOT_VERSION = 5;
+const SESSION_SNAPSHOT_VERSION = 6;
 let objectsCatalog = [];
 let cachedSunsetTime = null;
 let sunsetDebounce = null;
@@ -63,6 +75,8 @@ let cachedWeather = null;
 let cachedMoon = null;
 let cachedEvents = [];
 let cachedContext = null;
+let cachedDecision = null;
+let astrophotoSettings = { enabled: false, profileId: 'visual' };
 
 async function loadCatalog() {
   const response = await fetch('objects.json');
@@ -145,6 +159,50 @@ function populateTypeFilter() {
   updateFilterSummary();
 }
 
+function readLastSessionSnapshot() {
+  try {
+    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (error) {
+    console.warn('Impossible de relire la dernière session :', error);
+    return null;
+  }
+}
+
+function applyAstrophotoToggle() {
+  if (!enableAstrophotoInput || !equipmentSelect) return;
+  const enabled = enableAstrophotoInput.checked;
+  equipmentSelect.disabled = !enabled;
+  if (!enabled) {
+    equipmentSelect.value = 'visual';
+  }
+}
+
+function readAstrophotoSettings() {
+  if (!enableAstrophotoInput || !equipmentSelect) {
+    return { enabled: false, profileId: 'visual' };
+  }
+  return {
+    enabled: enableAstrophotoInput.checked,
+    profileId: equipmentSelect.value || 'visual'
+  };
+}
+
+function hydrateAstrophotoSettings(snapshot) {
+  if (!enableAstrophotoInput || !equipmentSelect) return;
+  const stored = snapshot?.astroSettings || {
+    enabled: snapshot?.decisionSupport?.astrophoto?.active,
+    profileId: snapshot?.decisionSupport?.astrophoto?.profileId
+  };
+  if (!stored) return;
+  enableAstrophotoInput.checked = Boolean(stored.enabled);
+  if (stored.profileId) {
+    equipmentSelect.value = stored.profileId;
+  }
+  applyAstrophotoToggle();
+}
+
 function getActiveTypeFilters() {
   if (!typeFilterOptions) return [];
   return Array.from(typeFilterOptions.querySelectorAll('input[type="checkbox"]:checked')).map((input) => input.value);
@@ -170,6 +228,7 @@ function updateFilteredTargets() {
 }
 
 function initDefaults() {
+  const snapshot = readLastSessionSnapshot();
   const now = new Date();
   const localISO = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
   dateInput.value = localISO.toISOString().slice(0, 10);
@@ -183,6 +242,12 @@ function initDefaults() {
   updateBortleLabel();
   triggerCoordinateUpdates();
   autoFetchBortle();
+  if (snapshot) {
+    hydrateAstrophotoSettings(snapshot);
+  } else {
+    applyAstrophotoToggle();
+  }
+  astrophotoSettings = readAstrophotoSettings();
 }
 
 function updateBortleLabel() {
@@ -376,6 +441,150 @@ function renderTargets(targets, stats = {}) {
   resultsPanel.classList.remove('hidden');
 }
 
+function renderDecisionSupport(decision) {
+  if (!decisionPanel) return;
+  cachedDecision = decision;
+  if (!decision || !Number.isFinite(decision.globalScore)) {
+    decisionPanel.classList.add('hidden');
+    return;
+  }
+  decisionPanel.classList.remove('hidden');
+  if (decisionSummary) {
+    decisionSummary.textContent = decision.globalSummary;
+  }
+  const scoreValue = Math.max(0, Math.min(100, Math.round((decision.globalScore ?? 0) * 100)));
+  if (globalScoreValue) {
+    globalScoreValue.textContent = `${scoreValue}/100`;
+  }
+  if (globalScoreGauge) {
+    globalScoreGauge.style.width = `${scoreValue}%`;
+  }
+  const aggregates = decision.aggregates ?? {};
+  const avgAltitude = Number.isFinite(aggregates.avgAltitude) ? Math.round(aggregates.avgAltitude) : null;
+  const avgVisibility = Number.isFinite(aggregates.avgVisibility) ? Math.round(aggregates.avgVisibility * 100) : null;
+  const weather = aggregates.weather ?? {};
+  const skyWindow = Number.isFinite(weather.skyWindow) ? Math.round(weather.skyWindow * 100) : null;
+  const atmosphere = Number.isFinite(weather.atmosphere) ? Math.round(weather.atmosphere * 100) : null;
+  const moonPercent = Number.isFinite(aggregates.moonIllumination)
+    ? Math.round(aggregates.moonIllumination * 100)
+    : null;
+  if (globalScoreDetails) {
+    const parts = [];
+    if (avgAltitude !== null) parts.push(`Altitude moyenne ${avgAltitude}°`);
+    if (avgVisibility !== null) parts.push(`Couverture ${avgVisibility}% du créneau`);
+    if (skyWindow !== null) parts.push(`Fenêtre ciel ${skyWindow}%`);
+    if (atmosphere !== null) parts.push(`Atmosphère ${atmosphere}%`);
+    if (moonPercent !== null) parts.push(`Lune ${moonPercent}%`);
+    globalScoreDetails.textContent = parts.join(' • ');
+  }
+
+  if (decisionCalendarList) {
+    decisionCalendarList.innerHTML = '';
+    const calendarEntries = Array.isArray(decision.calendar) ? decision.calendar.slice(0, 3) : [];
+    if (calendarEntries.length === 0) {
+      const item = document.createElement('li');
+      item.textContent = 'Lance une analyse pour générer des fenêtres optimales.';
+      decisionCalendarList.appendChild(item);
+    } else {
+      calendarEntries.forEach((entry) => {
+        const item = document.createElement('li');
+        const title = document.createElement('strong');
+        title.textContent = entry.object?.name ?? 'Objet céleste';
+        const span = document.createElement('span');
+        const lines = (entry.windows || [])
+          .slice(0, 3)
+          .map((window) => {
+            const whenDate = window.dateISO ? new Date(window.dateISO) : null;
+            const dayLabel = whenDate
+              ? whenDate.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'numeric' })
+              : '—';
+            const timeLabel = formatLocalTime(window.bestTime);
+            const altitudeLabel = formatAltitude(window.altitude);
+            const scoreLabel = Number.isFinite(window.score ?? window.baseScore)
+              ? `${Math.round((window.score ?? window.baseScore) * 100)}/100`
+              : '—';
+            const moonLabel = window.moonPhase?.emoji
+              ? `${window.moonPhase.emoji} ${window.moonPhase.name}`
+              : '';
+            return `${dayLabel} • ${timeLabel} • ${altitudeLabel} • ${scoreLabel}${moonLabel ? ` • ${moonLabel}` : ''}`;
+          });
+        span.innerHTML = lines.join('<br>');
+        item.appendChild(title);
+        item.appendChild(span);
+        decisionCalendarList.appendChild(item);
+      });
+    }
+  }
+
+  if (decisionAlertsList) {
+    decisionAlertsList.innerHTML = '';
+    const alerts = Array.isArray(decision.alerts) ? decision.alerts : [];
+    if (alerts.length === 0) {
+      const item = document.createElement('li');
+      item.textContent = 'Aucune alerte particulière pour ce créneau.';
+      decisionAlertsList.appendChild(item);
+    } else {
+      alerts.forEach((alert) => {
+        const item = document.createElement('li');
+        const title = document.createElement('strong');
+        title.textContent = alert.object?.name ?? 'Cible recommandée';
+        const span = document.createElement('span');
+        const start = alert.windowStart ? formatLocalTime(alert.windowStart) : null;
+        const end = alert.windowEnd ? formatLocalTime(alert.windowEnd) : null;
+        const peak = formatLocalTime(alert.peak);
+        const altitudeLabel = formatAltitude(alert.altitude);
+        const direction = alert.direction || 'Direction inconnue';
+        const windowText = start && end ? `entre ${start} et ${end}` : `vers ${peak}`;
+        span.textContent = `${windowText} • ${altitudeLabel} • ${direction}`;
+        item.appendChild(title);
+        item.appendChild(span);
+        decisionAlertsList.appendChild(item);
+      });
+    }
+  }
+
+  if (decisionAstrophotoList && astrophotoSummary) {
+    decisionAstrophotoList.innerHTML = '';
+    const astro = decision.astrophoto || {};
+    astrophotoSummary.textContent = astro.active
+      ? `${astro.profileLabel ?? 'Profil photo'} — ${astro.profileDescription ?? ''}`
+      : 'Active le mode photo pour obtenir des recommandations dédiées.';
+    if (astro.active && Array.isArray(astro.recommendations) && astro.recommendations.length > 0) {
+      astro.recommendations.slice(0, 4).forEach((entry) => {
+        const item = document.createElement('li');
+        const title = document.createElement('strong');
+        title.textContent = entry.object?.name ?? 'Cible photo';
+        const span = document.createElement('span');
+        const scoreLabel = Number.isFinite(entry.astroScore) ? `${Math.round(entry.astroScore * 100)}/100` : '—';
+        const baseScore = Number.isFinite(entry.score ?? entry.baseScore)
+          ? `${Math.round((entry.score ?? entry.baseScore) * 100)}/100`
+          : '—';
+        span.textContent = `${formatLocalTime(entry.bestTime)} • ${formatAltitude(entry.altitude)} • ${entry.direction || describeAzimuth(entry.azimuth)} • Photo ${scoreLabel} • Score global ${baseScore}`;
+        item.appendChild(title);
+        item.appendChild(span);
+        decisionAstrophotoList.appendChild(item);
+      });
+    } else if (astro.active) {
+      const item = document.createElement('li');
+      item.textContent = 'Aucune cible photo ne dépasse le seuil pour cet équipement.';
+      decisionAstrophotoList.appendChild(item);
+    }
+  }
+}
+
+function refreshDecisionSupport() {
+  if (!cachedResults || cachedResults.length === 0) return;
+  const decision = computeDecisionInsights(cachedResults, {
+    weather: cachedWeather ?? {},
+    moon: cachedMoon ?? null,
+    context: cachedContext ?? {},
+    objects: objectsCatalog,
+    equipment: astrophotoSettings,
+    nights: 4
+  });
+  renderDecisionSupport(decision);
+}
+
 function findHourIndex(times, targetISO) {
   const index = times.indexOf(targetISO);
   if (index !== -1) return index;
@@ -555,10 +764,16 @@ async function fetchWeather(lat, lon, localDate, localTime, durationHours) {
 
 async function handleSessionSubmit(event) {
   event.preventDefault();
-  resultsPanel.classList.add('hidden');
-  weatherPanel.classList.add('hidden');
+  if (resultsPanel) resultsPanel.classList.add('hidden');
+  if (weatherPanel) weatherPanel.classList.add('hidden');
   if (moonPanel) moonPanel.classList.add('hidden');
   if (eventsPanel) eventsPanel.classList.add('hidden');
+  if (decisionPanel) {
+    decisionPanel.classList.add('hidden');
+    if (decisionSummary) {
+      decisionSummary.textContent = 'Analyse en attente…';
+    }
+  }
   resultsHint.textContent = 'Analyse en cours...';
   targetsList.innerHTML = '';
   cachedResults = [];
@@ -566,6 +781,7 @@ async function handleSessionSubmit(event) {
   cachedMoon = null;
   cachedEvents = [];
   cachedContext = null;
+  cachedDecision = null;
   updateFilterSummary();
 
   const lat = parseCoordinate(latitudeInput.value);
@@ -574,6 +790,8 @@ async function handleSessionSubmit(event) {
   const dateValue = dateInput.value;
   const timeValue = timeInput.value;
   const duration = Number(durationSelect.value);
+
+  astrophotoSettings = readAstrophotoSettings();
 
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
     resultsHint.textContent = 'Merci de renseigner une latitude et une longitude valides.';
@@ -609,13 +827,23 @@ async function handleSessionSubmit(event) {
       localDate: dateValue,
       localTime: timeValue,
       durationHours: duration,
-      dateISO: observationDateUTC.toISOString()
+      dateISO: observationDateUTC.toISOString(),
+      date: observationDateUTC
     };
     updateFilterSummary();
     const selected = getActiveTypeFilters();
     const matches = selectTopTargets(scoredEntries, { limit: scoredEntries.length, typeFilter: selected });
     const display = matches.slice(0, 8);
     renderTargets(display, { total: scoredEntries.length, matchCount: matches.length });
+    const decision = computeDecisionInsights(scoredEntries, {
+      weather,
+      moon,
+      context: cachedContext,
+      objects: objectsCatalog,
+      equipment: astrophotoSettings,
+      nights: 4
+    });
+    renderDecisionSupport(decision);
     storeSessionSnapshot({
       lat,
       lon,
@@ -627,7 +855,9 @@ async function handleSessionSubmit(event) {
       weather,
       moon,
       events,
-      entries: scoredEntries
+      entries: scoredEntries,
+      decisionSupport: decision,
+      astroSettings: astrophotoSettings
     });
   } catch (error) {
     console.error(error);
@@ -687,6 +917,22 @@ spinnerButtons.forEach((button) => {
     updateCoordinateInput(targetInput, step * direction);
   });
 });
+
+if (enableAstrophotoInput) {
+  enableAstrophotoInput.addEventListener('change', () => {
+    applyAstrophotoToggle();
+    astrophotoSettings = readAstrophotoSettings();
+    refreshDecisionSupport();
+  });
+}
+
+if (equipmentSelect) {
+  equipmentSelect.addEventListener('change', () => {
+    astrophotoSettings = readAstrophotoSettings();
+    refreshDecisionSupport();
+  });
+}
+
 useSunsetBtn.addEventListener('click', () => {
   if (cachedSunsetTime) {
     timeInput.value = cachedSunsetTime.slice(0, 5);
@@ -804,7 +1050,9 @@ function storeSessionSnapshot({
   weather,
   moon,
   events,
-  entries
+  entries,
+  decisionSupport,
+  astroSettings
 }) {
   try {
     const snapshot = {
@@ -850,8 +1098,13 @@ function storeSessionSnapshot({
         transparencyText: entry.transparencyText,
         dewRiskText: entry.dewRiskText,
         aerosolText: entry.aerosolText,
-        score: entry.score
-      }))
+        score: entry.score,
+        weatherWindow: entry.weatherWindow,
+        atmosphereFactor: entry.atmosphereFactor,
+        weatherConditionFactor: entry.weatherConditionFactor
+      })),
+      decisionSupport: decisionSupport || null,
+      astroSettings: astroSettings || null
     };
     localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(snapshot));
   } catch (error) {

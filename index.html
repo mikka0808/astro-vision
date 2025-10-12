@@ -14,6 +14,7 @@
         <p>Trouve les meilleures cibles à observer selon ta localisation, la saison et la météo instantanée.</p>
       </div>
       <nav class="top-nav">
+        <a class="nav-link" href="dashboard.html">Tableau de bord</a>
         <a class="nav-link" href="catalogue.html">Catalogue Messier</a>
       </nav>
     </div>
@@ -82,6 +83,21 @@
           <output id="bortleValue" for="bortle">6 - ciel périurbain</output>
           <small class="help-text" id="bortleHint">Clique sur 🔄 pour estimer la pollution lumineuse actuelle.</small>
         </div>
+        <fieldset class="field-group field-group--toggle">
+          <legend>Mode astrophotographie</legend>
+          <label class="toggle">
+            <input type="checkbox" id="enableAstrophoto" name="enableAstrophoto">
+            <span>Activer les recommandations photo dédiées</span>
+          </label>
+          <label for="equipmentProfile" class="sr-only">Sélection d'équipement</label>
+          <select id="equipmentProfile" name="equipmentProfile" disabled>
+            <option value="visual">Observation visuelle (équilibré)</option>
+            <option value="dslr-wide">Photo grand champ — APN + objectif 135 mm</option>
+            <option value="newton-150">Photo ciel profond — Télescope 150/750 + caméra</option>
+            <option value="planetary">Planétaire — Caméra haute cadence + Barlow</option>
+          </select>
+          <small class="help-text">Choisis ton équipement photo pour adapter la sélection des cibles les plus photogéniques.</small>
+        </fieldset>
         <div class="field-group submit">
           <button type="submit" id="compute">🔭 Lancer l'analyse</button>
         </div>
@@ -113,6 +129,35 @@
       <ul id="eventsList" class="event-list"></ul>
     </section>
 
+    <section class="panel hidden" id="decisionPanel" aria-live="polite">
+      <div class="panel-header">
+        <h2>Aide à la décision</h2>
+        <p id="decisionSummary">Analyse en attente…</p>
+      </div>
+      <div class="decision-grid">
+        <article class="decision-card" id="decisionGlobal">
+          <h3>Score global de visibilité</h3>
+          <p class="decision-score" id="globalScoreValue">—</p>
+          <div class="score-meter" aria-hidden="true"><span id="globalScoreGauge"></span></div>
+          <p class="help-text" id="globalScoreDetails"></p>
+        </article>
+        <article class="decision-card" id="decisionCalendar">
+          <h3>Fenêtres optimales</h3>
+          <ul id="decisionCalendarList" class="decision-list"></ul>
+        </article>
+        <article class="decision-card" id="decisionAlerts">
+          <h3>Alertes du soir</h3>
+          <ul id="decisionAlertsList" class="decision-list"></ul>
+        </article>
+        <article class="decision-card" id="decisionAstrophoto">
+          <h3>Mode astrophotographie</h3>
+          <p id="astrophotoSummary" class="help-text">Active le mode photo pour obtenir des recommandations dédiées.</p>
+          <ul id="decisionAstrophotoList" class="decision-list"></ul>
+        </article>
+      </div>
+      <p class="help-text">Besoin d'une vue détaillée ? Consulte le <a href="dashboard.html">tableau de bord complet</a>.</p>
+    </section>
+
     <section class="panel hidden" id="resultsPanel" aria-live="polite">
       <div class="panel-header">
         <h2>Cibles recommandées</h2>
@@ -130,6 +175,7 @@
   </main>
   <footer>
     <nav class="footer-nav">
+      <a class="nav-link" href="dashboard.html">Tableau de bord</a>
       <a class="nav-link" href="catalogue.html">Catalogue Messier</a>
     </nav>
     <small>Sources météo : <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open‑Meteo</a>. Les calculs astronomiques sont approximatifs mais suffisants pour planifier une soirée.</small>

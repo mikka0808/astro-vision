@@ -201,6 +201,46 @@ const COMPASS_SECTORS = [
   'NNO'
 ];
 
+const ASTROPHOTO_PROFILES = [
+  {
+    id: 'visual',
+    label: 'Observation visuelle (équilibré)',
+    description: "Classement polyvalent pour la découverte et l'imagerie légère.",
+    minAltitude: 15,
+    maxMagnitude: 12,
+    weights: { base: 0.45, altitude: 0.2, window: 0.15, brightness: 0.1, seeing: 0.05, transparency: 0.05 },
+    categoryBoost: {}
+  },
+  {
+    id: 'dslr-wide',
+    label: 'Photo grand champ — APN + objectif',
+    description: 'Privilégie les nébuleuses étendues et les amas ouverts lumineux.',
+    minAltitude: 20,
+    maxMagnitude: 9.5,
+    weights: { base: 0.35, altitude: 0.2, window: 0.15, brightness: 0.15, seeing: 0.05, transparency: 0.1 },
+    categoryBoost: { Nébuleuses: 1.15, 'Amas ouverts': 1.1, 'Autres objets': 0.9 }
+  },
+  {
+    id: 'newton-150',
+    label: 'Photo ciel profond — Télescope 150/750',
+    description: 'Met en avant les galaxies et nébuleuses contrastées accessibles aux instruments de 150 mm.',
+    minAltitude: 25,
+    maxMagnitude: 11,
+    weights: { base: 0.4, altitude: 0.2, window: 0.1, brightness: 0.15, seeing: 0.1, transparency: 0.05 },
+    categoryBoost: { Galaxies: 1.15, Nébuleuses: 1.1, 'Amas globulaires': 1.05 }
+  },
+  {
+    id: 'planetary',
+    label: 'Planétaire — Caméra haute cadence',
+    description: 'Se concentre sur les planètes et étoiles doubles, exige un seeing solide.',
+    minAltitude: 30,
+    maxMagnitude: 7.5,
+    weights: { base: 0.25, altitude: 0.25, window: 0.15, brightness: 0.1, seeing: 0.2, transparency: 0.05 },
+    categoryBoost: { Planètes: 1.3, Étoiles: 1.15, 'Amas globulaires': 1.05 },
+    requireSeeing: 0.55
+  }
+];
+
 function clamp01(value, fallback = 0) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return fallback;
@@ -216,6 +256,35 @@ function describeIndexQuality(value, tiers) {
   if (ratio >= 0.4) return tiers.ok;
   if (ratio >= 0.2) return tiers.poor;
   return tiers.bad;
+}
+
+function average(values = []) {
+  const filtered = values.map(Number).filter((value) => Number.isFinite(value));
+  if (filtered.length === 0) return 0;
+  const sum = filtered.reduce((total, value) => total + value, 0);
+  return sum / filtered.length;
+}
+
+function brightnessIndex(magnitude) {
+  if (!Number.isFinite(magnitude)) return 0.5;
+  const minMag = -1;
+  const maxMag = 13;
+  const clamped = Math.min(maxMag, Math.max(minMag, magnitude));
+  return (maxMag - clamped) / (maxMag - minMag);
+}
+
+function describeGeneralQuality(value) {
+  return describeIndexQuality(value, {
+    excellent: 'exceptionnelle',
+    good: 'très bonne',
+    ok: 'correcte',
+    poor: 'délicate',
+    bad: 'critique'
+  });
+}
+
+function findAstrophotoProfile(id) {
+  return ASTROPHOTO_PROFILES.find((profile) => profile.id === id) || ASTROPHOTO_PROFILES[0];
 }
 
 export function describeSeeingQuality(value) {
@@ -635,7 +704,7 @@ export function evaluateTargets(objects, { lat, lon, bortle, date, durationHours
   });
 }
 
-export function applyWeather(results, weather = {}) {
+export function computeWeatherImpact(weather = {}) {
   const cloudFactor = Math.max(0, 1 - (weather.cover ?? 100) / 100);
   const precipFactor = Math.max(0, 1 - (weather.precipProb ?? 0) / 100);
   const baseVisibility = weather.visibilityFactor;
@@ -649,16 +718,40 @@ export function applyWeather(results, weather = {}) {
   const conditionFactor = code >= 80 ? 0.25 : code >= 60 ? 0.4 : code >= 45 ? 0.6 : 1;
   const skyWindow = clamp01(cloudFactor * 0.55 + precipFactor * 0.25 + visibilityFactor * 0.2, 0);
   const atmosphere = clamp01(transparencyFactor * 0.45 + seeingFactor * 0.3 + dewFactor * 0.15 + aerosolFactor * 0.1, 0);
+  const weatherFactor = clamp01(skyWindow * atmosphere * conditionFactor, 0);
+  return {
+    weatherFactor,
+    cloudFactor,
+    precipFactor,
+    visibilityFactor,
+    seeingFactor,
+    transparencyFactor,
+    dewFactor,
+    aerosolFactor,
+    skyWindow,
+    atmosphere,
+    conditionFactor
+  };
+}
+
+export function applyWeather(results, weather = {}) {
+  const impact = computeWeatherImpact(weather);
   return results.map((entry) => {
-    const weatherFactor = clamp01(skyWindow * atmosphere * conditionFactor, 0);
+    const weatherFactor = impact.weatherFactor;
     const score = entry.baseScore * weatherFactor;
     return {
       ...entry,
       weatherFactor,
-      seeingFactor,
-      transparencyFactor,
-      dewFactor,
-      aerosolFactor,
+      seeingFactor: impact.seeingFactor,
+      transparencyFactor: impact.transparencyFactor,
+      dewFactor: impact.dewFactor,
+      aerosolFactor: impact.aerosolFactor,
+      weatherWindow: impact.skyWindow,
+      atmosphereFactor: impact.atmosphere,
+      weatherConditionFactor: impact.conditionFactor,
+      cloudFactor: impact.cloudFactor,
+      precipFactor: impact.precipFactor,
+      visibilityFactor: impact.visibilityFactor,
       seeingArcsec: weather.seeingArcsec,
       seeingText: weather.seeingText,
       transparencyText: weather.transparencyText,
@@ -667,6 +760,236 @@ export function applyWeather(results, weather = {}) {
       score
     };
   });
+}
+
+function resolveContextDate(context) {
+  if (!context) return null;
+  if (context.date instanceof Date) return context.date;
+  if (context.dateISO) {
+    const parsed = new Date(context.dateISO);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+  if (context.dateValue && context.timeValue) {
+    try {
+      const local = new Date(`${context.dateValue}T${context.timeValue}`);
+      if (!Number.isNaN(local.getTime())) return new Date(local.getTime() - local.getTimezoneOffset() * 60000);
+    } catch (error) {
+      console.warn('Impossible de reconstruire la date de contexte :', error);
+    }
+  }
+  return null;
+}
+
+export function buildVisibilityCalendar(baseResults = [], objects = [], context = {}, nights = 4) {
+  const lat = Number(context.latitude ?? context.lat);
+  const lon = Number(context.longitude ?? context.lon);
+  const bortle = Number(context.bortle);
+  const durationHours = Number(context.durationHours ?? context.duration ?? 2);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return [];
+  const startDate = resolveContextDate(context);
+  if (!(startDate instanceof Date) || Number.isNaN(startDate.getTime())) return [];
+  const catalogue = Array.isArray(objects) && objects.length > 0 ? objects : baseResults.map((entry) => entry.object);
+  const nightsCount = Math.max(1, Math.min(6, Number.isFinite(nights) ? Math.round(nights) : 4));
+  const schedules = [];
+  for (let offset = 0; offset < nightsCount; offset += 1) {
+    const date = new Date(startDate.getTime() + offset * 24 * 60 * 60 * 1000);
+    const moon = computeMoonPhase(date);
+    const evaluated = evaluateTargets(catalogue, {
+      lat,
+      lon,
+      bortle,
+      date,
+      durationHours,
+      moonIllumination: moon.illumination
+    });
+    schedules.push({ date, entries: evaluated, moon });
+  }
+  return baseResults
+    .map((entry) => {
+      const timeline = schedules
+        .map(({ date, entries, moon }, index) => {
+          let match = entry;
+          if (index !== 0) {
+            match = entries.find((candidate) => candidate.object.name === entry.object.name);
+          }
+          if (!match) return null;
+          return {
+            dateISO: date.toISOString(),
+            bestTime: match.bestTime,
+            altitude: match.altitude,
+            visibilityRatio: match.visibilityRatio,
+            baseScore: match.baseScore,
+            score: index === 0 ? entry.score : match.baseScore,
+            moonIllumination: moon?.illumination ?? null,
+            moonPhase: moon ? { name: moon.name, emoji: moon.emoji } : null
+          };
+        })
+        .filter(Boolean);
+      if (timeline.length === 0) return null;
+      return { object: entry.object, windows: timeline };
+    })
+    .filter(Boolean);
+}
+
+function computeAstrophotoRecommendations(results = [], profileId = 'visual', weatherImpact = {}, options = {}) {
+  const profile = findAstrophotoProfile(profileId);
+  const { limit = 5 } = options;
+  const minAltitude = profile.minAltitude ?? 10;
+  const maxMagnitude = profile.maxMagnitude ?? 12;
+  const recommendations = results
+    .filter((entry) => Number.isFinite(entry.altitude) && entry.altitude >= minAltitude)
+    .filter((entry) => {
+      const magnitude = Number(entry.object?.magnitude);
+      return !Number.isFinite(magnitude) || magnitude <= maxMagnitude;
+    })
+    .map((entry) => {
+      const weights = profile.weights ?? {};
+      const baseScore = clamp01(entry.score ?? entry.baseScore ?? 0, 0);
+      const altitude = clamp01((entry.altitude ?? 0) / 90, 0);
+      const window = clamp01(entry.visibilityRatio ?? 0.5, 0.5);
+      const brightness = brightnessIndex(entry.object?.magnitude);
+      const seeing = clamp01(entry.seeingFactor ?? weatherImpact.seeingFactor ?? 1, 1);
+      const transparency = clamp01(entry.transparencyFactor ?? weatherImpact.transparencyFactor ?? 1, 1);
+      let astroScore =
+        baseScore * (weights.base ?? 0) +
+        altitude * (weights.altitude ?? 0) +
+        window * (weights.window ?? 0) +
+        brightness * (weights.brightness ?? 0) +
+        seeing * (weights.seeing ?? 0) +
+        transparency * (weights.transparency ?? 0);
+      const category = entry.object?.category || entry.object?.type;
+      const boost = profile.categoryBoost?.[category] ?? 1;
+      astroScore *= boost;
+      if (profile.requireSeeing && seeing < profile.requireSeeing) {
+        astroScore *= 0.6;
+      }
+      return { ...entry, astroScore };
+    })
+    .filter((entry) => entry.astroScore > 0.1)
+    .sort((a, b) => b.astroScore - a.astroScore)
+    .slice(0, Math.max(1, limit));
+  return { profile, recommendations };
+}
+
+function describeGlobalVisibility(score) {
+  return describeIndexQuality(score, {
+    excellent: 'Fenêtre exceptionnelle',
+    good: 'Fenêtre très favorable',
+    ok: 'Conditions correctes',
+    poor: 'Fenêtre délicate',
+    bad: 'Fenêtre critique'
+  });
+}
+
+function clampDate(date, minDate, maxDate) {
+  if (!(date instanceof Date)) return null;
+  const time = date.getTime();
+  const min = minDate instanceof Date ? minDate.getTime() : Number.NEGATIVE_INFINITY;
+  const max = maxDate instanceof Date ? maxDate.getTime() : Number.POSITIVE_INFINITY;
+  const clamped = Math.min(Math.max(time, min), max);
+  return new Date(clamped);
+}
+
+export function computeDecisionInsights(results = [], options = {}) {
+  const { weather = {}, moon = null, context = {}, objects = [], equipment = {}, nights = 4 } = options;
+  if (!Array.isArray(results) || results.length === 0) {
+    return {
+      globalScore: 0,
+      globalLabel: 'Analyse indisponible',
+      globalSummary: "Aucune cible disponible pour calculer une aide à la décision.",
+      aggregates: { weather: computeWeatherImpact(weather), avgScore: 0, avgAltitude: 0, avgVisibility: 0, moonIllumination: 0 },
+      alerts: [],
+      calendar: [],
+      astrophoto: {
+        active: Boolean(equipment?.enabled),
+        profileId: equipment?.profileId ?? 'visual',
+        profileLabel: findAstrophotoProfile(equipment?.profileId)?.label,
+        profileDescription: findAstrophotoProfile(equipment?.profileId)?.description,
+        recommendations: []
+      }
+    };
+  }
+
+  const top = selectTopTargets(results, { limit: Math.min(results.length, 10) });
+  const weatherImpact = computeWeatherImpact(weather);
+  const avgScore = average(top.map((entry) => entry.score ?? entry.baseScore ?? 0));
+  const avgAltitude = average(top.map((entry) => (Number.isFinite(entry.altitude) ? entry.altitude : null)));
+  const avgVisibility = average(top.map((entry) => entry.visibilityRatio ?? null));
+  const moonIllumination = Number.isFinite(moon?.illumination) ? moon.illumination : 0;
+  const altitudeComponent = clamp01(avgAltitude / 90, 0);
+  const visibilityComponent = clamp01(avgVisibility, 0.5);
+  const globalScore = clamp01(
+    (avgScore || 0) * 0.55 +
+      (weatherImpact.weatherFactor || 0) * 0.2 +
+      altitudeComponent * 0.15 +
+      visibilityComponent * 0.05 +
+      (1 - moonIllumination * 0.7) * 0.05,
+    0
+  );
+  const globalLabel = describeGlobalVisibility(globalScore);
+  const skyQuality = describeGeneralQuality(weatherImpact.skyWindow ?? 0);
+  const atmosphereQuality = describeGeneralQuality(weatherImpact.atmosphere ?? 0);
+  const moonPercent = Math.round((moonIllumination ?? 0) * 100);
+  const globalSummary =
+    `Score global ${Math.round(globalScore * 100)}/100 — ${globalLabel}. ` +
+    `Fenêtre ciel ${skyQuality}, atmosphère ${atmosphereQuality}, Lune ${moonPercent}% éclairée.`;
+
+  const sessionStart = resolveContextDate(context);
+  const sessionEnd =
+    sessionStart && Number.isFinite(context.durationHours)
+      ? new Date(sessionStart.getTime() + Number(context.durationHours) * 60 * 60 * 1000)
+      : null;
+
+  const alerts = top
+    .filter((entry) => (entry.score ?? 0) >= 0.35)
+    .slice(0, 4)
+    .map((entry) => {
+      const peak = new Date(entry.bestTime);
+      if (Number.isNaN(peak.getTime())) return null;
+      const windowWidthMinutes = Math.max(30, Math.min(90, Math.round((entry.visibilityRatio ?? 0.6) * 90)));
+      const start = clampDate(new Date(peak.getTime() - (windowWidthMinutes / 2) * 60000), sessionStart, sessionEnd);
+      const end = clampDate(new Date(peak.getTime() + (windowWidthMinutes / 2) * 60000), sessionStart, sessionEnd);
+      return {
+        object: entry.object,
+        score: entry.score,
+        altitude: entry.altitude,
+        direction: describeAzimuth(entry.azimuth),
+        peak: entry.bestTime,
+        windowStart: start ? start.toISOString() : null,
+        windowEnd: end ? end.toISOString() : null
+      };
+    })
+    .filter(Boolean);
+
+  const calendar = buildVisibilityCalendar(top.slice(0, 4), objects, { ...context, date: sessionStart }, nights);
+
+  const astroSettings = {
+    enabled: Boolean(equipment?.enabled),
+    profileId: equipment?.profileId ?? 'visual'
+  };
+  const astrophoto = computeAstrophotoRecommendations(top, astroSettings.profileId, weatherImpact, { limit: 5 });
+
+  return {
+    globalScore,
+    globalLabel,
+    globalSummary,
+    aggregates: {
+      weather: weatherImpact,
+      avgScore,
+      avgAltitude,
+      avgVisibility,
+      moonIllumination
+    },
+    alerts,
+    calendar,
+    astrophoto: {
+      active: astroSettings.enabled,
+      profileId: astrophoto.profile.id,
+      profileLabel: astrophoto.profile.label,
+      profileDescription: astrophoto.profile.description,
+      recommendations: astroSettings.enabled ? astrophoto.recommendations : []
+    }
+  };
 }
 
 export function selectTopTargets(results, options = {}) {

@@ -24,6 +24,7 @@ const sessionSummary = document.getElementById('sessionSummary');
 const sessionWeather = document.getElementById('sessionWeather');
 const sessionMoon = document.getElementById('sessionMoon');
 const sessionEvents = document.getElementById('sessionEvents');
+const sessionDecision = document.getElementById('sessionDecision');
 const sessionPanel = document.getElementById('sessionPanel');
 const sortSelect = document.getElementById('catalogueSort');
 const catalogueFilterSummary = document.getElementById('catalogueFilterSummary');
@@ -197,6 +198,28 @@ function renderSessionWeather(weather) {
   sessionWeather.textContent = buildWeatherSummary(weather);
 }
 
+function renderSessionDecision(decision) {
+  if (!sessionDecision) return;
+  if (!decision || !Number.isFinite(decision.globalScore)) {
+    sessionDecision.textContent =
+      'Score global indisponible. Lance une nouvelle analyse pour obtenir l’aide à la décision.';
+    return;
+  }
+  const score = Math.max(0, Math.min(100, Math.round((decision.globalScore ?? 0) * 100)));
+  const label = decision.globalLabel ?? '';
+  let astroSuffix = '';
+  if (decision.astrophoto?.active && Array.isArray(decision.astrophoto.recommendations)) {
+    const names = decision.astrophoto.recommendations
+      .slice(0, 2)
+      .map((entry) => entry.object?.name)
+      .filter(Boolean);
+    if (names.length > 0) {
+      astroSuffix = ` — Photo : ${names.join(', ')}`;
+    }
+  }
+  sessionDecision.textContent = `Score global ${score}/100 — ${label}.${astroSuffix}`;
+}
+
 function resolveMoon(snapshot) {
   if (snapshot?.moon && Number.isFinite(snapshot.moon.illumination)) {
     return snapshot.moon;
@@ -245,6 +268,7 @@ function renderSessionEvents(events) {
 }
 
 function renderSessionDetails(snapshot) {
+  renderSessionDecision(snapshot?.decisionSupport);
   renderSessionWeather(snapshot?.weather);
   renderSessionMoon(resolveMoon(snapshot));
   renderSessionEvents(snapshot?.events);
