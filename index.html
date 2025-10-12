@@ -105,28 +105,42 @@
       <p class="help-text">Astuce : vise un ciel aussi sombre que possible (Bortle bas), planifie proche de la nouvelle lune et contrôle la météo quelques heures avant de sortir.</p>
     </section>
 
-    <section class="panel hidden" id="weatherPanel" aria-live="polite">
+    <section class="panel panel--data hidden" id="weatherPanel" aria-live="polite">
       <div class="panel-header">
         <h2>Météo instantanée</h2>
         <p id="weatherSummary">Chargement...</p>
       </div>
-      <ul id="weatherDetails"></ul>
+      <div class="panel-body">
+        <div id="weatherHighlights" class="stat-grid" aria-live="polite"></div>
+        <ul id="weatherDetails" class="data-list"></ul>
+      </div>
     </section>
 
-    <section class="panel hidden" id="moonPanel" aria-live="polite">
+    <section class="panel panel--data hidden" id="moonPanel" aria-live="polite">
       <div class="panel-header">
         <h2>Phase lunaire</h2>
         <p id="moonSummary">Calcul de la phase lunaire…</p>
       </div>
-      <ul id="moonDetails"></ul>
+      <div class="panel-body moon-body">
+        <article class="moon-card">
+          <div class="moon-visual" id="moonVisual" role="img" aria-label="Phase lunaire en cours">
+            <span id="moonEmoji">🌙</span>
+          </div>
+          <p class="stat-label" id="moonPhaseLabel">Phase actuelle</p>
+          <p class="stat-value" id="moonIllumination">—</p>
+        </article>
+        <ul id="moonDetails" class="data-list"></ul>
+      </div>
     </section>
 
-    <section class="panel hidden" id="eventsPanel" aria-live="polite">
+    <section class="panel panel--data hidden" id="eventsPanel" aria-live="polite">
       <div class="panel-header">
         <h2>Événements à surveiller</h2>
         <p id="eventsHint">Chargement des phénomènes célestes…</p>
       </div>
-      <ul id="eventsList" class="event-list"></ul>
+      <div class="panel-body">
+        <ul id="eventsList" class="event-list"></ul>
+      </div>
     </section>
 
     <section class="panel hidden" id="decisionPanel" aria-live="polite">

@@ -98,6 +98,124 @@ main {
   backdrop-filter: blur(18px);
 }
 
+.panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.stat-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.stat-card {
+  border-radius: 1rem;
+  padding: 1rem 1.1rem;
+  background: linear-gradient(135deg, rgba(92, 212, 255, 0.18), rgba(11, 21, 52, 0.85));
+  border: 1px solid rgba(92, 212, 255, 0.18);
+  box-shadow: 0 10px 30px rgba(5, 11, 28, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(231, 233, 243, 0.7);
+}
+
+.stat-value {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.stat-sub {
+  font-size: 0.85rem;
+  color: var(--text-soft);
+  margin: 0;
+}
+
+.data-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.data-list li {
+  padding: 0.85rem 1rem;
+  border-radius: 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(7, 11, 28, 0.82);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.data-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(231, 233, 243, 0.6);
+}
+
+.data-value {
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.moon-body {
+  display: grid;
+  gap: 1.4rem;
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.moon-card {
+  background: linear-gradient(160deg, rgba(45, 60, 112, 0.8), rgba(10, 14, 32, 0.8));
+  border: 1px solid rgba(92, 212, 255, 0.15);
+  border-radius: 1.1rem;
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.6rem;
+}
+
+.moon-visual {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.32), rgba(12, 16, 32, 0.85) 70%);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  isolation: isolate;
+}
+
+.moon-visual::after {
+  content: '';
+  position: absolute;
+  inset: 10px;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent) var(--illumination, 0deg), rgba(255, 255, 255, 0.08) var(--illumination, 0deg));
+  opacity: 0.8;
+  mix-blend-mode: screen;
+}
+
+.moon-visual span {
+  position: relative;
+  font-size: 2.5rem;
+}
+
 .panel-header h2 {
   margin: 0;
   font-size: 1.4rem;
@@ -650,43 +768,58 @@ p.help-text {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  gap: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .event-item {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 1.2rem;
+  border-radius: 1.1rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 1rem;
-  padding: 0.85rem 1rem;
-  background: rgba(7, 11, 28, 0.85);
+  background: linear-gradient(140deg, rgba(9, 15, 36, 0.82), rgba(16, 24, 52, 0.76));
+  box-shadow: 0 12px 28px rgba(6, 10, 28, 0.35);
+  align-items: flex-start;
 }
 
-.event-item h3 {
-  margin: 0;
-  font-size: 1rem;
+.event-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: rgba(92, 212, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.7rem;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(92, 212, 255, 0.18);
 }
 
-.event-item .meta {
-  margin: 0.2rem 0 0.4rem;
-  font-size: 0.85rem;
-  color: var(--text-soft);
-}
-
-.event-item p {
-  margin: 0;
-}
-
-.event-item p + p {
-  margin-top: 0.35rem;
-}
-
-#moonDetails {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
+.event-content {
+  display: flex;
+  flex-direction: column;
   gap: 0.35rem;
+}
+
+.event-name {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.event-meta {
+  margin: 0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   color: var(--text-soft);
+}
+
+.event-description {
+  margin: 0;
+  line-height: 1.5;
 }
 
 .score-bar {
@@ -743,5 +876,25 @@ a {
 
   .top-nav {
     justify-content: center;
+  }
+
+  .moon-body {
+    grid-template-columns: 1fr;
+  }
+
+  .moon-card {
+    max-width: 280px;
+    margin: 0 auto;
+  }
+
+  .event-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .event-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 1.4rem;
   }
 }

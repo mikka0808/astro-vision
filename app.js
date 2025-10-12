@@ -41,9 +41,14 @@ const refreshBortleBtn = document.getElementById('refreshBortle');
 const bortleHint = document.getElementById('bortleHint');
 const weatherPanel = document.getElementById('weatherPanel');
 const weatherSummary = document.getElementById('weatherSummary');
+const weatherHighlights = document.getElementById('weatherHighlights');
 const weatherDetails = document.getElementById('weatherDetails');
 const moonPanel = document.getElementById('moonPanel');
 const moonSummary = document.getElementById('moonSummary');
+const moonVisual = document.getElementById('moonVisual');
+const moonEmoji = document.getElementById('moonEmoji');
+const moonPhaseLabel = document.getElementById('moonPhaseLabel');
+const moonIllumination = document.getElementById('moonIllumination');
 const moonDetails = document.getElementById('moonDetails');
 const eventsPanel = document.getElementById('eventsPanel');
 const eventsList = document.getElementById('eventsList');
@@ -256,39 +261,94 @@ function updateBortleLabel() {
 }
 
 function renderWeather(data) {
+  if (!weatherPanel || !weatherSummary || !weatherDetails) return;
   weatherSummary.textContent = buildWeatherSummary(data);
-  const humidity = Number.isFinite(data.humidity) ? `${Math.round(data.humidity)} %` : '—';
-  const visibility = Number.isFinite(data.visibilityKm) ? `${Math.round(data.visibilityKm)} km` : '—';
-  const pressure = Number.isFinite(data.pressure) ? `${Math.round(data.pressure)} hPa` : '—';
-  const seeing = Number.isFinite(data.seeingIndex) ? `${Math.round(data.seeingIndex * 100)} %` : '—';
-  const transparency = Number.isFinite(data.transparencyIndex) ? `${Math.round(data.transparencyIndex * 100)} %` : '—';
-  const dewSpread = Number.isFinite(data.dewPointSpread) ? `${data.dewPointSpread.toFixed(1)} °C` : '—';
-  const dewSafety = Number.isFinite(data.dewFactor) ? `${Math.round(data.dewFactor * 100)} %` : '—';
-  const dewPoint = Number.isFinite(data.dewPoint) ? `${data.dewPoint.toFixed(1)} °C` : '—';
-  const temperature = Number.isFinite(data.temperature) ? `${data.temperature.toFixed(1)} °C` : '—';
-  const wind = Number.isFinite(data.wind) ? `${Math.round(data.wind)} km/h` : '—';
-  const gust = Number.isFinite(data.gust) ? `${Math.round(data.gust)} km/h` : '—';
-  const jetStream = Number.isFinite(data.jetStream) ? `${Math.round(data.jetStream)} km/h` : '—';
-  const shear = Number.isFinite(data.windShear) ? `${Math.round(data.windShear)} km/h` : '—';
+
+  const formatPercent = (value) => (Number.isFinite(value) ? `${Math.round(value)} %` : '—');
+  const formatPercentFactor = (value) => (Number.isFinite(value) ? `${Math.round(value * 100)} %` : '—');
+  const formatTemperature = (value) => (Number.isFinite(value) ? `${value.toFixed(1)} °C` : '—');
+  const formatDistance = (value) => (Number.isFinite(value) ? `${Math.round(value)} km` : '—');
+  const formatPressure = (value) => (Number.isFinite(value) ? `${Math.round(value)} hPa` : '—');
+  const formatWind = (value) => (Number.isFinite(value) ? `${Math.round(value)} km/h` : '—');
+  const formatConcentration = (value) => (Number.isFinite(value) ? `${Math.round(value)} µg/m³` : '—');
+
+  const coverValue = formatPercent(data.cover);
+  const lowValue = formatPercent(data.low);
+  const midValue = formatPercent(data.mid);
+  const highValue = formatPercent(data.high);
+  const precipValue = formatPercent(data.precipProb);
+  const humidityValue = formatPercent(data.humidity);
+  const visibilityValue = formatDistance(data.visibilityKm);
+  const pressureValue = formatPressure(data.pressure);
+  const temperatureValue = formatTemperature(data.temperature);
+  const windValue = formatWind(data.wind);
+  const gustValue = formatWind(data.gust);
+  const jetStreamValue = formatWind(data.jetStream);
+  const shearValue = formatWind(data.windShear);
+  const seeingPercent = formatPercentFactor(data.seeingIndex);
+  const transparencyPercent = formatPercentFactor(data.transparencyIndex);
+  const dewSpreadValue = formatTemperature(data.dewPointSpread);
+  const dewPointValue = formatTemperature(data.dewPoint);
+  const dewSafetyValue = formatPercentFactor(data.dewFactor);
+  const aerosolFactorValue = formatPercentFactor(data.aerosolFactor);
+  const pm10Value = formatConcentration(data.pm10);
+  const pm25Value = formatConcentration(data.pm25);
+
   const seeingArcsec = formatArcseconds(data.seeingArcsec);
-  const aerosolFactor = Number.isFinite(data.aerosolFactor) ? `${Math.round(data.aerosolFactor * 100)} %` : '—';
-  const pm10 = Number.isFinite(data.pm10) ? `${Math.round(data.pm10)} µg/m³` : '—';
-  const pm25 = Number.isFinite(data.pm25) ? `${Math.round(data.pm25)} µg/m³` : '—';
+  const seeingQuality = data.seeingText ?? describeSeeingQuality(data.seeingIndex);
+  const transparencyQuality = data.transparencyText ?? describeTransparencyQuality(data.transparencyIndex);
+  const dewRisk = data.dewRiskText ?? describeDewRisk(data.dewPointSpread);
   const aerosolText = data.aerosolText ?? describeAerosolLoad(data.pm10, data.pm25);
-  weatherDetails.innerHTML = `
-    <li>Couverture nuageuse totale : ${Math.round(data.cover)} %</li>
-    <li>Nébulosité basse / moyenne / haute : ${Math.round(data.low)} % / ${Math.round(data.mid)} % / ${Math.round(data.high)} %</li>
-    <li>Probabilité de précipitations : ${Math.round(data.precipProb)} %</li>
-    <li>Température : ${temperature}</li>
-    <li>Vent moyen / rafales : ${wind} / ${gust}</li>
-    <li>Pression : ${pressure}</li>
-    <li>Humidité : ${humidity} • Visibilité : ${visibility}</li>
-    <li>Jet stream / cisaillement : ${jetStream} / Δ ${shear}</li>
-    <li>Seeing : ${data.seeingText ?? describeSeeingQuality(data.seeingIndex)} (${seeing}, FWHM ${seeingArcsec})</li>
-    <li>Transparence : ${data.transparencyText ?? describeTransparencyQuality(data.transparencyIndex)} (${transparency})</li>
-    <li>Aérosols (PM10 / PM2,5) : ${pm10} / ${pm25} — ${aerosolText} (${aerosolFactor})</li>
-    <li>Écart T/Td : ${dewSpread} — ${data.dewRiskText ?? describeDewRisk(data.dewPointSpread)} (Td ${dewPoint}, sécurité optique ${dewSafety})</li>
-  `;
+  const dewSummary = Number.isFinite(data.dewPoint) && Number.isFinite(data.dewPointSpread)
+    ? `Td ${data.dewPoint.toFixed(1)} °C • Δ ${data.dewPointSpread.toFixed(1)} °C`
+    : 'Point de rosée à confirmer';
+
+  if (weatherHighlights) {
+    const highlightCards = [
+      { label: 'Nuages', value: coverValue, sub: 'Couverture totale' },
+      { label: 'Température', value: temperatureValue, sub: dewSummary },
+      { label: 'Seeing', value: seeingQuality, sub: `${seeingPercent} • FWHM ${seeingArcsec}` },
+      { label: 'Vent', value: windValue, sub: `Rafales ${gustValue}` },
+    ];
+    weatherHighlights.innerHTML = highlightCards
+      .map(
+        (card) => `
+          <article class="stat-card">
+            <p class="stat-label">${card.label}</p>
+            <p class="stat-value">${card.value}</p>
+            <p class="stat-sub">${card.sub}</p>
+          </article>
+        `
+      )
+      .join('');
+  }
+
+  const details = [
+    { label: 'Nuages par couche', value: `${lowValue} / ${midValue} / ${highValue}` },
+    { label: 'Probabilité de précipitations', value: precipValue },
+    { label: 'Humidité & visibilité', value: `${humidityValue} • ${visibilityValue}` },
+    { label: 'Pression atmosphérique', value: pressureValue },
+    { label: 'Jet stream & cisaillement', value: `${jetStreamValue} / Δ ${shearValue}` },
+    { label: 'Transparence', value: `${transparencyQuality} (${transparencyPercent})` },
+    { label: 'Seeing détaillé', value: `${seeingQuality} — ${seeingPercent} • FWHM ${seeingArcsec}` },
+    { label: 'Aérosols', value: `${pm10Value} / ${pm25Value} — ${aerosolText} (${aerosolFactorValue})` },
+    {
+      label: 'Point de rosée & sécurité optique',
+      value: `${dewRisk} — Δ ${dewSpreadValue} (Td ${dewPointValue}, sécurité ${dewSafetyValue})`,
+    },
+  ];
+
+  weatherDetails.innerHTML = details
+    .map(
+      (detail) => `
+        <li>
+          <span class="data-label">${detail.label}</span>
+          <span class="data-value">${detail.value}</span>
+        </li>
+      `
+    )
+    .join('');
+
   weatherPanel.classList.remove('hidden');
 }
 
@@ -306,11 +366,44 @@ function renderMoon(moon) {
     moonPanel.classList.add('hidden');
     return;
   }
-  moonSummary.textContent = `${moon.emoji ?? '🌙'} ${moon.name} — ${formatIllumination(moon.illumination)} éclairée.`;
+  const illuminationPercent = Number.isFinite(moon.illumination)
+    ? `${Math.round(moon.illumination * 100)} %`
+    : 'Illumination inconnue';
+  const illuminationDegrees = Number.isFinite(moon.illumination) ? Math.round(moon.illumination * 360) : 0;
+  const impact = describeMoonImpactLevel(moon.illumination);
+  const illuminationText = formatIllumination(moon.illumination);
+
+  moonSummary.innerHTML = `<strong>${moon.emoji ?? '🌙'} ${moon.name}</strong> — ${illuminationText} éclairée. ${impact}`;
+
+  if (moonPhaseLabel) {
+    moonPhaseLabel.textContent = moon.name;
+  }
+  if (moonIllumination) {
+    moonIllumination.textContent = Number.isFinite(moon.illumination)
+      ? `${illuminationPercent} éclairée`
+      : 'Illumination inconnue';
+  }
+  if (moonEmoji) {
+    moonEmoji.textContent = moon.emoji ?? '🌙';
+  }
+  if (moonVisual) {
+    moonVisual.style.setProperty('--illumination', `${illuminationDegrees}deg`);
+    moonVisual.setAttribute('aria-label', `Phase ${moon.name}`);
+  }
+
   moonDetails.innerHTML = `
-    <li>Âge : ${moon.ageDays.toFixed(1)} jours</li>
-    <li>${moon.description}</li>
-    <li>${describeMoonImpactLevel(moon.illumination)}</li>
+    <li>
+      <span class="data-label">Âge lunaire</span>
+      <span class="data-value">${moon.ageDays.toFixed(1)} jours</span>
+    </li>
+    <li>
+      <span class="data-label">Aspect du soir</span>
+      <span class="data-value">${moon.description}</span>
+    </li>
+    <li>
+      <span class="data-label">Impact sur le ciel</span>
+      <span class="data-value">${impact}</span>
+    </li>
   `;
   moonPanel.classList.remove('hidden');
 }
@@ -328,12 +421,35 @@ function renderEvents(events) {
   events.forEach((event) => {
     const item = document.createElement('li');
     item.className = 'event-item';
-    const when = event.occursAt ? formatLocalDateTime(event.occursAt) : 'Consulte les ressources dédiées';
-    item.innerHTML = `
-      <h3>${event.icon ?? '✨'} ${event.name}</h3>
-      <p class="meta">${event.type}${event.occursAt ? ` — ${when}` : ''}</p>
-      <p>${event.description}</p>
-    `;
+    const icon = document.createElement('div');
+    icon.className = 'event-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = event.icon ?? '✨';
+
+    const content = document.createElement('div');
+    content.className = 'event-content';
+
+    const name = document.createElement('p');
+    name.className = 'event-name';
+    name.textContent = event.name;
+
+    const meta = document.createElement('p');
+    meta.className = 'event-meta';
+    const when = event.occursAt ? formatLocalDateTime(event.occursAt) : null;
+    const metaParts = [event.type];
+    if (when) {
+      metaParts.push(when);
+    } else {
+      metaParts.push('Consulte les ressources dédiées');
+    }
+    meta.textContent = metaParts.join(' — ');
+
+    const description = document.createElement('p');
+    description.className = 'event-description';
+    description.textContent = event.description;
+
+    content.append(name, meta, description);
+    item.append(icon, content);
     eventsList.appendChild(item);
   });
   if (eventsHint) {
