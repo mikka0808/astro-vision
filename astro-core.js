@@ -1050,15 +1050,42 @@ export function buildWeatherSummary(data) {
   const transparencyText = data.transparencyText || describeTransparencyQuality(data.transparencyIndex);
   const seeingArcsec = Number.isFinite(data.seeingArcsec) ? `${data.seeingArcsec.toFixed(1)}″` : '';
   const aerosolText = data.aerosolText || describeAerosolLoad(data.pm10, data.pm25);
-  const spreadText = Number.isFinite(data.dewPointSpread) ? `${data.dewPointSpread.toFixed(1)}°C` : '—';
+  const spreadValue = Number.isFinite(data.dewPointSpread) ? `${data.dewPointSpread.toFixed(1)}°C` : null;
   const dewText = data.dewRiskText || describeDewRisk(data.dewPointSpread);
-  return (
-    `Fenêtre ${periodLabel} : ciel ${sky} (${codeText.toLowerCase()}, ${Math.round(cover)}% de nébulosité moyenne, ${Math.round(
-      precipProb
-    )}% de précipitations, vent ${Math.round(wind)} km/h). ` +
-    `Indices astro : seeing ${seeingText}${seeingArcsec ? ` (~${seeingArcsec})` : ''}, transparence ${transparencyText} (aérosols ${
-      aerosolText
-    }). ` +
-    `Point de rosée : écart ${spreadText} (${dewText.toLowerCase()}).`
-  );
+
+  const parts = [
+    `Fenêtre ${periodLabel}`,
+    `ciel ${sky}`,
+    codeText.toLowerCase()
+  ];
+
+  if (Number.isFinite(cover)) {
+    parts.push(`${Math.round(cover)}% nuages`);
+  }
+  if (Number.isFinite(precipProb)) {
+    parts.push(`${Math.round(precipProb)}% pluie`);
+  }
+  if (Number.isFinite(wind)) {
+    parts.push(`vent ${Math.round(wind)} km/h`);
+  }
+  if (seeingText) {
+    parts.push(`seeing ${seeingText}${seeingArcsec ? ` (~${seeingArcsec})` : ''}`);
+  }
+  if (transparencyText) {
+    parts.push(`transparence ${transparencyText}`);
+  }
+  if (aerosolText) {
+    parts.push(`aérosols ${aerosolText}`);
+  }
+  if (spreadValue && dewText) {
+    parts.push(`rosée Δ ${spreadValue} (${dewText})`);
+  } else if (spreadValue) {
+    parts.push(`rosée Δ ${spreadValue}`);
+  } else if (dewText) {
+    parts.push(`rosée ${dewText}`);
+  }
+
+  return parts
+    .filter((part) => typeof part === 'string' && part.trim().length > 0 && !part.includes('undefined'))
+    .join(' • ');
 }

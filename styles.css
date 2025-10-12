@@ -98,6 +98,10 @@ main {
   backdrop-filter: blur(18px);
 }
 
+.panel--collapsed {
+  padding-bottom: clamp(0.9rem, 2.4vw, 1.3rem);
+}
+
 .panel-header {
   display: flex;
   align-items: flex-start;
@@ -156,6 +160,10 @@ main {
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
+}
+
+.panel--collapsed .panel-body {
+  display: none !important;
 }
 
 .stat-grid {

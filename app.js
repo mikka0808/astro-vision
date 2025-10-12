@@ -118,6 +118,7 @@ function setupContextPanels() {
     if (section) {
       section.classList.remove('panel--expanded');
       section.classList.remove('panel--ready');
+      section.classList.add('panel--collapsed');
     }
     button.addEventListener('click', () => {
       setContextPanelState(entry, !entry.expanded);
@@ -130,9 +131,14 @@ function setContextPanelState(entry, expanded) {
   entry.expanded = expanded;
   entry.button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
   entry.button.textContent = expanded ? entry.hideLabel : entry.showLabel;
-  entry.body.hidden = !expanded;
+  if (typeof entry.body.toggleAttribute === 'function') {
+    entry.body.toggleAttribute('hidden', !expanded);
+  } else {
+    entry.body.hidden = !expanded;
+  }
   if (entry.section) {
     entry.section.classList.toggle('panel--expanded', expanded);
+    entry.section.classList.toggle('panel--collapsed', !expanded);
   }
 }
 
@@ -483,11 +489,11 @@ function renderWeather(data) {
 }
 
 function describeMoonImpactLevel(illumination) {
-  if (!Number.isFinite(illumination)) return "Impact lunaire inconnu.";
-  if (illumination <= 0.1) return "Luminosité négligeable : ciel très sombre.";
-  if (illumination <= 0.35) return "Impact faible : quelques objets diffus peuvent pâlir.";
-  if (illumination <= 0.65) return "Impact modéré : privilégie les objets brillants.";
-  return "Impact fort : concentre-toi sur la Lune, les planètes ou les amas ouverts.";
+  if (!Number.isFinite(illumination)) return 'Impact : à confirmer';
+  if (illumination <= 0.1) return 'Impact : très faible';
+  if (illumination <= 0.35) return 'Impact : faible';
+  if (illumination <= 0.65) return 'Impact : modéré';
+  return 'Impact : fort';
 }
 
 function renderMoon(moon) {
@@ -504,7 +510,7 @@ function renderMoon(moon) {
   const impact = describeMoonImpactLevel(moon.illumination);
   const illuminationText = formatIllumination(moon.illumination);
 
-  moonSummary.innerHTML = `<strong>${moon.emoji ?? '🌙'} ${moon.name}</strong> — ${illuminationText} éclairée. ${impact}`;
+  moonSummary.innerHTML = `<strong>${moon.emoji ?? '🌙'} ${moon.name}</strong> • ${illuminationText} éclairée • ${impact}`;
 
   if (moonPhaseLabel) {
     moonPhaseLabel.textContent = moon.name;
