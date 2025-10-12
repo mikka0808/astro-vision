@@ -442,6 +442,21 @@ async function bootstrap() {
   }
 }
 
+if (catalogueGrid) {
+  catalogueGrid.addEventListener('click', (event) => {
+    const card = event.target.closest('a.catalogue-card');
+    if (!card) return;
+    const href = card.getAttribute('href');
+    if (!href) return;
+    if (event.defaultPrevented) return;
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return;
+    }
+    event.preventDefault();
+    window.location.assign(href);
+  });
+}
+
 if (sortSelect) {
   sortSelect.value = SORT_BY.score;
   sortSelect.addEventListener('change', (event) => {
