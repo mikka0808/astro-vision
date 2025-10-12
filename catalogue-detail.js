@@ -221,7 +221,7 @@ function renderFacts(object, dossier) {
   facts.innerHTML = '';
   const typeLabel = object.category || object.type || 'Objet Messier';
   const magnitudeText = Number.isFinite(object.magnitude) ? `Mag ${object.magnitude.toFixed(1)}` : '—';
-  const distanceText = formatDistance(dossier?.distanceLy);
+  const distanceText = formatDistance(dossier?.distanceLy ?? object.distanceLy);
   const angularSizeText = formatAngularSize(dossier?.angularSize || object.angularSize);
   const raText = formatRightAscension(object.raHours);
   const decText = formatDeclination(object.decDeg);

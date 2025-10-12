@@ -1,3 +1,5 @@
+import { getObjectDistanceLy } from './object-distances.js';
+
 export const bortleDescriptions = {
   1: 'ciel exceptionnel',
   2: 'ciel de campagne',
@@ -1033,10 +1035,15 @@ function normaliseTypeLabel(type = '') {
 }
 
 export function enrichCatalogueData(objects = []) {
-  return objects.map((object) => ({
-    ...object,
-    category: normaliseTypeLabel(object.type || '')
-  }));
+  return objects.map((object) => {
+    const number = Number(object.number);
+    const distanceLy = getObjectDistanceLy(number);
+    return {
+      ...object,
+      category: normaliseTypeLabel(object.type || ''),
+      distanceLy
+    };
+  });
 }
 
 export function buildWeatherSummary(data) {
