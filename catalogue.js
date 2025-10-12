@@ -190,7 +190,8 @@ function formatSessionContext(snapshot) {
   const bortle = Number.isFinite(context.bortle) ? context.bortle : '—';
   const when = context.localDate && context.localTime ? `${context.localDate} à ${context.localTime}` : 'date/heure inconnues';
   const duration = Number.isFinite(context.durationHours) ? context.durationHours : '—';
-  return `Session du ${when}, durée ${duration} h — latitude ${latitudeText}, longitude ${longitudeText}, Bortle ${bortle}.`;
+  const bortleSummary = context.bortleSummary ? ` ${context.bortleSummary}` : '';
+  return `Session du ${when}, durée ${duration} h — latitude ${latitudeText}, longitude ${longitudeText}, Bortle ${bortle}.${bortleSummary}`;
 }
 
 function renderSessionWeather(weather) {

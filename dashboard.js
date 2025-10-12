@@ -62,12 +62,14 @@ function renderContext(snapshot) {
     return;
   }
   const { latitude, longitude, localDate, localTime, durationHours, bortle } = snapshot.context;
+  const bortleSummary = snapshot.context?.bortleSummary;
   const latText = Number.isFinite(latitude) ? `${formatCoordinate(latitude)}°` : '—';
   const lonText = Number.isFinite(longitude) ? `${formatCoordinate(longitude)}°` : '—';
   const when = localDate && localTime ? `${localDate} à ${localTime}` : 'date inconnue';
   const duration = Number.isFinite(durationHours) ? `${durationHours} h` : 'durée inconnue';
   const bortleText = Number.isFinite(bortle) ? `Bortle ${bortle}` : 'Bortle ?';
-  contextEl.textContent = `Session du ${when} (${duration}) — lat ${latText}, lon ${lonText}, ${bortleText}.`;
+  const summarySuffix = bortleSummary ? ` ${bortleSummary}` : '';
+  contextEl.textContent = `Session du ${when} (${duration}) — lat ${latText}, lon ${lonText}, ${bortleText}.${summarySuffix}`;
 }
 
 function renderWeather(snapshot) {

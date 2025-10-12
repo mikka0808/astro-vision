@@ -70,6 +70,9 @@ const decisionAstrophotoList = document.getElementById('decisionAstrophotoList')
 const astrophotoSummary = document.getElementById('astrophotoSummary');
 const enableAstrophotoInput = document.getElementById('enableAstrophoto');
 const equipmentSelect = document.getElementById('equipmentProfile');
+const panelToggleButtons = document.querySelectorAll('[data-panel-toggle]');
+
+const contextPanels = new Map();
 
 const SESSION_SNAPSHOT_VERSION = 6;
 let objectsCatalog = [];
@@ -82,6 +85,10 @@ let cachedEvents = [];
 let cachedContext = null;
 let cachedDecision = null;
 let astrophotoSettings = { enabled: false, profileId: 'visual' };
+let bortleDebounce = null;
+let lastBortleSummary = '';
+
+const sunTimesCache = new Map();
 
 async function loadCatalog() {
   const response = await fetch('objects.json');
@@ -91,6 +98,94 @@ async function loadCatalog() {
   const data = await response.json();
   objectsCatalog = enrichCatalogueData(data);
   populateTypeFilter();
+}
+
+function setupContextPanels() {
+  panelToggleButtons.forEach((button) => {
+    const targetId = button.getAttribute('aria-controls');
+    if (!targetId) return;
+    const body = document.getElementById(targetId);
+    if (!body) return;
+    const section = button.closest('.panel');
+    const showLabel = button.dataset.labelShow || 'Afficher les détails';
+    const hideLabel = button.dataset.labelHide || 'Masquer les détails';
+    const entry = { button, body, section, showLabel, hideLabel, expanded: false };
+    contextPanels.set(targetId, entry);
+    button.setAttribute('aria-expanded', 'false');
+    button.textContent = showLabel;
+    button.disabled = true;
+    body.hidden = true;
+    if (section) {
+      section.classList.remove('panel--expanded');
+      section.classList.remove('panel--ready');
+    }
+    button.addEventListener('click', () => {
+      setContextPanelState(entry, !entry.expanded);
+    });
+  });
+}
+
+function setContextPanelState(entry, expanded) {
+  if (!entry) return;
+  entry.expanded = expanded;
+  entry.button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  entry.button.textContent = expanded ? entry.hideLabel : entry.showLabel;
+  entry.body.hidden = !expanded;
+  if (entry.section) {
+    entry.section.classList.toggle('panel--expanded', expanded);
+  }
+}
+
+function setContextPanelReady(panelId, ready) {
+  const entry = contextPanels.get(panelId);
+  if (!entry) return;
+  entry.button.disabled = !ready;
+  if (!ready) {
+    setContextPanelState(entry, false);
+  }
+  if (entry.section) {
+    entry.section.classList.toggle('panel--ready', ready);
+  }
+}
+
+function collapseContextPanel(panelId) {
+  const entry = contextPanels.get(panelId);
+  if (!entry) return;
+  setContextPanelState(entry, false);
+}
+
+setupContextPanels();
+
+function shiftDateValue(dateValue, offsetDays) {
+  if (!dateValue) return null;
+  const [year, month, day] = dateValue.split('-').map(Number);
+  if (![year, month, day].every((part) => Number.isFinite(part))) return null;
+  const base = new Date(Date.UTC(year, month - 1, day));
+  base.setUTCDate(base.getUTCDate() + offsetDays);
+  return base.toISOString().slice(0, 10);
+}
+
+async function requestSunTimes(lat, lon, dateValue) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || !dateValue) return null;
+  const key = `${lat.toFixed(4)}|${lon.toFixed(4)}|${dateValue}`;
+  if (sunTimesCache.has(key)) {
+    return sunTimesCache.get(key);
+  }
+  const response = await fetch(
+    `https://api.sunrise-sunset.org/json?lat=${lat}&lng=${lon}&date=${dateValue}&formatted=0`
+  );
+  if (!response.ok) throw new Error('sunset');
+  const data = await response.json();
+  const results = data?.results;
+  if (!results) throw new Error('sunset');
+  const record = {
+    key,
+    sunset: results.sunset,
+    astronomicalDusk: results.astronomical_twilight_end,
+    astronomicalDawn: results.astronomical_twilight_begin
+  };
+  sunTimesCache.set(key, record);
+  return record;
 }
 
 function updateCoordinateInput(input, delta) {
@@ -114,6 +209,14 @@ function triggerCoordinateUpdates() {
     clearTimeout(sunsetDebounce);
   }
   sunsetDebounce = setTimeout(updateSunsetFromInputs, 400);
+  scheduleBortleRefresh();
+}
+
+function scheduleBortleRefresh() {
+  if (bortleDebounce) {
+    clearTimeout(bortleDebounce);
+  }
+  bortleDebounce = setTimeout(autoFetchBortle, 450);
 }
 
 function listCategories() {
@@ -236,17 +339,43 @@ function initDefaults() {
   const snapshot = readLastSessionSnapshot();
   const now = new Date();
   const localISO = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-  dateInput.value = localISO.toISOString().slice(0, 10);
-  timeInput.value = localISO.toISOString().slice(11, 16);
-  if (!latitudeInput.value) {
-    latitudeInput.value = formatCoordinate(48.856);
+  const fallbackDate = localISO.toISOString().slice(0, 10);
+  const fallbackTime = localISO.toISOString().slice(11, 16);
+  const context = snapshot?.context ?? {};
+
+  const storedLat = Number.isFinite(context.latitude) ? formatCoordinate(context.latitude) : null;
+  const storedLon = Number.isFinite(context.longitude) ? formatCoordinate(context.longitude) : null;
+  const storedDate = typeof context.localDate === 'string' && context.localDate ? context.localDate : null;
+  const storedTime = typeof context.localTime === 'string' && context.localTime ? context.localTime : null;
+  const storedDuration = Number.isFinite(context.durationHours) ? String(context.durationHours) : null;
+  const storedBortle = Number.isFinite(context.bortle) ? context.bortle : null;
+
+  latitudeInput.value = storedLat ?? formatCoordinate(48.856);
+  longitudeInput.value = storedLon ?? formatCoordinate(2.352);
+  dateInput.value = storedDate ?? fallbackDate;
+  timeInput.value = storedTime ?? fallbackTime;
+
+  if (storedDuration) {
+    const hasOption = Array.from(durationSelect.options).some((option) => option.value === storedDuration);
+    if (hasOption) {
+      durationSelect.value = storedDuration;
+    }
   }
-  if (!longitudeInput.value) {
-    longitudeInput.value = formatCoordinate(2.352);
+
+  if (storedBortle) {
+    bortleInput.value = Math.min(9, Math.max(1, Math.round(storedBortle)));
   }
+
   updateBortleLabel();
+  if (typeof context.bortleSummary === 'string' && context.bortleSummary) {
+    bortleHint.textContent = context.bortleSummary;
+    lastBortleSummary = context.bortleSummary;
+  }
+
+  cachedContext = context && Object.keys(context).length > 0 ? { ...context } : null;
+
   triggerCoordinateUpdates();
-  autoFetchBortle();
+
   if (snapshot) {
     hydrateAstrophotoSettings(snapshot);
   } else {
@@ -350,6 +479,7 @@ function renderWeather(data) {
     .join('');
 
   weatherPanel.classList.remove('hidden');
+  setContextPanelReady('weatherBody', true);
 }
 
 function describeMoonImpactLevel(illumination) {
@@ -364,6 +494,7 @@ function renderMoon(moon) {
   if (!moonPanel || !moonSummary || !moonDetails) return;
   if (!moon) {
     moonPanel.classList.add('hidden');
+    setContextPanelReady('moonBody', false);
     return;
   }
   const illuminationPercent = Number.isFinite(moon.illumination)
@@ -406,6 +537,7 @@ function renderMoon(moon) {
     </li>
   `;
   moonPanel.classList.remove('hidden');
+  setContextPanelReady('moonBody', true);
 }
 
 function renderEvents(events) {
@@ -416,6 +548,7 @@ function renderEvents(events) {
       eventsHint.textContent = 'Aucun événement particulier détecté pour cette période.';
     }
     eventsPanel.classList.add('hidden');
+    setContextPanelReady('eventsBody', false);
     return;
   }
   events.forEach((event) => {
@@ -456,6 +589,7 @@ function renderEvents(events) {
     eventsHint.textContent = `Les événements sont triés par date et mis à jour selon ta session.`;
   }
   eventsPanel.classList.remove('hidden');
+  setContextPanelReady('eventsBody', true);
 }
 
 function renderTargets(targets, stats = {}) {
@@ -882,8 +1016,11 @@ async function handleSessionSubmit(event) {
   event.preventDefault();
   if (resultsPanel) resultsPanel.classList.add('hidden');
   if (weatherPanel) weatherPanel.classList.add('hidden');
+  setContextPanelReady('weatherBody', false);
   if (moonPanel) moonPanel.classList.add('hidden');
+  setContextPanelReady('moonBody', false);
   if (eventsPanel) eventsPanel.classList.add('hidden');
+  setContextPanelReady('eventsBody', false);
   if (decisionPanel) {
     decisionPanel.classList.add('hidden');
     if (decisionSummary) {
@@ -898,6 +1035,7 @@ async function handleSessionSubmit(event) {
   cachedEvents = [];
   cachedContext = null;
   cachedDecision = null;
+  lastBortleSummary = bortleHint?.textContent ?? '';
   updateFilterSummary();
 
   const lat = parseCoordinate(latitudeInput.value);
@@ -944,7 +1082,8 @@ async function handleSessionSubmit(event) {
       localTime: timeValue,
       durationHours: duration,
       dateISO: observationDateUTC.toISOString(),
-      date: observationDateUTC
+      date: observationDateUTC,
+      bortleSummary: lastBortleSummary || bortleHint?.textContent || ''
     };
     updateFilterSummary();
     const selected = getActiveTypeFilters();
@@ -973,7 +1112,8 @@ async function handleSessionSubmit(event) {
       events,
       entries: scoredEntries,
       decisionSupport: decision,
-      astroSettings: astrophotoSettings
+      astroSettings: astrophotoSettings,
+      bortleSummary: lastBortleSummary || bortleHint?.textContent || ''
     });
   } catch (error) {
     console.error(error);
@@ -1016,6 +1156,8 @@ longitudeInput.addEventListener('blur', handleCoordinateBlur);
 latitudeInput.addEventListener('input', triggerCoordinateUpdates);
 longitudeInput.addEventListener('input', triggerCoordinateUpdates);
 dateInput.addEventListener('change', triggerCoordinateUpdates);
+timeInput.addEventListener('change', scheduleBortleRefresh);
+timeInput.addEventListener('input', scheduleBortleRefresh);
 resolveAddressBtn.addEventListener('click', resolveAddress);
 addressInput.addEventListener('keydown', (event) => {
   if (event.key === 'Enter') {
@@ -1110,14 +1252,9 @@ async function updateSunsetFromInputs() {
   }
   sunsetHint.textContent = 'Calcul du coucher du soleil…';
   try {
-    const response = await fetch(
-      `https://api.sunrise-sunset.org/json?lat=${lat}&lng=${lon}&date=${dateValue}&formatted=0`
-    );
-    if (!response.ok) throw new Error('sunset');
-    const data = await response.json();
-    const sunsetISO = data?.results?.sunset;
-    if (!sunsetISO) throw new Error('sunset');
-    const sunsetDate = new Date(sunsetISO);
+    const sunTimes = await requestSunTimes(lat, lon, dateValue);
+    if (!sunTimes?.sunset) throw new Error('sunset');
+    const sunsetDate = new Date(sunTimes.sunset);
     const hours = sunsetDate.getHours().toString().padStart(2, '0');
     const minutes = sunsetDate.getMinutes().toString().padStart(2, '0');
     cachedSunsetTime = `${hours}:${minutes}`;
@@ -1132,27 +1269,101 @@ async function updateSunsetFromInputs() {
 async function autoFetchBortle() {
   const lat = parseCoordinate(latitudeInput.value);
   const lon = parseCoordinate(longitudeInput.value);
+  const dateValue = dateInput.value;
+  const timeValue = timeInput.value;
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
     bortleHint.textContent = 'Coordonnées invalides : impossible de récupérer Bortle.';
     return;
   }
+  if (!dateValue || !timeValue) {
+    bortleHint.textContent = 'Indique une date et une heure pour estimer la classe de Bortle.';
+    return;
+  }
   bortleHint.textContent = 'Recherche de la classe de Bortle…';
-  const target = `https://www.lightpollutionmap.info/LPMS/app/external/getBortle.php?lat=${lat}&lon=${lon}`;
+  const observationDateUTC = buildObservationDate(dateValue, timeValue);
+  const requestISO = observationDateUTC.toISOString();
+  const target = `https://www.lightpollutionmap.info/LPMS/app/external/getBortle.php?lat=${lat}&lon=${lon}&time=${encodeURIComponent(
+    requestISO
+  )}`;
   const proxied = `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`;
+
+  let baseBortleValue = Number(bortleInput.value);
+  if (!Number.isFinite(baseBortleValue)) {
+    baseBortleValue = 6;
+  }
+  let fetched = false;
+
   try {
     const response = await fetch(proxied);
     if (!response.ok) throw new Error('bortle');
     const text = await response.text();
     const value = Number(text.trim());
     if (!Number.isFinite(value)) throw new Error('bortle');
-    const clamped = Math.min(9, Math.max(1, Math.round(value)));
-    bortleInput.value = clamped;
-    updateBortleLabel();
-    bortleHint.textContent = `Classe estimée : Bortle ${clamped} (source LightPollutionMap.info).`;
+    baseBortleValue = value;
+    fetched = true;
   } catch (error) {
-    console.error(error);
-    bortleHint.textContent = 'Impossible de récupérer automatiquement la classe de Bortle.';
+    console.error('Impossible de récupérer la valeur brute de Bortle :', error);
   }
+
+  let adjustedValue = baseBortleValue;
+  const adjustments = [];
+
+  try {
+    const moon = computeMoonPhase(observationDateUTC);
+    if (Number.isFinite(moon.illumination)) {
+      const illuminationLabel = formatIllumination(moon.illumination);
+      if (moon.illumination >= 0.75) {
+        adjustedValue += 2;
+        adjustments.push(`+2 Lune très lumineuse (${illuminationLabel})`);
+      } else if (moon.illumination >= 0.5) {
+        adjustedValue += 1;
+        adjustments.push(`+1 Lune brillante (${illuminationLabel})`);
+      } else if (moon.illumination <= 0.1) {
+        adjustedValue -= 0.5;
+        adjustments.push('−0,5 Lune quasi absente');
+      }
+    }
+  } catch (error) {
+    console.warn('Impossible de calculer la correction lunaire :', error);
+  }
+
+  try {
+    const todaySun = await requestSunTimes(lat, lon, dateValue);
+    const tomorrowDate = shiftDateValue(dateValue, 1);
+    const tomorrowSun = tomorrowDate ? await requestSunTimes(lat, lon, tomorrowDate) : null;
+    const observationTime = observationDateUTC.getTime();
+    const duskTime = todaySun?.astronomicalDusk ? new Date(todaySun.astronomicalDusk).getTime() : null;
+    const dawnTime = tomorrowSun?.astronomicalDawn ? new Date(tomorrowSun.astronomicalDawn).getTime() : null;
+    if (duskTime && observationTime < duskTime) {
+      adjustedValue += 1;
+      adjustments.push('+1 Crépuscule astronomique non terminé');
+    }
+    if (dawnTime && observationTime > dawnTime) {
+      adjustedValue += 1;
+      adjustments.push('+1 Aube astronomique entamée');
+    }
+  } catch (error) {
+    console.warn("Impossible d'ajuster selon le crépuscule :", error);
+  }
+
+  const adjustedClamped = Math.min(9, Math.max(1, Math.round(adjustedValue)));
+  bortleInput.value = adjustedClamped;
+  updateBortleLabel();
+
+  const baseRounded = Math.min(9, Math.max(1, Math.round(baseBortleValue)));
+  const parts = [`Classe estimée : Bortle ${adjustedClamped}`];
+  parts.push(
+    fetched
+      ? `base ${baseRounded} (LightPollutionMap.info)`
+      : `base ${baseRounded} (valeur conservée)`
+  );
+  if (adjustments.length > 0) {
+    parts.push(`ajustements ${adjustments.join(', ')}`);
+  }
+  parts.push(`créneau ${dateValue} à ${timeValue}`);
+  const summary = `${parts.join(' — ')}.`;
+  bortleHint.textContent = summary;
+  lastBortleSummary = summary;
 }
 
 function storeSessionSnapshot({
@@ -1168,7 +1379,8 @@ function storeSessionSnapshot({
   events,
   entries,
   decisionSupport,
-  astroSettings
+  astroSettings,
+  bortleSummary
 }) {
   try {
     const snapshot = {
@@ -1181,7 +1393,8 @@ function storeSessionSnapshot({
         localDate: dateValue,
         localTime: timeValue,
         durationHours: duration,
-        dateISO: observationDateUTC.toISOString()
+        dateISO: observationDateUTC.toISOString(),
+        bortleSummary: typeof bortleSummary === 'string' ? bortleSummary : ''
       },
       weather,
       moon,

@@ -107,10 +107,23 @@
 
     <section class="panel panel--data hidden" id="weatherPanel" aria-live="polite">
       <div class="panel-header">
-        <h2>Météo instantanée</h2>
-        <p id="weatherSummary">Chargement...</p>
+        <div class="panel-heading">
+          <h2>Météo instantanée</h2>
+          <p id="weatherSummary">Chargement...</p>
+        </div>
+        <button
+          type="button"
+          class="panel-toggle"
+          data-panel-toggle
+          data-label-show="Afficher les détails météo"
+          data-label-hide="Masquer les détails météo"
+          aria-expanded="false"
+          aria-controls="weatherBody"
+        >
+          Afficher les détails météo
+        </button>
       </div>
-      <div class="panel-body">
+      <div class="panel-body contextual-body" id="weatherBody" hidden>
         <div id="weatherHighlights" class="stat-grid" aria-live="polite"></div>
         <ul id="weatherDetails" class="data-list"></ul>
       </div>
@@ -118,10 +131,23 @@
 
     <section class="panel panel--data hidden" id="moonPanel" aria-live="polite">
       <div class="panel-header">
-        <h2>Phase lunaire</h2>
-        <p id="moonSummary">Calcul de la phase lunaire…</p>
+        <div class="panel-heading">
+          <h2>Phase lunaire</h2>
+          <p id="moonSummary">Calcul de la phase lunaire…</p>
+        </div>
+        <button
+          type="button"
+          class="panel-toggle"
+          data-panel-toggle
+          data-label-show="Afficher le détail lunaire"
+          data-label-hide="Masquer le détail lunaire"
+          aria-expanded="false"
+          aria-controls="moonBody"
+        >
+          Afficher le détail lunaire
+        </button>
       </div>
-      <div class="panel-body moon-body">
+      <div class="panel-body contextual-body moon-body" id="moonBody" hidden>
         <article class="moon-card">
           <div class="moon-visual" id="moonVisual" role="img" aria-label="Phase lunaire en cours">
             <span id="moonEmoji">🌙</span>
@@ -135,10 +161,23 @@
 
     <section class="panel panel--data hidden" id="eventsPanel" aria-live="polite">
       <div class="panel-header">
-        <h2>Événements à surveiller</h2>
-        <p id="eventsHint">Chargement des phénomènes célestes…</p>
+        <div class="panel-heading">
+          <h2>Événements à surveiller</h2>
+          <p id="eventsHint">Chargement des phénomènes célestes…</p>
+        </div>
+        <button
+          type="button"
+          class="panel-toggle"
+          data-panel-toggle
+          data-label-show="Afficher les événements"
+          data-label-hide="Masquer les événements"
+          aria-expanded="false"
+          aria-controls="eventsBody"
+        >
+          Afficher les événements
+        </button>
       </div>
-      <div class="panel-body">
+      <div class="panel-body contextual-body" id="eventsBody" hidden>
         <ul id="eventsList" class="event-list"></ul>
       </div>
     </section>
