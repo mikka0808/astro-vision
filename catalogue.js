@@ -42,6 +42,46 @@ const SCORE_CLASSES = {
   none: 'score-none'
 };
 
+const DEFAULT_IMAGE_CREDIT = 'ESO / ESA / Hubble';
+
+const IMAGE_OVERRIDES = {
+  31: {
+    sources: [
+      'https://cdn.eso.org/images/wallpaper1/m31.jpg',
+      'https://cdn.eso.org/images/screen/messier31.jpg'
+    ],
+    credit: 'ESO'
+  },
+  42: {
+    sources: [
+      'https://cdn.eso.org/images/wallpaper1/m42.jpg',
+      'https://cdn.eso.org/images/screen/messier42.jpg'
+    ],
+    credit: 'ESO / DSS2'
+  },
+  45: {
+    sources: [
+      'https://cdn.eso.org/images/wallpaper1/m45.jpg',
+      'https://cdn.eso.org/images/screen/messier45.jpg'
+    ],
+    credit: 'ESO / Pleïades'
+  },
+  51: {
+    sources: [
+      'https://cdn.eso.org/images/wallpaper1/m51.jpg',
+      'https://cdn.eso.org/images/screen/messier51.jpg'
+    ],
+    credit: 'ESO / NASA'
+  },
+  57: {
+    sources: [
+      'https://cdn.eso.org/images/wallpaper1/m57.jpg',
+      'https://cdn.eso.org/images/screen/messier57.jpg'
+    ],
+    credit: 'ESO / NASA'
+  }
+};
+
 let catalogueEntries = [];
 let currentSort = SORT_BY.number;
 let activeTypeFilters = [];
@@ -394,7 +434,52 @@ function drawOther(ctx, random) {
   }
 }
 
-function createPreview(object) {
+function normaliseMessierNumber(number) {
+  if (!Number.isFinite(number)) return null;
+  return String(number);
+}
+
+function buildImageCandidates(number) {
+  const id = normaliseMessierNumber(number);
+  if (!id) {
+    return [];
+  }
+  const padded2 = id.padStart(2, '0');
+  const padded3 = id.padStart(3, '0');
+  return [
+    `https://cdn.eso.org/images/wallpaper1/messier${id}.jpg`,
+    `https://cdn.eso.org/images/wallpaper1/messier${padded2}.jpg`,
+    `https://cdn.eso.org/images/wallpaper1/messier${padded3}.jpg`,
+    `https://cdn.eso.org/images/screen/messier${id}.jpg`,
+    `https://cdn.eso.org/images/screen/messier${padded2}.jpg`,
+    `https://cdn.eso.org/images/screen/messier${padded3}.jpg`,
+    `https://www.eso.org/public/archives/images/screen/messier${id}.jpg`,
+    `https://messier.seds.org/Pics/Jpg/m${id}.jpg`,
+    `https://messier.seds.org/Pics/Jpg/m${padded2}.jpg`,
+    `https://messier.seds.org/Pics/Jpg/m${padded3}.jpg`,
+    `https://www.messier-objects.com/wp-content/uploads/2012/01/messier-${id}.jpg`
+  ];
+}
+
+function resolveImageSources(object) {
+  const number = Number(object?.number);
+  if (!Number.isFinite(number)) {
+    return null;
+  }
+  const override = IMAGE_OVERRIDES[number];
+  if (override) {
+    return {
+      sources: [...override.sources],
+      credit: override.credit || DEFAULT_IMAGE_CREDIT
+    };
+  }
+  return {
+    sources: buildImageCandidates(number),
+    credit: DEFAULT_IMAGE_CREDIT
+  };
+}
+
+function createCanvasPreview(object) {
   const canvas = document.createElement('canvas');
   canvas.width = 160;
   canvas.height = 160;
@@ -417,6 +502,60 @@ function createPreview(object) {
   return canvas;
 }
 
+function createObservationPreview(object) {
+  const sources = resolveImageSources(object);
+  if (!sources || !Array.isArray(sources.sources) || sources.sources.length === 0) {
+    return createCanvasPreview(object);
+  }
+
+  const figure = document.createElement('figure');
+  figure.className = 'preview-figure';
+
+  const img = document.createElement('img');
+  img.loading = 'lazy';
+  img.decoding = 'async';
+  img.className = 'preview-image';
+  img.alt = `Observation télescopique monochrome de ${object.name}`;
+  img.referrerPolicy = 'no-referrer';
+
+  const credit = document.createElement('figcaption');
+  credit.className = 'preview-credit';
+  credit.textContent = sources.credit ? `Crédit : ${sources.credit}` : 'Crédit : Source télescopique';
+
+  figure.appendChild(img);
+  figure.appendChild(credit);
+
+  const candidates = Array.from(new Set(sources.sources.filter(Boolean)));
+  let index = 0;
+
+  const loadNextCandidate = () => {
+    if (index >= candidates.length) {
+      img.removeEventListener('error', loadNextCandidate);
+      img.remove();
+      const fallback = createCanvasPreview(object);
+      figure.insertBefore(fallback, credit);
+      credit.textContent = 'Visualisation générée par Astro Soir';
+      return;
+    }
+    const candidate = candidates[index];
+    index += 1;
+    if (candidate) {
+      img.src = candidate;
+    } else {
+      loadNextCandidate();
+    }
+  };
+
+  img.addEventListener('error', loadNextCandidate);
+  img.addEventListener('load', () => {
+    img.removeEventListener('error', loadNextCandidate);
+  });
+
+  loadNextCandidate();
+
+  return figure;
+}
+
 function formatFactor(value) {
   if (!Number.isFinite(value)) return '—';
   return `${Math.round(value * 100)}%`;
@@ -433,7 +572,7 @@ function buildCard(object, metrics) {
 
   const previewWrapper = document.createElement('div');
   previewWrapper.className = 'preview-wrapper';
-  previewWrapper.appendChild(createPreview(object));
+  previewWrapper.appendChild(createObservationPreview(object));
 
   const text = document.createElement('div');
   text.className = 'catalogue-text';

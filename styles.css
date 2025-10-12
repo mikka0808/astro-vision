@@ -638,7 +638,9 @@ p.help-text {
   background: #05060f;
   border: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
+  flex-direction: column;
   justify-content: center;
+  align-items: stretch;
 }
 
 .catalogue-card.score-good .preview-wrapper {
@@ -657,6 +659,35 @@ p.help-text {
   width: 100%;
   height: auto;
   display: block;
+}
+
+.preview-figure {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin: 0;
+  background: #02030a;
+}
+
+.preview-image {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+  background: #010208;
+  filter: grayscale(100%) contrast(115%) brightness(108%);
+}
+
+.preview-credit {
+  margin: 0;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  color: rgba(210, 215, 230, 0.78);
+  background: rgba(11, 14, 28, 0.85);
 }
 
 .catalogue-text h3 {
