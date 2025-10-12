@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Astro Soir — Catalogue Messier</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="catalogue-page">
+  <header class="hero hero--compact">
+    <div class="hero-content">
+      <div>
+        <h1>Catalogue Messier</h1>
+        <p>Consulte toutes les entrées du catalogue avec leur score de visibilité pour ta session actuelle.</p>
+      </div>
+      <nav class="top-nav">
+        <a class="nav-link" href="index.html">← Retour à l'analyse</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    <section class="panel" id="sessionPanel" aria-live="polite">
+      <div class="panel-header">
+        <h2>Contexte d'observation</h2>
+        <p id="sessionSummary">Analyse en attente...</p>
+      </div>
+      <p class="help-text" id="sessionWeather"></p>
+      <p class="help-text" id="sessionMoon"></p>
+      <ul id="sessionEvents" class="event-list"></ul>
+    </section>
+
+    <section class="panel" id="cataloguePanel">
+      <div class="panel-header">
+        <h2>Objets du catalogue Messier</h2>
+        <p id="catalogueHint">Chargement des objets...</p>
+      </div>
+      <div class="catalogue-controls">
+        <label for="catalogueSort">Trier par</label>
+        <select id="catalogueSort" aria-label="Trier les objets du catalogue">
+          <option value="number">Numéro M (M1 → M110)</option>
+          <option value="score">Score décroissant</option>
+        </select>
+        <details class="filter-details">
+          <summary>Filtrer par type</summary>
+          <div id="catalogueTypeOptions" class="filter-options"></div>
+        </details>
+      </div>
+      <p class="help-text" id="catalogueFilterSummary">Tous les types sont affichés.</p>
+      <div id="catalogueGrid" class="catalogue-grid" role="list"></div>
+    </section>
+  </main>
+  <footer>
+    <nav class="footer-nav">
+      <a class="nav-link" href="index.html">Page principale</a>
+    </nav>
+    <small>Sources météo : <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open‑Meteo</a>. Données Messier enrichies par Astro Soir.</small>
+  </footer>
+  <script type="module" src="catalogue.js"></script>
+</body>
+</html>

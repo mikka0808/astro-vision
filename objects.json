@@ -1,0 +1,1872 @@
+[
+  {
+    "number": 1,
+    "name": "M1 - Nébuleuse du Crabe",
+    "type": "Reste de supernova",
+    "constellation": "Taureau",
+    "raHours": 5.575,
+    "decDeg": 22.0167,
+    "magnitude": 8.4,
+    "bestMonths": [
+      11,
+      12,
+      1,
+      2
+    ],
+    "minBortle": 5,
+    "description": "Vestige de supernova filamenteux apprécié avec des filtres. Visible dans la constellation de Taureau."
+  },
+  {
+    "number": 2,
+    "name": "M2 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Verseau",
+    "raHours": 21.5583,
+    "decDeg": -0.8167,
+    "magnitude": 6.5,
+    "bestMonths": [
+      7,
+      8,
+      9,
+      10
+    ],
+    "minBortle": 6,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Verseau."
+  },
+  {
+    "number": 3,
+    "name": "M3 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Chiens de chasse",
+    "raHours": 13.7033,
+    "decDeg": 28.3833,
+    "magnitude": 6.3,
+    "bestMonths": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "minBortle": 6,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Chiens de chasse."
+  },
+  {
+    "number": 4,
+    "name": "M4 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Scorpion",
+    "raHours": 16.3933,
+    "decDeg": -26.5333,
+    "magnitude": 5.6,
+    "bestMonths": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "minBortle": 8,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Scorpion."
+  },
+  {
+    "number": 5,
+    "name": "M5 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Serpent",
+    "raHours": 15.31,
+    "decDeg": 2.0833,
+    "magnitude": 5.7,
+    "bestMonths": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "minBortle": 8,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Serpent."
+  },
+  {
+    "number": 6,
+    "name": "M6 - Amas du Papillon",
+    "type": "Amas ouvert",
+    "constellation": "Scorpion",
+    "raHours": 17.6683,
+    "decDeg": -32.2167,
+    "magnitude": 4.2,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 9,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Scorpion."
+  },
+  {
+    "number": 7,
+    "name": "M7 - Amas de Ptolémée",
+    "type": "Amas ouvert",
+    "constellation": "Scorpion",
+    "raHours": 17.8983,
+    "decDeg": -34.8167,
+    "magnitude": 3.3,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 9,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Scorpion."
+  },
+  {
+    "number": 8,
+    "name": "M8 - Nébuleuse de la Lagune",
+    "type": "Nébuleuse diffuse",
+    "constellation": "Sagittaire",
+    "raHours": 18.0633,
+    "decDeg": -24.3833,
+    "magnitude": 5.0,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 8,
+    "description": "Nébuleuse diffuse lumineuse qui révèle ses volutes en photo. Visible dans la constellation de Sagittaire."
+  },
+  {
+    "number": 9,
+    "name": "M9 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Serpent",
+    "raHours": 17.32,
+    "decDeg": -18.5167,
+    "magnitude": 7.8,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 5,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Serpent."
+  },
+  {
+    "number": 10,
+    "name": "M10 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Ophiuchus",
+    "raHours": 16.9517,
+    "decDeg": -4.1,
+    "magnitude": 6.6,
+    "bestMonths": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "minBortle": 6,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Ophiuchus."
+  },
+  {
+    "number": 11,
+    "name": "M11 - Amas du Canard Sauvage",
+    "type": "Amas ouvert",
+    "constellation": "Écu de Sobieski",
+    "raHours": 18.8517,
+    "decDeg": -6.2667,
+    "magnitude": 6.3,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 6,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Écu de Sobieski."
+  },
+  {
+    "number": 12,
+    "name": "M12 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Ophiuchus",
+    "raHours": 16.7867,
+    "decDeg": -1.95,
+    "magnitude": 6.7,
+    "bestMonths": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "minBortle": 6,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Ophiuchus."
+  },
+  {
+    "number": 13,
+    "name": "M13 - Grand Amas d'Hercule",
+    "type": "Amas globulaire",
+    "constellation": "Hercule",
+    "raHours": 16.695,
+    "decDeg": 36.4667,
+    "magnitude": 5.8,
+    "bestMonths": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "minBortle": 8,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Hercule."
+  },
+  {
+    "number": 14,
+    "name": "M14 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Ophiuchus",
+    "raHours": 17.6267,
+    "decDeg": -3.25,
+    "magnitude": 7.6,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 5,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Ophiuchus."
+  },
+  {
+    "number": 15,
+    "name": "M15 - Grand Amas de Pégase",
+    "type": "Amas globulaire",
+    "constellation": "Pégase",
+    "raHours": 21.5,
+    "decDeg": 12.1667,
+    "magnitude": 6.2,
+    "bestMonths": [
+      7,
+      8,
+      9,
+      10
+    ],
+    "minBortle": 6,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Pégase."
+  },
+  {
+    "number": 16,
+    "name": "M16 - Nébuleuse de l'Aigle",
+    "type": "Nébuleuse diffuse",
+    "constellation": "Serpent",
+    "raHours": 18.3133,
+    "decDeg": -13.7833,
+    "magnitude": 6.0,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 8,
+    "description": "Nébuleuse diffuse lumineuse qui révèle ses volutes en photo. Visible dans la constellation de Serpent."
+  },
+  {
+    "number": 17,
+    "name": "M17 - Nébuleuse Oméga",
+    "type": "Nébuleuse diffuse",
+    "constellation": "Sagittaire",
+    "raHours": 18.3467,
+    "decDeg": -16.1833,
+    "magnitude": 6.0,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 8,
+    "description": "Nébuleuse diffuse lumineuse qui révèle ses volutes en photo. Visible dans la constellation de Sagittaire."
+  },
+  {
+    "number": 18,
+    "name": "M18 - Amas ouvert",
+    "type": "Amas ouvert",
+    "constellation": "Sagittaire",
+    "raHours": 18.3317,
+    "decDeg": -17.1,
+    "magnitude": 7.5,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 6,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Sagittaire."
+  },
+  {
+    "number": 19,
+    "name": "M19 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Ophiuchus",
+    "raHours": 17.0433,
+    "decDeg": -26.2667,
+    "magnitude": 7.2,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 6,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Ophiuchus."
+  },
+  {
+    "number": 20,
+    "name": "M20 - Nébuleuse Trifide",
+    "type": "Nébuleuse diffuse",
+    "constellation": "Sagittaire",
+    "raHours": 18.0383,
+    "decDeg": -23.0333,
+    "magnitude": 9.0,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 5,
+    "description": "Nébuleuse diffuse lumineuse qui révèle ses volutes en photo. Visible dans la constellation de Sagittaire."
+  },
+  {
+    "number": 21,
+    "name": "M21 - Amas ouvert",
+    "type": "Amas ouvert",
+    "constellation": "Sagittaire",
+    "raHours": 18.0767,
+    "decDeg": -22.5,
+    "magnitude": 6.5,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 6,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Sagittaire."
+  },
+  {
+    "number": 22,
+    "name": "M22 - Grand Amas du Sagittaire",
+    "type": "Amas globulaire",
+    "constellation": "Sagittaire",
+    "raHours": 18.6067,
+    "decDeg": -23.9,
+    "magnitude": 5.1,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 8,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Sagittaire."
+  },
+  {
+    "number": 23,
+    "name": "M23 - Amas ouvert",
+    "type": "Amas ouvert",
+    "constellation": "Sagittaire",
+    "raHours": 17.9467,
+    "decDeg": -19.0167,
+    "magnitude": 5.5,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 8,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Sagittaire."
+  },
+  {
+    "number": 24,
+    "name": "M24 - Nuage stellaire du Sagittaire",
+    "type": "Amas ouvert",
+    "constellation": "Sagittaire",
+    "raHours": 18.2917,
+    "decDeg": -18.4833,
+    "magnitude": 4.6,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 8,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Sagittaire."
+  },
+  {
+    "number": 25,
+    "name": "M25 - Amas ouvert",
+    "type": "Amas ouvert",
+    "constellation": "Sagittaire",
+    "raHours": 18.5267,
+    "decDeg": -19.25,
+    "magnitude": 4.6,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 8,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Sagittaire."
+  },
+  {
+    "number": 26,
+    "name": "M26 - Amas ouvert",
+    "type": "Amas ouvert",
+    "constellation": "Écu de Sobieski",
+    "raHours": 18.7533,
+    "decDeg": -9.4,
+    "magnitude": 8.0,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 5,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Écu de Sobieski."
+  },
+  {
+    "number": 27,
+    "name": "M27 - Nébuleuse Haltère",
+    "type": "Nébuleuse planétaire",
+    "constellation": "Petit Renard",
+    "raHours": 19.9933,
+    "decDeg": 22.7167,
+    "magnitude": 7.4,
+    "bestMonths": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "minBortle": 6,
+    "description": "Nébuleuse planétaire compacte à fort contraste. Visible dans la constellation de Petit Renard."
+  },
+  {
+    "number": 28,
+    "name": "M28 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Sagittaire",
+    "raHours": 18.4083,
+    "decDeg": -24.8667,
+    "magnitude": 6.8,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 6,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Sagittaire."
+  },
+  {
+    "number": 29,
+    "name": "M29 - Amas ouvert",
+    "type": "Amas ouvert",
+    "constellation": "Cygne",
+    "raHours": 20.3983,
+    "decDeg": 38.5333,
+    "magnitude": 6.6,
+    "bestMonths": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "minBortle": 6,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Cygne."
+  },
+  {
+    "number": 30,
+    "name": "M30 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Capricorne",
+    "raHours": 21.6733,
+    "decDeg": -23.1833,
+    "magnitude": 7.5,
+    "bestMonths": [
+      7,
+      8,
+      9,
+      10
+    ],
+    "minBortle": 6,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Capricorne."
+  },
+  {
+    "number": 31,
+    "name": "M31 - Galaxie d'Andromède",
+    "type": "Galaxie spirale",
+    "constellation": "Andromède",
+    "raHours": 0.7117,
+    "decDeg": 41.2667,
+    "magnitude": 3.4,
+    "bestMonths": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "minBortle": 9,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Andromède."
+  },
+  {
+    "number": 32,
+    "name": "M32 - Galaxie satellite d'Andromède",
+    "type": "Galaxie elliptique",
+    "constellation": "Andromède",
+    "raHours": 0.7117,
+    "decDeg": 40.8667,
+    "magnitude": 8.1,
+    "bestMonths": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "minBortle": 5,
+    "description": "Galaxie elliptique massive composée d'étoiles âgées. Visible dans la constellation de Andromède."
+  },
+  {
+    "number": 33,
+    "name": "M33 - Galaxie du Triangle",
+    "type": "Galaxie spirale",
+    "constellation": "Triangle",
+    "raHours": 1.565,
+    "decDeg": 30.65,
+    "magnitude": 5.7,
+    "bestMonths": [
+      9,
+      10,
+      11,
+      12
+    ],
+    "minBortle": 8,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Triangle."
+  },
+  {
+    "number": 34,
+    "name": "M34 - Amas ouvert",
+    "type": "Amas ouvert",
+    "constellation": "Persée",
+    "raHours": 2.7,
+    "decDeg": 42.7833,
+    "magnitude": 5.5,
+    "bestMonths": [
+      9,
+      10,
+      11,
+      12
+    ],
+    "minBortle": 8,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Persée."
+  },
+  {
+    "number": 35,
+    "name": "M35 - Amas de la Licorne",
+    "type": "Amas ouvert",
+    "constellation": "Gémeaux",
+    "raHours": 6.15,
+    "decDeg": 24.3333,
+    "magnitude": 5.1,
+    "bestMonths": [
+      11,
+      12,
+      1,
+      2
+    ],
+    "minBortle": 8,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Gémeaux."
+  },
+  {
+    "number": 36,
+    "name": "M36 - Amas ouvert",
+    "type": "Amas ouvert",
+    "constellation": "Cocher",
+    "raHours": 5.6017,
+    "decDeg": 34.1333,
+    "magnitude": 6.0,
+    "bestMonths": [
+      11,
+      12,
+      1,
+      2
+    ],
+    "minBortle": 8,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Cocher."
+  },
+  {
+    "number": 37,
+    "name": "M37 - Amas ouvert",
+    "type": "Amas ouvert",
+    "constellation": "Cocher",
+    "raHours": 5.8733,
+    "decDeg": 32.55,
+    "magnitude": 5.6,
+    "bestMonths": [
+      11,
+      12,
+      1,
+      2
+    ],
+    "minBortle": 8,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Cocher."
+  },
+  {
+    "number": 38,
+    "name": "M38 - Amas ouvert",
+    "type": "Amas ouvert",
+    "constellation": "Cocher",
+    "raHours": 5.4783,
+    "decDeg": 35.8333,
+    "magnitude": 6.4,
+    "bestMonths": [
+      11,
+      12,
+      1,
+      2
+    ],
+    "minBortle": 6,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Cocher."
+  },
+  {
+    "number": 39,
+    "name": "M39 - Amas ouvert",
+    "type": "Amas ouvert",
+    "constellation": "Cygne",
+    "raHours": 21.5283,
+    "decDeg": 48.4333,
+    "magnitude": 4.6,
+    "bestMonths": [
+      7,
+      8,
+      9,
+      10
+    ],
+    "minBortle": 8,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Cygne."
+  },
+  {
+    "number": 40,
+    "name": "M40 - Étoiles doubles de Winnecke",
+    "type": "Étoiles doubles",
+    "constellation": "Grande Ourse",
+    "raHours": 12.3733,
+    "decDeg": 58.0833,
+    "magnitude": 9.3,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 4,
+    "description": "Paire d'étoiles offrant une belle séparation à l'oculaire. Visible dans la constellation de Grande Ourse."
+  },
+  {
+    "number": 41,
+    "name": "M41 - Amas ouvert",
+    "type": "Amas ouvert",
+    "constellation": "Grand Chien",
+    "raHours": 6.7667,
+    "decDeg": -20.75,
+    "magnitude": 4.5,
+    "bestMonths": [
+      11,
+      12,
+      1,
+      2
+    ],
+    "minBortle": 9,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Grand Chien."
+  },
+  {
+    "number": 42,
+    "name": "M42 - Grande Nébuleuse d'Orion",
+    "type": "Nébuleuse diffuse",
+    "constellation": "Orion",
+    "raHours": 5.59,
+    "decDeg": -5.45,
+    "magnitude": 4.0,
+    "bestMonths": [
+      11,
+      12,
+      1,
+      2
+    ],
+    "minBortle": 9,
+    "description": "Nébuleuse diffuse lumineuse qui révèle ses volutes en photo. Visible dans la constellation de Orion."
+  },
+  {
+    "number": 43,
+    "name": "M43 - Nébuleuse de Mairan",
+    "type": "Nébuleuse diffuse",
+    "constellation": "Orion",
+    "raHours": 5.5933,
+    "decDeg": -5.2667,
+    "magnitude": 9.0,
+    "bestMonths": [
+      11,
+      12,
+      1,
+      2
+    ],
+    "minBortle": 5,
+    "description": "Nébuleuse diffuse lumineuse qui révèle ses volutes en photo. Visible dans la constellation de Orion."
+  },
+  {
+    "number": 44,
+    "name": "M44 - Amas de la Crèche",
+    "type": "Amas ouvert",
+    "constellation": "Cancer",
+    "raHours": 8.6683,
+    "decDeg": 19.6833,
+    "magnitude": 3.1,
+    "bestMonths": [
+      12,
+      1,
+      2,
+      3
+    ],
+    "minBortle": 9,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Cancer."
+  },
+  {
+    "number": 45,
+    "name": "M45 - Pléiades",
+    "type": "Amas ouvert",
+    "constellation": "Taureau",
+    "raHours": 3.7833,
+    "decDeg": 24.1167,
+    "magnitude": 1.6,
+    "bestMonths": [
+      10,
+      11,
+      12,
+      1
+    ],
+    "minBortle": 9,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Taureau."
+  },
+  {
+    "number": 46,
+    "name": "M46 - Amas ouvert",
+    "type": "Amas ouvert",
+    "constellation": "Poupe",
+    "raHours": 7.6967,
+    "decDeg": -14.8167,
+    "magnitude": 6.0,
+    "bestMonths": [
+      12,
+      1,
+      2,
+      3
+    ],
+    "minBortle": 8,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Poupe."
+  },
+  {
+    "number": 47,
+    "name": "M47 - Amas ouvert",
+    "type": "Amas ouvert",
+    "constellation": "Poupe",
+    "raHours": 7.61,
+    "decDeg": -14.5,
+    "magnitude": 4.4,
+    "bestMonths": [
+      12,
+      1,
+      2,
+      3
+    ],
+    "minBortle": 9,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Poupe."
+  },
+  {
+    "number": 48,
+    "name": "M48 - Amas ouvert",
+    "type": "Amas ouvert",
+    "constellation": "Hydre femelle",
+    "raHours": 8.23,
+    "decDeg": -5.75,
+    "magnitude": 5.5,
+    "bestMonths": [
+      12,
+      1,
+      2,
+      3
+    ],
+    "minBortle": 8,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Hydre femelle."
+  },
+  {
+    "number": 49,
+    "name": "M49 - Galaxie de la Vierge",
+    "type": "Galaxie elliptique",
+    "constellation": "Vierge",
+    "raHours": 12.4967,
+    "decDeg": 8.0,
+    "magnitude": 8.4,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 5,
+    "description": "Galaxie elliptique massive composée d'étoiles âgées. Visible dans la constellation de Vierge."
+  },
+  {
+    "number": 50,
+    "name": "M50 - Amas ouvert",
+    "type": "Amas ouvert",
+    "constellation": "Licorne",
+    "raHours": 7.0433,
+    "decDeg": -8.35,
+    "magnitude": 5.9,
+    "bestMonths": [
+      12,
+      1,
+      2,
+      3
+    ],
+    "minBortle": 8,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Licorne."
+  },
+  {
+    "number": 51,
+    "name": "M51 - Galaxie du Tourbillon",
+    "type": "Galaxie spirale",
+    "constellation": "Chiens de chasse",
+    "raHours": 13.4983,
+    "decDeg": 47.2,
+    "magnitude": 8.4,
+    "bestMonths": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "minBortle": 5,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Chiens de chasse."
+  },
+  {
+    "number": 52,
+    "name": "M52 - Amas ouvert",
+    "type": "Amas ouvert",
+    "constellation": "Cassiopée",
+    "raHours": 23.4033,
+    "decDeg": 61.5833,
+    "magnitude": 7.3,
+    "bestMonths": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "minBortle": 6,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Cassiopée."
+  },
+  {
+    "number": 53,
+    "name": "M53 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Chevelure de Bérénice",
+    "raHours": 13.215,
+    "decDeg": 18.1667,
+    "magnitude": 7.6,
+    "bestMonths": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "minBortle": 5,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Chevelure de Bérénice."
+  },
+  {
+    "number": 54,
+    "name": "M54 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Sagittaire",
+    "raHours": 18.9183,
+    "decDeg": -30.4833,
+    "magnitude": 7.7,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 5,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Sagittaire."
+  },
+  {
+    "number": 55,
+    "name": "M55 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Sagittaire",
+    "raHours": 19.6667,
+    "decDeg": -30.9667,
+    "magnitude": 6.3,
+    "bestMonths": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "minBortle": 6,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Sagittaire."
+  },
+  {
+    "number": 56,
+    "name": "M56 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Lyre",
+    "raHours": 19.2767,
+    "decDeg": 30.1833,
+    "magnitude": 8.3,
+    "bestMonths": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "minBortle": 5,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Lyre."
+  },
+  {
+    "number": 57,
+    "name": "M57 - Nébuleuse de l'Anneau",
+    "type": "Nébuleuse planétaire",
+    "constellation": "Lyre",
+    "raHours": 18.8933,
+    "decDeg": 33.0333,
+    "magnitude": 8.8,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 5,
+    "description": "Nébuleuse planétaire compacte à fort contraste. Visible dans la constellation de Lyre."
+  },
+  {
+    "number": 58,
+    "name": "M58 - Galaxie spirale",
+    "type": "Galaxie spirale",
+    "constellation": "Vierge",
+    "raHours": 12.6283,
+    "decDeg": 11.8167,
+    "magnitude": 9.7,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 4,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Vierge."
+  },
+  {
+    "number": 59,
+    "name": "M59 - Galaxie elliptique",
+    "type": "Galaxie elliptique",
+    "constellation": "Vierge",
+    "raHours": 12.7,
+    "decDeg": 11.65,
+    "magnitude": 9.6,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 4,
+    "description": "Galaxie elliptique massive composée d'étoiles âgées. Visible dans la constellation de Vierge."
+  },
+  {
+    "number": 60,
+    "name": "M60 - Galaxie elliptique",
+    "type": "Galaxie elliptique",
+    "constellation": "Vierge",
+    "raHours": 12.7283,
+    "decDeg": 11.55,
+    "magnitude": 8.8,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 5,
+    "description": "Galaxie elliptique massive composée d'étoiles âgées. Visible dans la constellation de Vierge."
+  },
+  {
+    "number": 61,
+    "name": "M61 - Galaxie spirale",
+    "type": "Galaxie spirale",
+    "constellation": "Vierge",
+    "raHours": 12.365,
+    "decDeg": 4.4667,
+    "magnitude": 9.7,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 4,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Vierge."
+  },
+  {
+    "number": 62,
+    "name": "M62 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Ophiuchus",
+    "raHours": 17.02,
+    "decDeg": -30.1167,
+    "magnitude": 6.5,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 6,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Ophiuchus."
+  },
+  {
+    "number": 63,
+    "name": "M63 - Galaxie du Tournesol",
+    "type": "Galaxie spirale",
+    "constellation": "Chiens de chasse",
+    "raHours": 13.2633,
+    "decDeg": 42.0333,
+    "magnitude": 8.6,
+    "bestMonths": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "minBortle": 5,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Chiens de chasse."
+  },
+  {
+    "number": 64,
+    "name": "M64 - Galaxie de l'Œil noir",
+    "type": "Galaxie spirale",
+    "constellation": "Chevelure de Bérénice",
+    "raHours": 12.945,
+    "decDeg": 21.6833,
+    "magnitude": 8.5,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 5,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Chevelure de Bérénice."
+  },
+  {
+    "number": 65,
+    "name": "M65 - Galaxie spirale",
+    "type": "Galaxie spirale",
+    "constellation": "Lion",
+    "raHours": 11.315,
+    "decDeg": 13.0833,
+    "magnitude": 9.3,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 4,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Lion."
+  },
+  {
+    "number": 66,
+    "name": "M66 - Galaxie spirale",
+    "type": "Galaxie spirale",
+    "constellation": "Lion",
+    "raHours": 11.3367,
+    "decDeg": 12.9833,
+    "magnitude": 8.9,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 5,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Lion."
+  },
+  {
+    "number": 67,
+    "name": "M67 - Amas ouvert",
+    "type": "Amas ouvert",
+    "constellation": "Cancer",
+    "raHours": 8.84,
+    "decDeg": 11.8167,
+    "magnitude": 6.9,
+    "bestMonths": [
+      12,
+      1,
+      2,
+      3
+    ],
+    "minBortle": 6,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Cancer."
+  },
+  {
+    "number": 68,
+    "name": "M68 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Hydre femelle",
+    "raHours": 12.6583,
+    "decDeg": -26.75,
+    "magnitude": 7.8,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 5,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Hydre femelle."
+  },
+  {
+    "number": 69,
+    "name": "M69 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Sagittaire",
+    "raHours": 18.5233,
+    "decDeg": -32.35,
+    "magnitude": 7.7,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 5,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Sagittaire."
+  },
+  {
+    "number": 70,
+    "name": "M70 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Sagittaire",
+    "raHours": 18.72,
+    "decDeg": -32.3,
+    "magnitude": 7.9,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 5,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Sagittaire."
+  },
+  {
+    "number": 71,
+    "name": "M71 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Flèche",
+    "raHours": 19.8967,
+    "decDeg": 18.7833,
+    "magnitude": 8.2,
+    "bestMonths": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "minBortle": 5,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Flèche."
+  },
+  {
+    "number": 72,
+    "name": "M72 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Verseau",
+    "raHours": 20.8917,
+    "decDeg": -12.5333,
+    "magnitude": 9.3,
+    "bestMonths": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "minBortle": 4,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Verseau."
+  },
+  {
+    "number": 73,
+    "name": "M73 - Astérisme",
+    "type": "Astérisme",
+    "constellation": "Verseau",
+    "raHours": 20.9833,
+    "decDeg": -12.6333,
+    "magnitude": 9.0,
+    "bestMonths": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "minBortle": 5,
+    "description": "Petit regroupement d'étoiles formant une figure marquante. Visible dans la constellation de Verseau."
+  },
+  {
+    "number": 74,
+    "name": "M74 - Galaxie du Poisson",
+    "type": "Galaxie spirale",
+    "constellation": "Poissons",
+    "raHours": 1.6117,
+    "decDeg": 15.7833,
+    "magnitude": 9.4,
+    "bestMonths": [
+      9,
+      10,
+      11,
+      12
+    ],
+    "minBortle": 4,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Poissons."
+  },
+  {
+    "number": 75,
+    "name": "M75 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Sagittaire",
+    "raHours": 20.1017,
+    "decDeg": -21.9167,
+    "magnitude": 8.6,
+    "bestMonths": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "minBortle": 5,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Sagittaire."
+  },
+  {
+    "number": 76,
+    "name": "M76 - Petit Haltère",
+    "type": "Nébuleuse planétaire",
+    "constellation": "Persée",
+    "raHours": 1.7067,
+    "decDeg": 51.5667,
+    "magnitude": 10.1,
+    "bestMonths": [
+      9,
+      10,
+      11,
+      12
+    ],
+    "minBortle": 4,
+    "description": "Nébuleuse planétaire compacte à fort contraste. Visible dans la constellation de Persée."
+  },
+  {
+    "number": 77,
+    "name": "M77 - Galaxie de Cetus",
+    "type": "Galaxie spirale",
+    "constellation": "Baleine",
+    "raHours": 2.7117,
+    "decDeg": -0.0167,
+    "magnitude": 8.9,
+    "bestMonths": [
+      9,
+      10,
+      11,
+      12
+    ],
+    "minBortle": 5,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Baleine."
+  },
+  {
+    "number": 78,
+    "name": "M78 - Nébuleuse diffuse",
+    "type": "Nébuleuse diffuse",
+    "constellation": "Orion",
+    "raHours": 5.7783,
+    "decDeg": 0.05,
+    "magnitude": 8.3,
+    "bestMonths": [
+      11,
+      12,
+      1,
+      2
+    ],
+    "minBortle": 5,
+    "description": "Nébuleuse diffuse lumineuse qui révèle ses volutes en photo. Visible dans la constellation de Orion."
+  },
+  {
+    "number": 79,
+    "name": "M79 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Lièvre",
+    "raHours": 5.4083,
+    "decDeg": -24.55,
+    "magnitude": 7.7,
+    "bestMonths": [
+      11,
+      12,
+      1,
+      2
+    ],
+    "minBortle": 5,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Lièvre."
+  },
+  {
+    "number": 80,
+    "name": "M80 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Scorpion",
+    "raHours": 16.2833,
+    "decDeg": -22.9833,
+    "magnitude": 7.3,
+    "bestMonths": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "minBortle": 6,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Scorpion."
+  },
+  {
+    "number": 81,
+    "name": "M81 - Galaxie de Bode",
+    "type": "Galaxie spirale",
+    "constellation": "Grande Ourse",
+    "raHours": 9.9267,
+    "decDeg": 69.0667,
+    "magnitude": 6.9,
+    "bestMonths": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "minBortle": 6,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Grande Ourse."
+  },
+  {
+    "number": 82,
+    "name": "M82 - Galaxie du Cigare",
+    "type": "Galaxie irrégulière",
+    "constellation": "Grande Ourse",
+    "raHours": 9.93,
+    "decDeg": 69.6833,
+    "magnitude": 8.4,
+    "bestMonths": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "minBortle": 5,
+    "description": "Galaxie irrégulière très active en formation stellaire. Visible dans la constellation de Grande Ourse."
+  },
+  {
+    "number": 83,
+    "name": "M83 - Galaxie du Moulin Austral",
+    "type": "Galaxie spirale",
+    "constellation": "Hydre mâle",
+    "raHours": 13.6167,
+    "decDeg": -29.8667,
+    "magnitude": 7.6,
+    "bestMonths": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "minBortle": 5,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Hydre mâle."
+  },
+  {
+    "number": 84,
+    "name": "M84 - Galaxie elliptique",
+    "type": "Galaxie elliptique",
+    "constellation": "Vierge",
+    "raHours": 12.4183,
+    "decDeg": 12.8833,
+    "magnitude": 9.1,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 4,
+    "description": "Galaxie elliptique massive composée d'étoiles âgées. Visible dans la constellation de Vierge."
+  },
+  {
+    "number": 85,
+    "name": "M85 - Galaxie elliptique",
+    "type": "Galaxie elliptique",
+    "constellation": "Chevelure de Bérénice",
+    "raHours": 12.4233,
+    "decDeg": 18.1833,
+    "magnitude": 9.1,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 4,
+    "description": "Galaxie elliptique massive composée d'étoiles âgées. Visible dans la constellation de Chevelure de Bérénice."
+  },
+  {
+    "number": 86,
+    "name": "M86 - Galaxie lenticulaire",
+    "type": "Galaxie lenticulaire",
+    "constellation": "Vierge",
+    "raHours": 12.4367,
+    "decDeg": 12.95,
+    "magnitude": 8.9,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 5,
+    "description": "Galaxie lenticulaire intermédiaire entre spirale et elliptique. Visible dans la constellation de Vierge."
+  },
+  {
+    "number": 87,
+    "name": "M87 - Galaxie de la Vierge A",
+    "type": "Galaxie elliptique",
+    "constellation": "Vierge",
+    "raHours": 12.5133,
+    "decDeg": 12.4,
+    "magnitude": 8.6,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 5,
+    "description": "Galaxie elliptique massive composée d'étoiles âgées. Visible dans la constellation de Vierge."
+  },
+  {
+    "number": 88,
+    "name": "M88 - Galaxie spirale",
+    "type": "Galaxie spirale",
+    "constellation": "Chevelure de Bérénice",
+    "raHours": 12.5233,
+    "decDeg": 14.4167,
+    "magnitude": 9.5,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 4,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Chevelure de Bérénice."
+  },
+  {
+    "number": 89,
+    "name": "M89 - Galaxie elliptique",
+    "type": "Galaxie elliptique",
+    "constellation": "Vierge",
+    "raHours": 12.595,
+    "decDeg": 12.55,
+    "magnitude": 9.8,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 4,
+    "description": "Galaxie elliptique massive composée d'étoiles âgées. Visible dans la constellation de Vierge."
+  },
+  {
+    "number": 90,
+    "name": "M90 - Galaxie spirale",
+    "type": "Galaxie spirale",
+    "constellation": "Vierge",
+    "raHours": 12.6133,
+    "decDeg": 13.1667,
+    "magnitude": 9.5,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 4,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Vierge."
+  },
+  {
+    "number": 91,
+    "name": "M91 - Galaxie spirale",
+    "type": "Galaxie spirale",
+    "constellation": "Chevelure de Bérénice",
+    "raHours": 12.59,
+    "decDeg": 14.5,
+    "magnitude": 10.2,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 4,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Chevelure de Bérénice."
+  },
+  {
+    "number": 92,
+    "name": "M92 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Hercule",
+    "raHours": 17.285,
+    "decDeg": 43.1333,
+    "magnitude": 6.4,
+    "bestMonths": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "minBortle": 6,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Hercule."
+  },
+  {
+    "number": 93,
+    "name": "M93 - Amas ouvert",
+    "type": "Amas ouvert",
+    "constellation": "Poupe",
+    "raHours": 7.7433,
+    "decDeg": -23.8667,
+    "magnitude": 6.0,
+    "bestMonths": [
+      12,
+      1,
+      2,
+      3
+    ],
+    "minBortle": 8,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Poupe."
+  },
+  {
+    "number": 94,
+    "name": "M94 - Galaxie spirale",
+    "type": "Galaxie spirale",
+    "constellation": "Chiens de chasse",
+    "raHours": 12.8483,
+    "decDeg": 41.1167,
+    "magnitude": 8.2,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 5,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Chiens de chasse."
+  },
+  {
+    "number": 95,
+    "name": "M95 - Galaxie du Lion",
+    "type": "Galaxie spirale barrée",
+    "constellation": "Lion",
+    "raHours": 10.73,
+    "decDeg": 11.7,
+    "magnitude": 9.7,
+    "bestMonths": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "minBortle": 4,
+    "description": "Galaxie spirale barrée au noyau brillant. Visible dans la constellation de Lion."
+  },
+  {
+    "number": 96,
+    "name": "M96 - Galaxie spirale",
+    "type": "Galaxie spirale",
+    "constellation": "Lion",
+    "raHours": 10.78,
+    "decDeg": 11.8167,
+    "magnitude": 9.2,
+    "bestMonths": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "minBortle": 4,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Lion."
+  },
+  {
+    "number": 97,
+    "name": "M97 - Nébuleuse du Hibou",
+    "type": "Nébuleuse planétaire",
+    "constellation": "Grande Ourse",
+    "raHours": 11.2467,
+    "decDeg": 55.0167,
+    "magnitude": 9.9,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 4,
+    "description": "Nébuleuse planétaire compacte à fort contraste. Visible dans la constellation de Grande Ourse."
+  },
+  {
+    "number": 98,
+    "name": "M98 - Galaxie spirale",
+    "type": "Galaxie spirale",
+    "constellation": "Chevelure de Bérénice",
+    "raHours": 12.23,
+    "decDeg": 14.9,
+    "magnitude": 10.1,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 4,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Chevelure de Bérénice."
+  },
+  {
+    "number": 99,
+    "name": "M99 - Galaxie spirale",
+    "type": "Galaxie spirale",
+    "constellation": "Chevelure de Bérénice",
+    "raHours": 12.3,
+    "decDeg": 14.4167,
+    "magnitude": 9.8,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 4,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Chevelure de Bérénice."
+  },
+  {
+    "number": 100,
+    "name": "M100 - Galaxie spirale",
+    "type": "Galaxie spirale",
+    "constellation": "Chevelure de Bérénice",
+    "raHours": 12.3817,
+    "decDeg": 15.8167,
+    "magnitude": 9.3,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 4,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Chevelure de Bérénice."
+  },
+  {
+    "number": 101,
+    "name": "M101 - Galaxie du Moulinet",
+    "type": "Galaxie spirale",
+    "constellation": "Grande Ourse",
+    "raHours": 14.0533,
+    "decDeg": 54.35,
+    "magnitude": 7.9,
+    "bestMonths": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "minBortle": 5,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Grande Ourse."
+  },
+  {
+    "number": 102,
+    "name": "M102 - Galaxie de la Baleine",
+    "type": "Galaxie lenticulaire",
+    "constellation": "Dragon",
+    "raHours": 14.445,
+    "decDeg": 55.7333,
+    "magnitude": 9.9,
+    "bestMonths": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "minBortle": 4,
+    "description": "Galaxie lenticulaire intermédiaire entre spirale et elliptique. Visible dans la constellation de Dragon."
+  },
+  {
+    "number": 103,
+    "name": "M103 - Amas ouvert",
+    "type": "Amas ouvert",
+    "constellation": "Cassiopée",
+    "raHours": 1.5533,
+    "decDeg": 60.65,
+    "magnitude": 7.4,
+    "bestMonths": [
+      9,
+      10,
+      11,
+      12
+    ],
+    "minBortle": 6,
+    "description": "Amas ouvert riche en étoiles faciles à détailler aux jumelles. Visible dans la constellation de Cassiopée."
+  },
+  {
+    "number": 104,
+    "name": "M104 - Galaxie du Sombrero",
+    "type": "Galaxie spirale",
+    "constellation": "Corbeau",
+    "raHours": 12.665,
+    "decDeg": -11.6167,
+    "magnitude": 8.0,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 5,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Corbeau."
+  },
+  {
+    "number": 105,
+    "name": "M105 - Galaxie elliptique",
+    "type": "Galaxie elliptique",
+    "constellation": "Lion",
+    "raHours": 10.7967,
+    "decDeg": 12.5833,
+    "magnitude": 9.3,
+    "bestMonths": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "minBortle": 4,
+    "description": "Galaxie elliptique massive composée d'étoiles âgées. Visible dans la constellation de Lion."
+  },
+  {
+    "number": 106,
+    "name": "M106 - Galaxie spirale",
+    "type": "Galaxie spirale",
+    "constellation": "Chiens de chasse",
+    "raHours": 12.315,
+    "decDeg": 47.3,
+    "magnitude": 8.4,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 5,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Chiens de chasse."
+  },
+  {
+    "number": 107,
+    "name": "M107 - Amas globulaire",
+    "type": "Amas globulaire",
+    "constellation": "Ophiuchus",
+    "raHours": 16.5417,
+    "decDeg": -13.05,
+    "magnitude": 8.1,
+    "bestMonths": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "minBortle": 5,
+    "description": "Amas globulaire dense offrant une myriade d'étoiles serrées. Visible dans la constellation de Ophiuchus."
+  },
+  {
+    "number": 108,
+    "name": "M108 - Galaxie spirale",
+    "type": "Galaxie spirale",
+    "constellation": "Grande Ourse",
+    "raHours": 11.1917,
+    "decDeg": 55.6667,
+    "magnitude": 10.0,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 4,
+    "description": "Galaxie spirale qui laisse apparaître ses bras en imagerie. Visible dans la constellation de Grande Ourse."
+  },
+  {
+    "number": 109,
+    "name": "M109 - Galaxie spirale barrée",
+    "type": "Galaxie spirale barrée",
+    "constellation": "Grande Ourse",
+    "raHours": 11.96,
+    "decDeg": 53.3833,
+    "magnitude": 9.8,
+    "bestMonths": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "minBortle": 4,
+    "description": "Galaxie spirale barrée au noyau brillant. Visible dans la constellation de Grande Ourse."
+  },
+  {
+    "number": 110,
+    "name": "M110 - Galaxie elliptique",
+    "type": "Galaxie elliptique",
+    "constellation": "Andromède",
+    "raHours": 0.6733,
+    "decDeg": 41.6833,
+    "magnitude": 8.1,
+    "bestMonths": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "minBortle": 5,
+    "description": "Galaxie elliptique massive composée d'étoiles âgées. Visible dans la constellation de Andromède."
+  }
+]

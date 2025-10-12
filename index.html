@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Astro Soir — Cibles idéales</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-content">
+      <div>
+        <h1>Astro Soir</h1>
+        <p>Trouve les meilleures cibles à observer selon ta localisation, la saison et la météo instantanée.</p>
+      </div>
+      <nav class="top-nav">
+        <a class="nav-link" href="catalogue.html">Catalogue Messier</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    <section class="panel" aria-labelledby="section-observer">
+      <div class="panel-header">
+        <h2 id="section-observer">Préparer la session</h2>
+        <p>Renseigne ta position, choisis la date/heure d'observation et estime la pollution lumineuse (échelle de Bortle 1-9).</p>
+      </div>
+      <form id="sessionForm" class="form-grid">
+        <div class="field-group">
+          <label for="addressLookup">Adresse (France)</label>
+          <div class="with-action">
+            <input id="addressLookup" name="addressLookup" type="search" placeholder="Ex. 10 rue de Rivoli, Paris">
+            <button type="button" id="resolveAddress" class="secondary">🔎</button>
+          </div>
+          <small class="help-text">Renseigne une adresse française pour remplir automatiquement les coordonnées.</small>
+        </div>
+        <div class="field-group">
+          <label for="latitude">Latitude (°)</label>
+          <div class="spinner-input">
+            <button type="button" class="spinner-btn" data-target="latitude" data-step="0.1" data-direction="down" aria-label="Diminuer la latitude">−</button>
+            <input id="latitude" name="latitude" type="text" inputmode="decimal" placeholder="48,856" required>
+            <button type="button" class="spinner-btn" data-target="latitude" data-step="0.1" data-direction="up" aria-label="Augmenter la latitude">+</button>
+            <button type="button" id="useGeoloc" class="secondary" aria-label="Utiliser ma position">📍</button>
+          </div>
+        </div>
+        <div class="field-group">
+          <label for="longitude">Longitude (°)</label>
+          <div class="spinner-input">
+            <button type="button" class="spinner-btn" data-target="longitude" data-step="0.1" data-direction="down" aria-label="Diminuer la longitude">−</button>
+            <input id="longitude" name="longitude" type="text" inputmode="decimal" placeholder="2,352" required>
+            <button type="button" class="spinner-btn" data-target="longitude" data-step="0.1" data-direction="up" aria-label="Augmenter la longitude">+</button>
+          </div>
+        </div>
+        <div class="field-group">
+          <label for="sessionDate">Date</label>
+          <input id="sessionDate" name="sessionDate" type="date" required>
+        </div>
+        <div class="field-group">
+          <label for="sessionTime">Heure locale</label>
+          <div class="with-action">
+            <input id="sessionTime" name="sessionTime" type="time" required>
+            <button type="button" id="useSunset" class="secondary">🌇</button>
+          </div>
+          <small class="help-text" id="sunsetHint">Calcul en attente…</small>
+        </div>
+        <div class="field-group">
+          <label for="sessionDuration">Durée de session (h)</label>
+          <select id="sessionDuration" name="sessionDuration">
+            <option value="1">1 h</option>
+            <option value="2" selected>2 h</option>
+            <option value="3">3 h</option>
+            <option value="4">4 h</option>
+            <option value="5">5 h</option>
+            <option value="6">6 h</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label for="bortle">Pollution lumineuse (Bortle)</label>
+          <div class="with-action">
+            <input id="bortle" name="bortle" type="range" min="1" max="9" value="6">
+            <button type="button" id="refreshBortle" class="secondary" aria-label="Récupérer la classe de Bortle actuelle">🔄</button>
+          </div>
+          <output id="bortleValue" for="bortle">6 - ciel périurbain</output>
+          <small class="help-text" id="bortleHint">Clique sur 🔄 pour estimer la pollution lumineuse actuelle.</small>
+        </div>
+        <div class="field-group submit">
+          <button type="submit" id="compute">🔭 Lancer l'analyse</button>
+        </div>
+      </form>
+      <p class="help-text">Astuce : vise un ciel aussi sombre que possible (Bortle bas), planifie proche de la nouvelle lune et contrôle la météo quelques heures avant de sortir.</p>
+    </section>
+
+    <section class="panel hidden" id="weatherPanel" aria-live="polite">
+      <div class="panel-header">
+        <h2>Météo instantanée</h2>
+        <p id="weatherSummary">Chargement...</p>
+      </div>
+      <ul id="weatherDetails"></ul>
+    </section>
+
+    <section class="panel hidden" id="moonPanel" aria-live="polite">
+      <div class="panel-header">
+        <h2>Phase lunaire</h2>
+        <p id="moonSummary">Calcul de la phase lunaire…</p>
+      </div>
+      <ul id="moonDetails"></ul>
+    </section>
+
+    <section class="panel hidden" id="eventsPanel" aria-live="polite">
+      <div class="panel-header">
+        <h2>Événements à surveiller</h2>
+        <p id="eventsHint">Chargement des phénomènes célestes…</p>
+      </div>
+      <ul id="eventsList" class="event-list"></ul>
+    </section>
+
+    <section class="panel hidden" id="resultsPanel" aria-live="polite">
+      <div class="panel-header">
+        <h2>Cibles recommandées</h2>
+        <p id="resultsHint">Les meilleures cibles apparaîtront ici.</p>
+      </div>
+      <div class="results-controls">
+        <p id="filterSummary" class="help-text">Tous les types sont affichés.</p>
+        <details class="filter-details">
+          <summary>Filtrer par type d'objet</summary>
+          <div id="typeFilterOptions" class="filter-options"></div>
+        </details>
+      </div>
+      <div id="targets" class="targets-grid" role="list"></div>
+    </section>
+  </main>
+  <footer>
+    <nav class="footer-nav">
+      <a class="nav-link" href="catalogue.html">Catalogue Messier</a>
+    </nav>
+    <small>Sources météo : <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open‑Meteo</a>. Les calculs astronomiques sont approximatifs mais suffisants pour planifier une soirée.</small>
+  </footer>
+  <script src="app.js" type="module"></script>
+</body>
+</html>
