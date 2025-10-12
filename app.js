@@ -1,5 +1,6 @@
 import {
   SESSION_STORAGE_KEY,
+  NIGHT_MODE_STORAGE_KEY,
   applyWeather,
   buildObservationDate,
   buildWeatherSummary,
@@ -24,6 +25,7 @@ import {
   selectTopTargets,
   computeDecisionInsights
 } from './astro-core.js';
+import { renderAltitudeSparkline } from './charts.js';
 
 const sessionForm = document.getElementById('sessionForm');
 const addressInput = document.getElementById('addressLookup');
@@ -83,7 +85,6 @@ const skyMapLocationHint = document.getElementById('skyMapLocationHint');
 const contextPanels = new Map();
 
 const SESSION_SNAPSHOT_VERSION = 7;
-const NIGHT_MODE_STORAGE_KEY = 'astroSoir:nightMode';
 let objectsCatalog = [];
 let cachedSunsetTime = null;
 let sunsetDebounce = null;
@@ -837,120 +838,7 @@ function renderVisibilityChart(card, entry) {
   if (!container) return;
   const objectName = entry?.object?.name ?? 'la cible';
   container.setAttribute('aria-label', `Évolution de l'altitude de ${objectName} durant la session`);
-  container.innerHTML = '';
-  const track = Array.isArray(entry.track)
-    ? entry.track
-        .map((point) => {
-          if (!point || !point.timeISO) return null;
-          const date = new Date(point.timeISO);
-          const altitude = Number(point.altitude);
-          if (Number.isNaN(date.getTime()) || !Number.isFinite(altitude)) return null;
-          return { date, altitude };
-        })
-        .filter(Boolean)
-    : [];
-  if (track.length === 0) {
-    container.classList.add('visibility-chart--empty');
-    const fallback = document.createElement('p');
-    fallback.className = 'visibility-chart__empty';
-    fallback.textContent = 'Courbe de visibilité indisponible pour cet objet.';
-    container.appendChild(fallback);
-    return;
-  }
-  container.classList.remove('visibility-chart--empty');
-  track.sort((a, b) => a.date.getTime() - b.date.getTime());
-  const minTime = track[0].date.getTime();
-  const maxTime = track[track.length - 1].date.getTime();
-  const span = Math.max(1, maxTime - minTime);
-  const viewWidth = 280;
-  const viewHeight = 140;
-  const margin = { top: 12, right: 12, bottom: 26, left: 32 };
-  const chartWidth = viewWidth - margin.left - margin.right;
-  const chartHeight = viewHeight - margin.top - margin.bottom;
-  const clampAltitude = (value) => Math.max(0, Math.min(90, value));
-  const scaleX = (time) => margin.left + ((time - minTime) / span) * chartWidth;
-  const scaleY = (altitude) => margin.top + chartHeight - (clampAltitude(altitude) / 90) * chartHeight;
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', `0 0 ${viewWidth} ${viewHeight}`);
-  svg.setAttribute('aria-hidden', 'true');
-  const desc = document.createElementNS('http://www.w3.org/2000/svg', 'desc');
-  const intervalMinutes =
-    track.length > 1 ? Math.round((track[1].date.getTime() - track[0].date.getTime()) / 60000) : null;
-  desc.textContent = `Hauteur horaire de ${objectName}${
-    intervalMinutes ? ` toutes les ${intervalMinutes} minutes` : ''
-  }.`;
-  svg.appendChild(desc);
-
-  const baseline = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-  baseline.setAttribute('x1', margin.left);
-  baseline.setAttribute('x2', margin.left + chartWidth);
-  baseline.setAttribute('y1', margin.top + chartHeight);
-  baseline.setAttribute('y2', margin.top + chartHeight);
-  baseline.setAttribute('class', 'visibility-chart__axis');
-  svg.appendChild(baseline);
-
-  const thresholdY = scaleY(15);
-  const threshold = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-  threshold.setAttribute('x1', margin.left);
-  threshold.setAttribute('x2', margin.left + chartWidth);
-  threshold.setAttribute('y1', thresholdY);
-  threshold.setAttribute('y2', thresholdY);
-  threshold.setAttribute('class', 'visibility-chart__threshold');
-  svg.appendChild(threshold);
-
-  const firstX = scaleX(track[0].date.getTime());
-  const lastX = scaleX(track[track.length - 1].date.getTime());
-  const areaPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  areaPath.setAttribute(
-    'd',
-    `M ${firstX} ${margin.top + chartHeight} ` +
-      track
-        .map((point) => `L ${scaleX(point.date.getTime())} ${scaleY(point.altitude)}`)
-        .join(' ') +
-      ` L ${lastX} ${margin.top + chartHeight} Z`
-  );
-  areaPath.setAttribute('class', 'visibility-chart__area');
-  svg.appendChild(areaPath);
-
-  const linePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  linePath.setAttribute(
-    'd',
-    track
-      .map((point, index) => `${index === 0 ? 'M' : 'L'} ${scaleX(point.date.getTime())} ${scaleY(point.altitude)}`)
-      .join(' ')
-  );
-  linePath.setAttribute('class', 'visibility-chart__line');
-  svg.appendChild(linePath);
-
-  track.forEach((point, index) => {
-    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    dot.setAttribute('cx', scaleX(point.date.getTime()));
-    dot.setAttribute('cy', scaleY(point.altitude));
-    dot.setAttribute('r', index === 0 || index === track.length - 1 ? 3.5 : 2.5);
-    dot.setAttribute('class', 'visibility-chart__dot');
-    svg.appendChild(dot);
-  });
-
-  const altLabels = [15, 45, 75];
-  altLabels.forEach((alt) => {
-    const y = scaleY(alt);
-    if (y <= margin.top || y >= margin.top + chartHeight) return;
-    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    text.setAttribute('x', 6);
-    text.setAttribute('y', y + 4);
-    text.setAttribute('class', 'visibility-chart__label');
-    text.textContent = `${alt}°`;
-    svg.appendChild(text);
-  });
-
-  container.appendChild(svg);
-  const times = document.createElement('div');
-  times.className = 'visibility-chart__times';
-  const firstLabel = formatLocalTime(track[0].date.toISOString());
-  const middleLabel = formatLocalTime(track[Math.floor(track.length / 2)].date.toISOString());
-  const lastLabel = formatLocalTime(track[track.length - 1].date.toISOString());
-  times.innerHTML = `<span>${firstLabel}</span><span>${middleLabel}</span><span>${lastLabel}</span>`;
-  container.appendChild(times);
+  renderAltitudeSparkline(container, entry?.track, { objectName });
 }
 
 function renderTargets(targets, stats = {}) {

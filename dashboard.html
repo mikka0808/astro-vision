@@ -6,61 +6,100 @@
   <title>Astro Soir — Tableau de bord</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="catalogue-page">
+<body class="dashboard-page">
   <header class="hero hero--compact">
     <div class="hero-content">
       <div>
         <h1>Tableau de bord</h1>
-        <p>Visualise la synthèse de ta session : score global, alertes horaires et fenêtres optimales.</p>
+        <p>Visualise la synthèse de ta session : score global, fenêtres optimales et cibles Messier recommandées.</p>
       </div>
       <nav class="top-nav">
         <a class="nav-link" href="index.html">← Retour à l'analyse</a>
         <a class="nav-link" href="catalogue.html">Catalogue</a>
       </nav>
+      <button type="button" id="nightModeToggle" class="night-toggle" aria-pressed="false">🔦 Mode nuit</button>
     </div>
   </header>
-  <main>
-    <section class="panel" id="dashboardPanel" aria-live="polite">
+  <main class="dashboard-layout">
+    <section class="panel panel--overview" id="dashboardPanel" aria-live="polite">
       <div class="panel-header">
-        <h2>Synthèse de visibilité</h2>
-        <p id="dashboardSummary">Charge la dernière analyse pour afficher la synthèse.</p>
+        <div class="panel-heading">
+          <h2>Synthèse de visibilité</h2>
+          <p id="dashboardSummary">Charge la dernière analyse pour afficher la synthèse.</p>
+        </div>
       </div>
-      <div class="decision-grid">
-        <article class="decision-card">
-          <h3>Score global</h3>
-          <p class="decision-score" id="dashboardScore">—</p>
+      <div class="overview-grid">
+        <article class="metric-card metric-card--score">
+          <header class="metric-card__header">
+            <h3>Score global</h3>
+            <p class="help-text" id="dashboardUpdated"></p>
+          </header>
+          <p class="metric-score" id="dashboardScore">—</p>
           <div class="score-meter" aria-hidden="true"><span id="dashboardGauge"></span></div>
+          <ul class="metric-list" id="dashboardMetrics"></ul>
           <p class="help-text" id="dashboardDetails">Aucune session récente.</p>
         </article>
-        <article class="decision-card">
+        <article class="metric-card">
           <h3>Contexte</h3>
-          <p class="help-text" id="dashboardContext">Position et créneau en attente…</p>
-          <p class="help-text" id="dashboardWeather">Résumé météo indisponible.</p>
-          <p class="help-text" id="dashboardMoon">Phase lunaire non calculée.</p>
+          <p class="metric-text" id="dashboardContext">Aucune session enregistrée. Retourne sur la page principale pour lancer une analyse.</p>
+        </article>
+        <article class="metric-card">
+          <h3>Météo</h3>
+          <p class="metric-text" id="dashboardWeather">Résumé météo indisponible.</p>
+        </article>
+        <article class="metric-card">
+          <h3>Lune</h3>
+          <p class="metric-text" id="dashboardMoon">Phase lunaire non calculée.</p>
         </article>
       </div>
     </section>
 
-    <section class="panel" id="dashboardAlertsPanel">
+    <section class="panel panel--chart" id="timelinePanel">
       <div class="panel-header">
-        <h2>Alertes & recommandations du soir</h2>
-        <p class="help-text">Fenêtres horaires idéales pour les meilleurs objets.</p>
+        <div class="panel-heading">
+          <h2>Altitude des meilleures cibles</h2>
+          <p class="help-text">Suivi horaire des meilleures cibles de la session (altitude et seuil de 15°).</p>
+        </div>
+      </div>
+      <div id="dashboardTimeline" class="timeline-chart" role="img" aria-label="Altitude des meilleures cibles de la session"></div>
+    </section>
+
+    <section class="panel panel--targets" id="dashboardTargetsPanel">
+      <div class="panel-header">
+        <div class="panel-heading">
+          <h2>Top cibles du soir</h2>
+          <p class="help-text">Fenêtre idéale, hauteur et direction pour les cibles majeures.</p>
+        </div>
+      </div>
+      <div id="dashboardTargetsGrid" class="target-grid"></div>
+    </section>
+
+    <section class="panel panel--alerts" id="dashboardAlertsPanel">
+      <div class="panel-header">
+        <div class="panel-heading">
+          <h2>Alertes & recommandations</h2>
+          <p class="help-text">Fenêtres horaires idéales pour les meilleurs objets.</p>
+        </div>
       </div>
       <ul class="decision-list" id="dashboardAlerts"></ul>
     </section>
 
-    <section class="panel" id="dashboardCalendarPanel">
+    <section class="panel panel--calendar" id="dashboardCalendarPanel">
       <div class="panel-header">
-        <h2>Calendrier des fenêtres optimales</h2>
-        <p class="help-text">Projection sur les prochaines nuits (J+3).</p>
+        <div class="panel-heading">
+          <h2>Calendrier des fenêtres optimales</h2>
+          <p class="help-text">Projection sur les prochaines nuits (J+3).</p>
+        </div>
       </div>
       <ul class="decision-list" id="dashboardCalendar"></ul>
     </section>
 
-    <section class="panel" id="dashboardAstroPanel">
+    <section class="panel panel--astro" id="dashboardAstroPanel">
       <div class="panel-header">
-        <h2>Mode astrophotographie</h2>
-        <p class="help-text" id="dashboardAstroSummary">Active le mode photo sur la page principale pour obtenir des suggestions ciblées.</p>
+        <div class="panel-heading">
+          <h2>Mode astrophotographie</h2>
+          <p class="help-text" id="dashboardAstroSummary">Active le mode photo sur la page principale pour obtenir des suggestions ciblées.</p>
+        </div>
       </div>
       <ul class="decision-list" id="dashboardAstroList"></ul>
     </section>

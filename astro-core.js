@@ -41,6 +41,7 @@ export const weatherCodes = {
 };
 
 export const SESSION_STORAGE_KEY = 'astroSoir:lastSession';
+export const NIGHT_MODE_STORAGE_KEY = 'astroSoir:nightMode';
 
 const SYNODIC_MONTH = 29.53058867;
 const KNOWN_NEW_MOON = Date.UTC(2000, 0, 6, 18, 14);

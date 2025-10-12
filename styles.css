@@ -129,6 +129,293 @@ main {
   margin: 0 auto 3rem;
 }
 
+.dashboard-page main {
+  max-width: 1200px;
+  width: 100%;
+}
+
+.dashboard-layout {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  margin: 0 auto 3rem;
+}
+
+.dashboard-layout .panel--overview,
+.dashboard-layout .panel--chart {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 1100px) {
+  .dashboard-layout {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  }
+
+  .dashboard-layout .panel--targets {
+    grid-column: 1 / -1;
+  }
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.metric-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1rem;
+  padding: 1rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.metric-card--score {
+  background: rgba(27, 43, 88, 0.28);
+  border-color: rgba(92, 212, 255, 0.3);
+}
+
+.night-mode .metric-card {
+  background: rgba(120, 20, 20, 0.16);
+  border-color: rgba(255, 125, 125, 0.18);
+}
+
+.night-mode .metric-card--score {
+  background: rgba(90, 20, 20, 0.3);
+  border-color: rgba(255, 125, 125, 0.32);
+}
+
+.metric-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  align-items: baseline;
+}
+
+.metric-score {
+  font-size: clamp(2.6rem, 3vw, 3rem);
+  font-weight: 700;
+  margin: 0;
+}
+
+.metric-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.metric-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-soft);
+}
+
+.metric-list strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.metric-text {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text-soft);
+}
+
+.timeline-chart {
+  min-height: 260px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  padding: 1rem;
+  background: rgba(12, 18, 38, 0.65);
+}
+
+.timeline-chart svg {
+  width: 100%;
+  height: auto;
+}
+
+.timeline-chart__axis,
+.timeline-chart__grid {
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 1;
+}
+
+.timeline-chart__grid {
+  stroke-dasharray: 4 6;
+}
+
+.timeline-chart__threshold {
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-dasharray: 6 6;
+  opacity: 0.6;
+}
+
+.timeline-chart__area {
+  fill: rgba(92, 212, 255, 0.18);
+}
+
+.night-mode .timeline-chart__area {
+  fill: rgba(255, 125, 125, 0.22);
+}
+
+.timeline-chart__aggregate-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  opacity: 0.8;
+}
+
+.timeline-chart__series {
+  fill: none;
+  stroke-width: 2;
+}
+
+.timeline-chart__series--1 {
+  stroke: #ffa94d;
+}
+
+.timeline-chart__series--2 {
+  stroke: #9c8cff;
+}
+
+.timeline-chart__series--3 {
+  stroke: #4dd2a5;
+}
+
+.timeline-chart__series--4 {
+  stroke: #ff6f91;
+}
+
+.timeline-chart__label {
+  fill: var(--text-soft);
+  font-size: 0.7rem;
+}
+
+.timeline-chart__legend {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  font-size: 0.85rem;
+  color: var(--text-soft);
+}
+
+.timeline-chart__legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.timeline-chart__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.timeline-chart__swatch--1 {
+  background: #ffa94d;
+}
+
+.timeline-chart__swatch--2 {
+  background: #9c8cff;
+}
+
+.timeline-chart__swatch--3 {
+  background: #4dd2a5;
+}
+
+.timeline-chart__swatch--4 {
+  background: #ff6f91;
+}
+
+.timeline-chart__times {
+  margin-top: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+
+.target-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.2rem;
+}
+
+.mini-target {
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(12, 18, 38, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mini-target__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.mini-target__header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.mini-target__meta {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.95rem;
+}
+
+.mini-target__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.mini-target__metrics dt {
+  margin: 0;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-soft);
+}
+
+.mini-target__metrics dd {
+  margin: 0.2rem 0 0;
+  font-weight: 600;
+}
+
+.night-mode .timeline-chart {
+  background: rgba(75, 10, 10, 0.6);
+  border-color: rgba(255, 125, 125, 0.16);
+}
+
+.night-mode .timeline-chart__aggregate-line {
+  stroke: #ff8c8c;
+}
+
+.night-mode .mini-target {
+  background: rgba(90, 20, 20, 0.32);
+  border-color: rgba(255, 125, 125, 0.18);
+}
+
 .panel {
   background: var(--bg-panel);
   border: 1px solid var(--border);
@@ -626,7 +913,7 @@ p.help-text {
 
 .catalogue-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 1.2rem;
 }
 
@@ -656,6 +943,37 @@ p.help-text {
 .catalogue-controls select:focus {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+.catalogue-visibility {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.catalogue-visibility__label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-soft);
+}
+
+.catalogue-visibility__value {
+  display: block;
+  margin-top: 0.3rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.night-mode .catalogue-visibility {
+  background: rgba(120, 20, 20, 0.16);
+  border-color: rgba(255, 125, 125, 0.16);
 }
 
 .catalogue-card {

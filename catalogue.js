@@ -1,5 +1,6 @@
 import {
   SESSION_STORAGE_KEY,
+  NIGHT_MODE_STORAGE_KEY,
   applyWeather,
   buildWeatherSummary,
   computeMoonPhase,
@@ -18,6 +19,7 @@ import {
   formatLocalTime
 } from './astro-core.js';
 import { createObservationPreview } from './catalogue-media.js';
+import { renderAltitudeSparkline } from './charts.js';
 
 const catalogueGrid = document.getElementById('catalogueGrid');
 const catalogueHint = document.getElementById('catalogueHint');
@@ -30,11 +32,47 @@ const sessionPanel = document.getElementById('sessionPanel');
 const sortSelect = document.getElementById('catalogueSort');
 const catalogueFilterSummary = document.getElementById('catalogueFilterSummary');
 const catalogueTypeOptions = document.getElementById('catalogueTypeOptions');
+const nightModeToggle = document.getElementById('nightModeToggle');
 
 const SORT_BY = {
   number: 'number',
   score: 'score'
 };
+
+function applyNightMode(enabled, { persist = true } = {}) {
+  document.body.classList.toggle('night-mode', enabled);
+  if (nightModeToggle) {
+    nightModeToggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+    nightModeToggle.classList.toggle('is-active', enabled);
+    nightModeToggle.textContent = enabled ? '🌅 Mode jour' : '🔦 Mode nuit';
+  }
+  if (persist) {
+    try {
+      localStorage.setItem(NIGHT_MODE_STORAGE_KEY, enabled ? '1' : '0');
+    } catch (error) {
+      console.warn('Impossible de sauvegarder le mode nuit :', error);
+    }
+  }
+}
+
+function initNightMode() {
+  let stored = null;
+  try {
+    stored = localStorage.getItem(NIGHT_MODE_STORAGE_KEY);
+  } catch (error) {
+    stored = null;
+  }
+  const enabled = stored === '1' || stored === 'true';
+  applyNightMode(enabled, { persist: false });
+}
+
+initNightMode();
+if (nightModeToggle) {
+  nightModeToggle.addEventListener('click', () => {
+    const next = !document.body.classList.contains('night-mode');
+    applyNightMode(next);
+  });
+}
 
 const SCORE_CLASSES = {
   high: 'score-good',
@@ -316,6 +354,7 @@ function buildCard(object, metrics) {
   const endDirection = describeAzimuth(metrics?.endAzimuth);
   const typeLabel = object.category || object.type || 'Objet céleste';
   const magnitudeText = Number.isFinite(object.magnitude) ? object.magnitude.toFixed(1) : '—';
+  const altitudeText = formatAltitude(metrics?.altitude);
   const averageAltitudeText = formatAltitude(metrics?.averageAltitude);
   const minAltitudeText = formatAltitude(metrics?.minAltitude);
   const endAltitudeText = formatAltitude(metrics?.endAltitude);
@@ -345,13 +384,33 @@ function buildCard(object, metrics) {
       <span class="score-chip">${scoreDisplay}/100</span>
     </header>
     <p>${object.description}</p>
+    <div class="catalogue-visibility">
+      <div>
+        <span class="catalogue-visibility__label">Moment idéal</span>
+        <span class="catalogue-visibility__value">${bestTime}</span>
+      </div>
+      <div>
+        <span class="catalogue-visibility__label">Direction</span>
+        <span class="catalogue-visibility__value">${altitudeText} • ${direction}</span>
+      </div>
+    </div>
     <dl class="target-metrics">
-      <div><dt>Hauteur max</dt><dd>${formatAltitude(metrics?.altitude)}</dd></div>
+      <div><dt>Hauteur max</dt><dd>${altitudeText}</dd></div>
       <div><dt>Altitude moyenne</dt><dd>${averageAltitudeText}</dd></div>
       <div><dt>Moment idéal</dt><dd>${bestTime}</dd></div>
     </dl>
+    <div class="visibility-chart" role="img" aria-label="Évolution de l'altitude de ${object.name} durant la session"></div>
     <div class="score-bar" aria-hidden="true"><span style="width:${barWidth}%"></span></div>
   `;
+
+  const chartContainer = text.querySelector('.visibility-chart');
+  if (chartContainer) {
+    renderAltitudeSparkline(chartContainer, metrics?.track, {
+      objectName: object.name,
+      width: 320,
+      height: 160
+    });
+  }
 
   const factors = document.createElement('ul');
   factors.className = 'factor-list';
