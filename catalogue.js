@@ -290,22 +290,19 @@ function formatFactor(value) {
 
 function buildCard(object, metrics) {
   const score = metrics?.score ?? 0;
-  const card = document.createElement('article');
+  const destination = Number.isFinite(object.number) ? `messier.html?m=${object.number}` : 'messier.html';
+  const card = document.createElement('a');
   card.className = `catalogue-card ${classifyScore(score)}`;
+  card.href = destination;
   card.setAttribute('role', 'listitem');
+  card.setAttribute('aria-label', `Voir la fiche détaillée de ${object.name}`);
+  card.title = 'Ouvrir la fiche détaillée';
   if (Number.isFinite(object.number)) {
     card.dataset.messier = `M${object.number}`;
   }
 
-  const previewWrapper = document.createElement('a');
+  const previewWrapper = document.createElement('div');
   previewWrapper.className = 'preview-wrapper';
-  if (Number.isFinite(object.number)) {
-    previewWrapper.href = `messier.html?m=${object.number}`;
-  } else {
-    previewWrapper.href = 'messier.html';
-  }
-  previewWrapper.setAttribute('aria-label', `Voir la fiche détaillée de ${object.name}`);
-  previewWrapper.title = 'Ouvrir la fiche détaillée';
   previewWrapper.appendChild(createObservationPreview(object));
 
   const text = document.createElement('div');
