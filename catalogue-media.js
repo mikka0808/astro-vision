@@ -40,11 +40,23 @@ export const IMAGE_OVERRIDES = {
 
 function buildImageCandidates(id) {
   const padded = String(id).padStart(3, '0');
+  const base = String(id);
   return [
+    // ESO diffuse plusieurs formats sans numéro à trois chiffres : on tente ces
+    // déclinaisons en priorité.
+    `https://cdn.eso.org/images/large/messier${base}.jpg`,
+    `https://cdn.eso.org/images/screen/messier${base}.jpg`,
+    // Certaines ressources plus anciennes conservent l'identifiant sur trois chiffres.
     `https://cdn.eso.org/images/large/messier${padded}.jpg`,
     `https://cdn.eso.org/images/screen/messier${padded}.jpg`,
-    `https://www.nasa.gov/sites/default/files/thumbnails/image/messier_${id}.jpg`,
-    `https://www.messier-objects.com/wp-content/uploads/2012/01/messier-${id}.jpg`
+    // NASA met à disposition des vignettes Messier via son portail science.
+    `https://science.nasa.gov/wp-content/uploads/2023/06/messier-${base}.jpg`,
+    `https://www.nasa.gov/wp-content/uploads/2023/06/messier-${base}.jpg`,
+    // Messier Objects fournit un catalogue photo librement accessible.
+    `https://www.messier-objects.com/wp-content/uploads/2012/01/messier-${base}.jpg`,
+    // Astronexus maintient un dépôt GitHub avec des rendus monocanal.
+    `https://raw.githubusercontent.com/astronexus/Messier/master/PNG/m${padded}.png`,
+    `https://raw.githubusercontent.com/astronexus/Messier/master/JPG/m${padded}.jpg`
   ];
 }
 
