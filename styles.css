@@ -1898,6 +1898,26 @@ p.help-text {
   margin: 0;
 }
 
+.filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+.filter-actions .link-button {
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(147, 175, 255, 0.16);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.filter-actions .link-button:hover,
+.filter-actions .link-button:focus-visible {
+  background: rgba(147, 175, 255, 0.28);
+}
+
 .link-button {
   border: none;
   background: none;

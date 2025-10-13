@@ -37,6 +37,10 @@ const sessionPanel = document.getElementById('sessionPanel');
 const sortSelect = document.getElementById('catalogueSort');
 const catalogueFilterSummary = document.getElementById('catalogueFilterSummary');
 const catalogueTypeOptions = document.getElementById('catalogueTypeOptions');
+const catalogueSelectionOptions = document.getElementById('catalogueSelectionOptions');
+const selectAllCataloguesButton = document.getElementById('selectAllCatalogues');
+const clearCatalogueSelectionButton = document.getElementById('clearCatalogueSelection');
+const catalogueSelectionSummary = document.getElementById('catalogueSelectionSummary');
 const nightModeToggle = document.getElementById('nightModeToggle');
 const catalogueHeading = document.getElementById('catalogueTitle');
 const catalogueSubheading = document.getElementById('catalogueSubtitle');
@@ -47,10 +51,11 @@ const SORT_BY = {
   magnitude: 'magnitude'
 };
 
-function filterObjectsByCatalogue(objects = [], catalogueIds = []) {
+function filterObjectsByCatalogue(objects = [], catalogueIds = null) {
   if (!Array.isArray(objects) || objects.length === 0) return [];
+  if (catalogueIds === null) return objects;
   const active = Array.isArray(catalogueIds) ? catalogueIds.filter(Boolean) : [];
-  if (active.length === 0) return objects;
+  if (active.length === 0) return [];
   const allowed = new Set(active);
   return objects.filter((object) => {
     const refs = Array.isArray(object.catalogueRefs) ? object.catalogueRefs : [];
@@ -131,7 +136,7 @@ const SCORE_CLASSES = {
 };
 
 let catalogueDefinitions = [];
-let activeCatalogueIds = [];
+let activeCatalogueIds = null;
 let catalogueEntries = [];
 let currentSort = SORT_BY.score;
 let activeTypeFilters = [];
@@ -139,14 +144,26 @@ let catalogueSources = new Map();
 const catalogueLoadPromises = new Map();
 const loadedCatalogueIds = new Set();
 const objectSlugIndex = new Map();
+const catalogueObjectCounts = new Map();
 let rawCatalogueObjects = [];
 let enrichedCatalogueObjects = [];
 let lastSessionSnapshot = null;
+
+function incrementCatalogueCounts(object) {
+  if (!object) return;
+  const refs = Array.isArray(object.catalogueRefs) ? object.catalogueRefs.filter(Boolean) : [];
+  const uniqueRefs = Array.from(new Set(refs));
+  uniqueRefs.forEach((id) => {
+    const current = catalogueObjectCounts.get(id) || 0;
+    catalogueObjectCounts.set(id, current + 1);
+  });
+}
 
 function registerInitialObjects(objects = []) {
   objectSlugIndex.clear();
   rawCatalogueObjects = [];
   enrichedCatalogueObjects = [];
+  catalogueObjectCounts.clear();
   if (!Array.isArray(objects)) return;
   appendCatalogueObjects(objects);
 }
@@ -163,6 +180,7 @@ function appendCatalogueObjects(objects = []) {
     }
     objectSlugIndex.set(object.slug, object);
     rawCatalogueObjects.push(object);
+    incrementCatalogueCounts(object);
     added.push(object);
   });
   if (added.length > 0) {
@@ -239,13 +257,12 @@ function prefetchRemainingCatalogues() {
     return;
   }
   ensureCatalogueObjects(remainingIds, { refreshUI: false })
-    .then((added) => {
-      if (!Array.isArray(added) || added.length === 0) {
-        return;
-      }
+    .then(() => {
+      updateCatalogueSelectionControls();
       const selectionObjects = filterObjectsByCatalogue(enrichedCatalogueObjects, activeCatalogueIds);
       populateCatalogueTypeFilter(selectionObjects);
-      updateCatalogueSummary(selectionObjects, lastSessionSnapshot);
+      catalogueEntries = mergeMetrics(selectionObjects, lastSessionSnapshot);
+      updateCatalogue();
     })
     .catch((error) => {
       console.error('Préchargement des catalogues incomplet :', error);
@@ -266,40 +283,225 @@ function buildSourceSummary(ids = []) {
   return `Sources : ${details.join(' • ')}.`;
 }
 
+function getSelectionIds(selection = activeCatalogueIds) {
+  if (selection === null) {
+    return Array.isArray(catalogueDefinitions)
+      ? catalogueDefinitions.map((catalogue) => catalogue.id).filter(Boolean)
+      : [];
+  }
+  if (Array.isArray(selection)) {
+    return selection.filter(Boolean);
+  }
+  return [];
+}
+
+function hasActiveCatalogueSelection(selection = activeCatalogueIds) {
+  if (selection === null) {
+    return Array.isArray(catalogueDefinitions) && catalogueDefinitions.length > 0;
+  }
+  if (!Array.isArray(selection)) {
+    return false;
+  }
+  return selection.length > 0;
+}
+
+function formatCatalogueOptionLabel(catalogue) {
+  if (!catalogue) return '';
+  const abbr = (catalogue.abbreviation || '').trim();
+  const name = (catalogue.name || '').trim();
+  if (abbr && name && abbr !== name) {
+    return `${abbr} — ${name}`;
+  }
+  return name || abbr || (catalogue.id ? catalogue.id.toUpperCase() : '');
+}
+
+function shouldCatalogueBeChecked(id) {
+  if (!id) return false;
+  if (activeCatalogueIds === null) return true;
+  if (!Array.isArray(activeCatalogueIds)) return false;
+  return activeCatalogueIds.includes(id);
+}
+
+function readCatalogueSelectionFromUI() {
+  if (!catalogueSelectionOptions) {
+    return activeCatalogueIds;
+  }
+  const inputs = Array.from(catalogueSelectionOptions.querySelectorAll('input[type="checkbox"]'));
+  if (inputs.length === 0) {
+    return activeCatalogueIds;
+  }
+  const selected = inputs.filter((input) => input.checked).map((input) => input.value);
+  if (selected.length === 0) {
+    return [];
+  }
+  if (selected.length === inputs.length) {
+    return null;
+  }
+  return selected;
+}
+
+function updateCatalogueSelectionSummary() {
+  if (!catalogueSelectionSummary) return;
+  const totalCatalogues = Array.isArray(catalogueDefinitions) ? catalogueDefinitions.length : 0;
+  if (totalCatalogues === 0) {
+    catalogueSelectionSummary.textContent = 'Aucun catalogue disponible pour le moment.';
+    return;
+  }
+  if (!hasActiveCatalogueSelection()) {
+    catalogueSelectionSummary.textContent =
+      'Aucun catalogue sélectionné. Utilise les cases à cocher ci-dessus pour afficher des objets.';
+    return;
+  }
+  const selectionIds = getSelectionIds();
+  const list = selectionIds.length > 0 ? formatCatalogueList(selectionIds, catalogueDefinitions) : '';
+  if (activeCatalogueIds === null) {
+    catalogueSelectionSummary.textContent = list
+      ? `Tous les ${totalCatalogues} catalogues sont affichés (${list}).`
+      : `Tous les ${totalCatalogues} catalogues sont affichés.`;
+    return;
+  }
+  const count = selectionIds.length;
+  if (count === 0) {
+    catalogueSelectionSummary.textContent =
+      'Aucun catalogue sélectionné. Utilise les cases à cocher ci-dessus pour afficher des objets.';
+    return;
+  }
+  const label = list && list !== '—' ? list : selectionIds.join(', ');
+  catalogueSelectionSummary.textContent =
+    count === 1 ? `Catalogue affiché : ${label}.` : `${count} catalogues affichés : ${label}.`;
+}
+
+async function applyCatalogueSelection(selection) {
+  const selectionIds = getSelectionIds(selection);
+  activeCatalogueIds = selection;
+  const pending = selectionIds.filter((id) => !loadedCatalogueIds.has(id));
+  if (pending.length > 0 && catalogueHint) {
+    catalogueHint.textContent = 'Chargement des catalogues sélectionnés…';
+  }
+  if (selectionIds.length > 0) {
+    try {
+      await ensureCatalogueObjects(selectionIds, { refreshUI: false });
+    } catch (error) {
+      console.error('Impossible de charger certains catalogues sélectionnés :', error);
+    }
+  }
+  const selectionObjects = filterObjectsByCatalogue(enrichedCatalogueObjects, activeCatalogueIds);
+  catalogueEntries = mergeMetrics(selectionObjects, lastSessionSnapshot);
+  populateCatalogueTypeFilter(selectionObjects);
+  updateCatalogue();
+  updateCatalogueSelectionControls();
+}
+
+function updateCatalogueSelectionControls() {
+  if (!catalogueSelectionOptions) return;
+  catalogueSelectionOptions.innerHTML = '';
+  if (!Array.isArray(catalogueDefinitions) || catalogueDefinitions.length === 0) {
+    const info = document.createElement('p');
+    info.className = 'help-text';
+    info.textContent = 'Aucun catalogue disponible pour le moment.';
+    catalogueSelectionOptions.appendChild(info);
+    if (selectAllCataloguesButton) {
+      selectAllCataloguesButton.disabled = true;
+    }
+    if (clearCatalogueSelectionButton) {
+      clearCatalogueSelectionButton.disabled = true;
+    }
+    updateCatalogueSelectionSummary();
+    return;
+  }
+  catalogueDefinitions.forEach((catalogue) => {
+    const label = document.createElement('label');
+    label.className = 'filter-option';
+    if (catalogue.description) {
+      label.title = catalogue.description;
+    }
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = catalogue.id;
+    checkbox.checked = shouldCatalogueBeChecked(catalogue.id);
+    checkbox.addEventListener('change', () => {
+      const nextSelection = readCatalogueSelectionFromUI();
+      applyCatalogueSelection(nextSelection).catch((error) => {
+        console.error('Impossible de mettre à jour la sélection de catalogues :', error);
+      });
+    });
+    const span = document.createElement('span');
+    const count = catalogueObjectCounts.get(catalogue.id);
+    let countText = '…';
+    if (Number.isFinite(count)) {
+      countText = count.toLocaleString('fr-FR');
+    } else if (loadedCatalogueIds.has(catalogue.id)) {
+      countText = '0';
+    }
+    span.textContent = `${formatCatalogueOptionLabel(catalogue)} (${countText})`;
+    label.appendChild(checkbox);
+    label.appendChild(span);
+    catalogueSelectionOptions.appendChild(label);
+  });
+  if (selectAllCataloguesButton) {
+    selectAllCataloguesButton.disabled = false;
+  }
+  if (clearCatalogueSelectionButton) {
+    clearCatalogueSelectionButton.disabled = false;
+  }
+  updateCatalogueSelectionSummary();
+}
+
 function updateCatalogueSummary(filteredObjects = [], snapshot = null) {
-  const selectionText = formatCatalogueList(activeCatalogueIds, catalogueDefinitions);
-  const displayedSelection = selectionText && selectionText !== '—' ? selectionText : 'aucun catalogue';
-  const pool = enrichedCatalogueObjects.length;
+  const selectionIds = getSelectionIds();
+  const hasSelection = hasActiveCatalogueSelection();
+  const selectionList = selectionIds.length > 0 ? formatCatalogueList(selectionIds, catalogueDefinitions) : '';
+  let displayedSelection;
+  if (!hasSelection) {
+    displayedSelection = 'aucun catalogue';
+  } else if (activeCatalogueIds === null) {
+    displayedSelection = selectionList ? `tous les catalogues (${selectionList})` : 'tous les catalogues';
+  } else {
+    displayedSelection = selectionList && selectionList !== '—' ? selectionList : 'catalogue sélectionné';
+  }
   const total = filteredObjects.length;
-  let baseMessage = 'Aucun objet chargé.';
-  if (pool > 0) {
-    baseMessage =
-      total === pool
-        ? `${total} objets disponibles`
-        : `${total} objets filtrés sur ${pool} disponibles`;
+  let baseMessage;
+  if (!hasSelection) {
+    baseMessage = 'Sélectionne au moins un catalogue pour afficher des objets.';
+  } else if (total === 0) {
+    baseMessage = 'Aucun objet n’est encore disponible pour cette sélection.';
+  } else {
+    baseMessage = `${total} objets disponibles`;
   }
   const suffix = snapshot
     ? 'Triés automatiquement par score décroissant. Clique sur une vignette pour ouvrir la fiche détaillée.'
     :
         'Lance une analyse depuis la page principale pour obtenir les scores de visibilité et clique sur une vignette pour consulter la fiche détaillée.';
-  const sourceText = buildSourceSummary(activeCatalogueIds);
+  const sourceText = buildSourceSummary(selectionIds);
   if (catalogueHint) {
     const hint = `${baseMessage} — sélection : ${displayedSelection}. ${suffix}`;
     catalogueHint.textContent = sourceText ? `${hint} ${sourceText}` : hint;
   }
   if (catalogueHeading) {
-    catalogueHeading.textContent =
-      displayedSelection && displayedSelection !== 'aucun catalogue'
-        ? `Catalogue : ${displayedSelection}`
-        : 'Catalogue d’observation';
+    if (!hasSelection) {
+      catalogueHeading.textContent = 'Catalogue d’observation';
+    } else if (activeCatalogueIds === null) {
+      catalogueHeading.textContent = 'Catalogue : tous les catalogues';
+    } else if (selectionList && selectionList !== '—') {
+      catalogueHeading.textContent = `Catalogue : ${selectionList}`;
+    } else {
+      catalogueHeading.textContent = 'Catalogue d’observation';
+    }
   }
   if (catalogueSubheading) {
     const modeLabel = formatObservationModeLabel(snapshot?.context?.observationMode);
-    const modeText = modeLabel
-      ? `Mode ${modeLabel} — catalogues ${displayedSelection}`
-      : `Catalogues sélectionnés : ${displayedSelection}`;
-    catalogueSubheading.textContent = modeText;
+    if (!hasSelection) {
+      catalogueSubheading.textContent = modeLabel
+        ? `Mode ${modeLabel} — aucun catalogue sélectionné`
+        : 'Aucun catalogue sélectionné pour le moment.';
+    } else {
+      const modeText = modeLabel
+        ? `Mode ${modeLabel} — catalogues ${displayedSelection}`
+        : `Catalogues sélectionnés : ${displayedSelection}`;
+      catalogueSubheading.textContent = modeText;
+    }
   }
+  updateCatalogueSelectionSummary();
 }
 
 function normaliseScore(value) {
@@ -339,12 +541,20 @@ function readTypeSelection() {
 
 function updateCatalogueFilterSummary(count = 0, total = 0) {
   if (!catalogueFilterSummary) return;
+  if (!hasActiveCatalogueSelection()) {
+    catalogueFilterSummary.textContent =
+      'Aucun catalogue sélectionné. Active une case dans le filtre ci-dessus pour afficher des objets.';
+    return;
+  }
   if (total === 0) {
     catalogueFilterSummary.textContent = 'Catalogue en cours de préparation.';
     return;
   }
   if (count === total && activeTypeFilters.length === 0) {
     catalogueFilterSummary.textContent = 'Tous les types sont affichés.';
+  } else if (count === 0 && activeTypeFilters.length > 0) {
+    catalogueFilterSummary.textContent =
+      'Aucun objet ne correspond aux types sélectionnés. Réinitialise le filtre pour revoir toute la sélection.';
   } else {
     catalogueFilterSummary.textContent = `${count} objets sur ${total} correspondent au filtre.`;
   }
@@ -410,27 +620,47 @@ function renderCatalogue(entries) {
 }
 
 function updateCatalogue() {
+  const selectionObjects = filterObjectsByCatalogue(enrichedCatalogueObjects, activeCatalogueIds);
   if (!Array.isArray(catalogueEntries) || catalogueEntries.length === 0) {
     if (catalogueGrid) {
       catalogueGrid.innerHTML = '';
       const empty = document.createElement('p');
       empty.className = 'help-text';
-      const selectionText = formatCatalogueList(activeCatalogueIds, catalogueDefinitions);
-      empty.textContent =
-        selectionText && selectionText !== '—'
-          ? `Aucun objet trouvé pour la sélection ${selectionText}. Ajuste les filtres ou choisis un autre catalogue.`
-          : 'Aucun objet disponible. Vérifie les catalogues sélectionnés.';
+      if (!hasActiveCatalogueSelection()) {
+        empty.textContent =
+          'Aucun catalogue sélectionné. Utilise les filtres ci-dessus pour choisir les catalogues à afficher.';
+      } else if (selectionObjects.length === 0) {
+        empty.textContent = 'Chargement des catalogues sélectionnés…';
+      } else {
+        const selectionText = formatCatalogueList(getSelectionIds(), catalogueDefinitions);
+        empty.textContent =
+          selectionText && selectionText !== '—'
+            ? `Aucun objet trouvé pour la sélection ${selectionText}. Ajuste les filtres ou choisis un autre catalogue.`
+            : 'Aucun objet disponible. Vérifie les catalogues sélectionnés.';
+      }
       catalogueGrid.appendChild(empty);
     }
-    const selectionObjects = filterObjectsByCatalogue(enrichedCatalogueObjects, activeCatalogueIds);
     updateCatalogueSummary(selectionObjects, lastSessionSnapshot);
-    updateCatalogueFilterSummary(0, 0);
+    updateCatalogueFilterSummary(0, selectionObjects.length);
     return;
   }
   const filtered = applyTypeFilter(catalogueEntries);
   const sorted = sortEntries(filtered, currentSort);
-  renderCatalogue(sorted);
-  const selectionObjects = filterObjectsByCatalogue(enrichedCatalogueObjects, activeCatalogueIds);
+  if (!catalogueGrid) {
+    updateCatalogueSummary(selectionObjects, lastSessionSnapshot);
+    updateCatalogueFilterSummary(filtered.length, catalogueEntries.length);
+    return;
+  }
+  if (sorted.length === 0) {
+    catalogueGrid.innerHTML = '';
+    const empty = document.createElement('p');
+    empty.className = 'help-text';
+    empty.textContent =
+      'Aucun objet ne correspond aux types sélectionnés. Réinitialise le filtre pour afficher de nouveau la sélection complète.';
+    catalogueGrid.appendChild(empty);
+  } else {
+    renderCatalogue(sorted);
+  }
   updateCatalogueSummary(selectionObjects, lastSessionSnapshot);
   updateCatalogueFilterSummary(filtered.length, catalogueEntries.length);
 }
@@ -813,20 +1043,26 @@ async function bootstrap() {
     catalogueDefinitions = catalogues;
     catalogueSources = sources instanceof Map ? sources : new Map();
     registerInitialObjects(objects);
+    activeCatalogueIds = resolveCatalogueSelection(snapshot, catalogues);
+    if (!Array.isArray(activeCatalogueIds) || activeCatalogueIds.length === 0) {
+      activeCatalogueIds = null;
+    }
+    updateCatalogueSelectionControls();
     if (catalogueHint) {
       catalogueHint.textContent = 'Chargement des catalogues sélectionnés…';
     }
     sessionSummary.textContent = formatSessionContext(snapshot);
     renderSessionDetails(snapshot);
     lastSessionSnapshot = snapshot;
-    activeCatalogueIds = resolveCatalogueSelection(snapshot, catalogues);
-    await ensureCatalogueObjects(activeCatalogueIds);
+    const selectionIds = getSelectionIds();
+    if (selectionIds.length > 0) {
+      await ensureCatalogueObjects(selectionIds, { refreshUI: false });
+    }
     const filteredObjects = filterObjectsByCatalogue(enrichedCatalogueObjects, activeCatalogueIds);
-    const merged = mergeMetrics(filteredObjects, snapshot);
-    catalogueEntries = merged;
+    catalogueEntries = mergeMetrics(filteredObjects, snapshot);
     populateCatalogueTypeFilter(filteredObjects);
     updateCatalogue();
-    updateCatalogueSummary(filteredObjects, snapshot);
+    updateCatalogueSelectionControls();
     prefetchRemainingCatalogues();
     if (!snapshot && sessionPanel) {
       sessionPanel.classList.add('warning');
@@ -861,6 +1097,22 @@ if (sortSelect) {
     }
     currentSort = Object.values(SORT_BY).includes(selected) ? selected : SORT_BY.score;
     updateCatalogue();
+  });
+}
+
+if (selectAllCataloguesButton) {
+  selectAllCataloguesButton.addEventListener('click', () => {
+    applyCatalogueSelection(null).catch((error) => {
+      console.error('Impossible d’afficher tous les catalogues :', error);
+    });
+  });
+}
+
+if (clearCatalogueSelectionButton) {
+  clearCatalogueSelectionButton.addEventListener('click', () => {
+    applyCatalogueSelection([]).catch((error) => {
+      console.error('Impossible de vider la sélection de catalogues :', error);
+    });
   });
 }
 
