@@ -87,6 +87,11 @@ const skyMapLocationHint = document.getElementById('skyMapLocationHint');
 
 const contextPanels = new Map();
 
+const defaultDurationOptions = durationSelect
+  ? Array.from(durationSelect.options).map((option) => ({ value: option.value, label: option.textContent }))
+  : [];
+const defaultDurationValue = durationSelect ? durationSelect.value : '2';
+
 const SESSION_SNAPSHOT_VERSION = 8;
 let objectsCatalog = [];
 let catalogueDefinitions = [];
@@ -108,6 +113,8 @@ const skyMapState = { context: null, targets: [], selectedISO: null, ready: fals
 const catalogueCheckboxMap = new Map();
 const catalogueSelectionByMode = new Map();
 const catalogueMetaMap = new Map();
+let computedNightDurationHours = null;
+let computedNightSessionSlots = null;
 const OBSERVATION_MODES = {
   visual: {
     id: 'visual',
@@ -544,6 +551,68 @@ function shiftDateValue(dateValue, offsetDays) {
   return base.toISOString().slice(0, 10);
 }
 
+function formatHourDuration(hours) {
+  if (!Number.isFinite(hours)) return '';
+  const rounded = Math.round(hours * 10) / 10;
+  const minimumFractionDigits = Number.isInteger(rounded) ? 0 : 1;
+  return rounded.toLocaleString('fr-FR', { minimumFractionDigits, maximumFractionDigits: 1 });
+}
+
+function describeNightSessions(count) {
+  if (!Number.isFinite(count) || count <= 0) return '';
+  const rounded = Math.max(1, Math.floor(count));
+  const plural = rounded > 1 ? 's' : '';
+  const possible = rounded > 1 ? ' possibles' : ' possible';
+  return `${rounded} session${plural} d'1 h${possible}`;
+}
+
+function updateSessionDurationOptions(maxHours) {
+  if (!durationSelect) return;
+  const previousValue = durationSelect.value;
+  let optionSpecs = [];
+
+  if (Number.isFinite(maxHours) && maxHours >= 0.25) {
+    const wholeHoursRaw = Math.floor(maxHours);
+    const wholeHours = Math.max(1, wholeHoursRaw);
+    optionSpecs = Array.from({ length: wholeHours }, (_, index) => {
+      const hourValue = index + 1;
+      return { value: String(hourValue), label: `${hourValue} h` };
+    });
+    const remainder = maxHours - wholeHoursRaw;
+    if (remainder > 0.05) {
+      const totalHours = Math.round(maxHours * 10) / 10;
+      optionSpecs.push({
+        value: totalHours.toFixed(1),
+        label: `Toute la nuit (~${formatHourDuration(totalHours)} h)`,
+        fullNight: true
+      });
+    }
+  } else if (defaultDurationOptions.length > 0) {
+    optionSpecs = defaultDurationOptions.map((option) => ({ ...option }));
+  }
+
+  if (optionSpecs.length === 0) {
+    optionSpecs = [{ value: '1', label: '1 h' }, { value: '2', label: '2 h' }, { value: '3', label: '3 h' }];
+  }
+
+  durationSelect.innerHTML = '';
+  optionSpecs.forEach((spec) => {
+    const option = document.createElement('option');
+    option.value = spec.value;
+    option.textContent = spec.label;
+    if (spec.fullNight) {
+      option.dataset.fullNight = 'true';
+    }
+    durationSelect.appendChild(option);
+  });
+
+  const fallbackValue = optionSpecs.some((spec) => spec.value === previousValue)
+    ? previousValue
+    : optionSpecs.find((spec) => spec.value === defaultDurationValue)?.value || optionSpecs[0].value;
+
+  durationSelect.value = fallbackValue;
+}
+
 async function requestSunTimes(lat, lon, dateValue) {
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || !dateValue) return null;
   const key = `${lat.toFixed(4)}|${lon.toFixed(4)}|${dateValue}`;
@@ -728,6 +797,10 @@ function initDefaults() {
   const storedTime = typeof context.localTime === 'string' && context.localTime ? context.localTime : null;
   const storedDuration = Number.isFinite(context.durationHours) ? String(context.durationHours) : null;
   const storedBortle = Number.isFinite(context.bortle) ? context.bortle : null;
+
+  computedNightDurationHours = Number.isFinite(context.nightDurationHours) ? context.nightDurationHours : null;
+  computedNightSessionSlots = Number.isFinite(context.nightSessionSlots) ? context.nightSessionSlots : null;
+  updateSessionDurationOptions(computedNightDurationHours);
 
   latitudeInput.value = storedLat ?? formatCoordinate(48.856);
   longitudeInput.value = storedLon ?? formatCoordinate(2.352);
@@ -1471,9 +1544,33 @@ function renderDecisionSupport(decision) {
   if (decisionAstrophotoList && astrophotoSummary) {
     decisionAstrophotoList.innerHTML = '';
     const astro = decision.astrophoto || {};
-    astrophotoSummary.textContent = astro.active
-      ? `${astro.profileLabel ?? 'Profil photo'} — ${astro.profileDescription ?? ''}`
-      : 'Active le mode photo pour obtenir des recommandations dédiées.';
+    const nightHours = Number.isFinite(cachedContext?.nightDurationHours)
+      ? cachedContext.nightDurationHours
+      : null;
+    const nightSlots = Number.isFinite(cachedContext?.nightSessionSlots)
+      ? cachedContext.nightSessionSlots
+      : null;
+    const nightLabel = Number.isFinite(nightHours)
+      ? `Nuit noire ≈ ${formatHourDuration(nightHours)} h`
+      : null;
+    const sessionsLabel = Number.isFinite(nightSlots) ? describeNightSessions(nightSlots) : '';
+    const nightSummaryParts = [];
+    if (nightLabel) nightSummaryParts.push(nightLabel);
+    if (sessionsLabel) nightSummaryParts.push(sessionsLabel);
+    const nightSummary = nightSummaryParts.join(' • ');
+    if (astro.active) {
+      const profileLabel = astro.profileLabel ?? 'Profil photo';
+      const description = typeof astro.profileDescription === 'string' ? astro.profileDescription.trim() : '';
+      const parts = [];
+      parts.push(description ? `${profileLabel} — ${description}` : profileLabel);
+      if (nightSummary) {
+        parts.push(nightSummary);
+      }
+      astrophotoSummary.textContent = parts.join(' • ');
+    } else {
+      const base = 'Active le mode photo pour obtenir des recommandations dédiées.';
+      astrophotoSummary.textContent = nightSummary ? `${base} • ${nightSummary}` : base;
+    }
     if (astro.active && Array.isArray(astro.recommendations) && astro.recommendations.length > 0) {
       astro.recommendations.slice(0, 4).forEach((entry) => {
         const item = document.createElement('li');
@@ -1779,7 +1876,9 @@ async function handleSessionSubmit(event) {
       bortleSummary: lastBortleSummary || bortleHint?.textContent || '',
       observationMode,
       catalogueIds: selectedCatalogues,
-      catalogueWeights: catalogueWeightSnapshot
+      catalogueWeights: catalogueWeightSnapshot,
+      nightDurationHours: computedNightDurationHours,
+      nightSessionSlots: computedNightSessionSlots
     };
     updateFilterSummary();
     const selected = getActiveTypeFilters();
@@ -1981,6 +2080,9 @@ async function updateSunsetFromInputs() {
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || !dateValue) {
     sunsetHint.textContent = 'Renseigne des coordonnées pour proposer le créneau.';
     cachedSunsetTime = null;
+    computedNightDurationHours = null;
+    computedNightSessionSlots = null;
+    updateSessionDurationOptions(null);
     return;
   }
   sunsetHint.textContent = 'Calcul de la nuit noire…';
@@ -1993,10 +2095,45 @@ async function updateSunsetFromInputs() {
     const minutes = duskDate.getMinutes().toString().padStart(2, '0');
     cachedSunsetTime = `${hours}:${minutes}`;
     const hintLabel = sunTimes?.astronomicalDusk ? 'nuit astronomique' : 'coucher du soleil';
-    sunsetHint.textContent = `Suggestion : commencer à ${cachedSunsetTime} (${hintLabel}).`;
+
+    computedNightDurationHours = null;
+    computedNightSessionSlots = null;
+    let nightSessionsText = '';
+    try {
+      const tomorrowDate = shiftDateValue(dateValue, 1);
+      const tomorrowSun = tomorrowDate ? await requestSunTimes(lat, lon, tomorrowDate) : null;
+      const dawnISO = tomorrowSun?.astronomicalDawn ?? tomorrowSun?.sunrise ?? null;
+      if (dawnISO) {
+        const dawnDate = new Date(dawnISO);
+        const diffMs = dawnDate.getTime() - duskDate.getTime();
+        const diffHours = diffMs / (60 * 60 * 1000);
+        if (Number.isFinite(diffHours) && diffHours > 0.25) {
+          computedNightDurationHours = diffHours;
+          computedNightSessionSlots = Math.max(1, Math.floor(diffHours));
+          nightSessionsText = describeNightSessions(computedNightSessionSlots);
+        }
+      }
+    } catch (error) {
+      console.warn('Impossible de calculer la durée totale de la nuit :', error);
+      computedNightDurationHours = null;
+      computedNightSessionSlots = null;
+    }
+
+    updateSessionDurationOptions(computedNightDurationHours);
+
+    const hintParts = [`Suggestion : commencer à ${cachedSunsetTime} (${hintLabel}).`];
+    if (Number.isFinite(computedNightDurationHours)) {
+      const durationLabel = formatHourDuration(computedNightDurationHours);
+      const sessionLabel = nightSessionsText ? ` • ${nightSessionsText}` : '';
+      hintParts.push(`Nuit noire ≈ ${durationLabel} h${sessionLabel}`);
+    }
+    sunsetHint.textContent = hintParts.join(' — ');
   } catch (error) {
     console.error(error);
     cachedSunsetTime = null;
+    computedNightDurationHours = null;
+    computedNightSessionSlots = null;
+    updateSessionDurationOptions(null);
     sunsetHint.textContent = 'Impossible de calculer la nuit noire pour le moment.';
   }
 }
@@ -2132,6 +2269,8 @@ function storeSessionSnapshot({
         localTime: timeValue,
         durationHours: duration,
         dateISO: observationDateUTC.toISOString(),
+        nightDurationHours: computedNightDurationHours,
+        nightSessionSlots: computedNightSessionSlots,
         bortleSummary: typeof bortleSummary === 'string' ? bortleSummary : '',
         observationMode: observationMode || getActiveObservationMode(),
         catalogueIds: Array.isArray(catalogueIds) ? catalogueIds : [],
