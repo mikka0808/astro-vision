@@ -1983,19 +1983,21 @@ async function updateSunsetFromInputs() {
     cachedSunsetTime = null;
     return;
   }
-  sunsetHint.textContent = 'Calcul du coucher du soleil…';
+  sunsetHint.textContent = 'Calcul de la nuit noire…';
   try {
     const sunTimes = await requestSunTimes(lat, lon, dateValue);
-    if (!sunTimes?.sunset) throw new Error('sunset');
-    const sunsetDate = new Date(sunTimes.sunset);
-    const hours = sunsetDate.getHours().toString().padStart(2, '0');
-    const minutes = sunsetDate.getMinutes().toString().padStart(2, '0');
+    const fullDarkness = sunTimes?.astronomicalDusk ?? sunTimes?.sunset;
+    if (!fullDarkness) throw new Error('sunset');
+    const duskDate = new Date(fullDarkness);
+    const hours = duskDate.getHours().toString().padStart(2, '0');
+    const minutes = duskDate.getMinutes().toString().padStart(2, '0');
     cachedSunsetTime = `${hours}:${minutes}`;
-    sunsetHint.textContent = `Suggestion : commencer à ${cachedSunsetTime} (coucher du soleil).`;
+    const hintLabel = sunTimes?.astronomicalDusk ? 'nuit astronomique' : 'coucher du soleil';
+    sunsetHint.textContent = `Suggestion : commencer à ${cachedSunsetTime} (${hintLabel}).`;
   } catch (error) {
     console.error(error);
     cachedSunsetTime = null;
-    sunsetHint.textContent = 'Impossible de calculer le coucher du soleil pour le moment.';
+    sunsetHint.textContent = 'Impossible de calculer la nuit noire pour le moment.';
   }
 }
 
