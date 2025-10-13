@@ -1763,6 +1763,17 @@ p.help-text {
   opacity: 0.6;
 }
 
+.visibility-chart__now-line {
+  stroke: var(--text-soft);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 4;
+  opacity: 0.8;
+}
+
+.night-mode .visibility-chart__now-line {
+  stroke: #ffd6a0;
+}
+
 .visibility-chart__area {
   fill: rgba(92, 212, 255, 0.18);
 }

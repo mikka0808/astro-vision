@@ -107,6 +107,18 @@ export function renderAltitudeSparkline(container, trackSource, options = {}) {
   linePath.setAttribute('class', 'visibility-chart__line');
   svg.appendChild(linePath);
 
+  const now = Date.now();
+  if (now >= minTime && now <= maxTime) {
+    const nowLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    const x = scaleX(now);
+    nowLine.setAttribute('x1', x);
+    nowLine.setAttribute('x2', x);
+    nowLine.setAttribute('y1', margin.top);
+    nowLine.setAttribute('y2', margin.top + chartHeight);
+    nowLine.setAttribute('class', 'visibility-chart__now-line');
+    svg.appendChild(nowLine);
+  }
+
   track.forEach((point, index) => {
     const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     dot.setAttribute('cx', scaleX(point.date.getTime()));
