@@ -26,6 +26,11 @@ import {
   computeDecisionInsights
 } from './astro-core.js';
 import { renderAltitudeSparkline } from './charts.js';
+import {
+  parseCataloguePayload,
+  fetchCatalogueObjectsFromSource,
+  getCatalogueSourceSummary
+} from './catalogue-data.js';
 
 const sessionForm = document.getElementById('sessionForm');
 const addressInput = document.getElementById('addressLookup');
@@ -113,6 +118,11 @@ const skyMapState = { context: null, targets: [], selectedISO: null, ready: fals
 const catalogueCheckboxMap = new Map();
 const catalogueSelectionByMode = new Map();
 const catalogueMetaMap = new Map();
+let catalogueSources = new Map();
+const catalogueLoadPromises = new Map();
+const loadedCatalogueIds = new Set();
+const objectSlugIndex = new Map();
+let objectsCatalogRaw = [];
 let computedNightDurationHours = null;
 let computedNightSessionSlots = null;
 const OBSERVATION_MODES = {
@@ -139,46 +149,129 @@ let activeObservationMode = 'visual';
 
 const sunTimesCache = new Map();
 
+function registerCatalogueData(objects = []) {
+  objectSlugIndex.clear();
+  objectsCatalogRaw = [];
+  objectsCatalog = [];
+  loadedCatalogueIds.clear();
+  catalogueLoadPromises.clear();
+  appendCatalogueData(objects);
+}
+
+function appendCatalogueData(objects = []) {
+  if (!Array.isArray(objects) || objects.length === 0) {
+    return [];
+  }
+  const added = [];
+  objects.forEach((object) => {
+    if (!object || !object.slug) {
+      return;
+    }
+    if (objectSlugIndex.has(object.slug)) {
+      return;
+    }
+    objectSlugIndex.set(object.slug, object);
+    objectsCatalogRaw.push(object);
+    added.push(object);
+  });
+  if (added.length > 0) {
+    objectsCatalog = enrichCatalogueData(objectsCatalogRaw);
+  }
+  return added;
+}
+
+function refreshCatalogueSelectionUI({ preserveSelection = true } = {}) {
+  if (!catalogueSelection) return;
+  const currentSelection = preserveSelection ? getSelectedCatalogueIds() : [];
+  populateCatalogueSelection(catalogueDefinitions, objectsCatalog);
+  if (preserveSelection && currentSelection.length > 0) {
+    const applied = setSelectedCatalogueIds(currentSelection);
+    const mode = getActiveObservationMode();
+    catalogueSelectionByMode.set(mode, applied);
+  }
+  updateRecommendedStyles(getActiveObservationMode());
+  updateCatalogueHint(getActiveObservationMode());
+}
+
+function buildCatalogueSourceHint(ids = []) {
+  const details = ids
+    .map((id) => getCatalogueSourceSummary(id, catalogueSources))
+    .filter((info) => info && info.description)
+    .map((info) => {
+      const license = info.license ? ` (${info.license})` : '';
+      return `${info.description}${license}`;
+    });
+  return details.length > 0 ? `Sources : ${details.join(' • ')}` : '';
+}
+
+async function ensureCatalogueData(ids = [], { refreshUI = true } = {}) {
+  const requested = Array.isArray(ids) ? ids.filter(Boolean) : [];
+  const toLoad = requested.filter((id) => {
+    if (loadedCatalogueIds.has(id)) return false;
+    if (catalogueLoadPromises.has(id)) return true;
+    const source = catalogueSources.get(id);
+    return source && source.url;
+  });
+  if (toLoad.length === 0) {
+    if (refreshUI) {
+      updateCatalogueHint(getActiveObservationMode());
+    }
+    return [];
+  }
+  const tasks = toLoad.map((id) => {
+    if (catalogueLoadPromises.has(id)) {
+      return catalogueLoadPromises.get(id);
+    }
+    const loadPromise = (async () => {
+      try {
+        const objects = await fetchCatalogueObjectsFromSource(id, catalogueSources);
+        if (Array.isArray(objects) && objects.length > 0) {
+          const added = appendCatalogueData(objects);
+          loadedCatalogueIds.add(id);
+          return added;
+        }
+        loadedCatalogueIds.add(id);
+        return [];
+      } catch (error) {
+        console.error(`Impossible de charger le catalogue ${id} :`, error);
+        throw error;
+      } finally {
+        catalogueLoadPromises.delete(id);
+      }
+    })();
+    catalogueLoadPromises.set(id, loadPromise);
+    return loadPromise;
+  });
+  const settled = await Promise.allSettled(tasks);
+  const collected = [];
+  let encounteredError = false;
+  settled.forEach((result) => {
+    if (result.status === 'fulfilled' && Array.isArray(result.value)) {
+      collected.push(...result.value);
+    } else if (result.status === 'rejected') {
+      encounteredError = true;
+    }
+  });
+  if (collected.length > 0) {
+    populateTypeFilter();
+    refreshCatalogueSelectionUI();
+  } else if (refreshUI) {
+    updateCatalogueHint(getActiveObservationMode());
+  }
+  if (encounteredError && catalogueHint) {
+    catalogueHint.textContent =
+      'Certains catalogues distants n’ont pas pu être chargés. Réessaie plus tard ou vérifie ta connexion.';
+  }
+  return collected;
+}
+
 async function loadCatalog() {
   const response = await fetch('objects.json');
   if (!response.ok) {
     throw new Error('Impossible de charger la base de cibles.');
   }
   const payload = await response.json();
-  let catalogues = [];
-  let objects = [];
-  if (Array.isArray(payload)) {
-    objects = payload.map((entry) => normalizeObjectEntry(entry));
-  } else {
-    const rawCatalogues = Array.isArray(payload.catalogues) ? payload.catalogues : [];
-    catalogues = rawCatalogues.map((entry) => normalizeCatalogueEntry(entry));
-    const fallbackCatalogueId =
-      catalogues.find((item) => item.defaultSelected)?.id || catalogues[0]?.id || null;
-    const rawObjects = Array.isArray(payload.objects) ? payload.objects : [];
-    objects = rawObjects.map((entry) => normalizeObjectEntry(entry, fallbackCatalogueId));
-  }
-  if (catalogues.length === 0) {
-    const fallback = normalizeCatalogueEntry({
-      id: 'primary',
-      name: 'Catalogue principal',
-      abbreviation: 'CAT',
-      observationWeights: { visual: 1, astrophoto: 1, research: 1 },
-      defaultSelected: true
-    });
-    catalogues = [fallback];
-    objects = objects.map((entry) => normalizeObjectEntry(entry, fallback.id));
-  }
-  catalogueDefinitions = catalogues;
-  catalogueMetaMap.clear();
-  catalogueDefinitions.forEach((catalogue) => {
-    catalogueMetaMap.set(catalogue.id, catalogue);
-  });
-  catalogueSelectionByMode.clear();
-  objectsCatalog = enrichCatalogueData(objects);
-  populateTypeFilter();
-  populateCatalogueSelection(catalogueDefinitions, objectsCatalog);
-  activeObservationMode = getActiveObservationMode() || activeObservationMode;
-  applyObservationModeContext(activeObservationMode);
+  return parseCataloguePayload(payload);
 }
 
 function setupContextPanels() {
@@ -248,49 +341,6 @@ function clampWeight(value, fallback = 1) {
   return Math.max(0, Math.min(1.5, value));
 }
 
-function slugify(value) {
-  return String(value || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)+/g, '');
-}
-
-function buildObjectSlug(entry = {}, primaryCatalogueId) {
-  const catalogue = primaryCatalogueId || entry.primaryCatalogueId || null;
-  const cataloguePart = catalogue ? slugify(catalogue) : 'catalogue';
-  const number = Number(entry.number);
-  if (Number.isFinite(number) && number > 0) {
-    const padded =
-      number < 1000
-        ? String(Math.round(number)).padStart(catalogue === 'messier' ? 3 : 2, '0')
-        : String(Math.round(number));
-    return `${cataloguePart}-${padded}`;
-  }
-  const designation =
-    entry.designation || entry.catalogueNumber || (Array.isArray(entry.catalogueRefs) ? entry.catalogueRefs[0] : null);
-  const designationSlug = slugify(designation);
-  if (designationSlug) {
-    return `${cataloguePart}-${designationSlug}`;
-  }
-  const nameSlug = slugify(entry.name);
-  if (nameSlug) {
-    return `${cataloguePart}-${nameSlug}`;
-  }
-  const refsSlug = Array.isArray(entry.catalogueRefs)
-    ? slugify(entry.catalogueRefs.filter(Boolean).join('-'))
-    : '';
-  if (refsSlug) {
-    return `${cataloguePart}-${refsSlug}`;
-  }
-  const ra = Number(entry.raHours);
-  const dec = Number(entry.decDeg);
-  if (Number.isFinite(ra) && Number.isFinite(dec)) {
-    return `${cataloguePart}-${Math.round(ra * 1000)}-${Math.round(dec * 1000)}`;
-  }
-  return `${cataloguePart}-${Date.now()}`;
-}
 
 function getActiveObservationMode() {
   const inputs = Array.from(observationModeInputs ?? []);
@@ -343,6 +393,13 @@ function updateCatalogueHint(mode = getActiveObservationMode()) {
   const profile = OBSERVATION_MODES[mode] || OBSERVATION_MODES.visual;
   const selected = getSelectedCatalogueIds();
   const weights = getObservationWeights(mode);
+  const counts = new Map();
+  objectsCatalog.forEach((object) => {
+    const refs = Array.isArray(object.catalogueRefs) ? object.catalogueRefs : [];
+    refs.forEach((id) => {
+      counts.set(id, (counts.get(id) ?? 0) + 1);
+    });
+  });
   const selectionText =
     selected.length === 0
       ? 'Sélectionne au moins un catalogue.'
@@ -352,16 +409,18 @@ function updateCatalogueHint(mode = getActiveObservationMode()) {
             const label = catalogue?.abbreviation || catalogue?.name || id.toUpperCase();
             const weight = weights.get(id);
             const weightText = Number.isFinite(weight) ? `${Math.round(weight * 100)} %` : '—';
-            return `${label} (${weightText})`;
+            const count = counts.get(id) ?? 0;
+            const countLabel = count === 0 ? '0 objet' : `${count} objet${count > 1 ? 's' : ''}`;
+            return `${label} (${weightText}) — ${countLabel}`;
           })
           .join(' · ');
   const recommendedText = (profile?.recommended || [])
     .map((id) => catalogueMetaMap.get(id)?.abbreviation || catalogueMetaMap.get(id)?.name || id.toUpperCase())
     .join(', ');
   const icon = profile?.icon ? `${profile.icon} ` : '';
-  catalogueHint.textContent = `${icon}${profile?.label ?? 'Mode'} — priorité : ${
-    recommendedText || '—'
-  }. Sélection actuelle : ${selectionText}`;
+  const sourceText = buildCatalogueSourceHint(selected);
+  const baseText = `${icon}${profile?.label ?? 'Mode'} — priorité : ${recommendedText || '—'}. Sélection actuelle : ${selectionText}`;
+  catalogueHint.textContent = sourceText ? `${baseText}. ${sourceText}` : baseText;
 }
 
 function getSelectedCatalogueIds() {
@@ -403,6 +462,12 @@ function applyObservationModeContext(mode, options = {}) {
   const applied = setSelectedCatalogueIds(selection);
   catalogueSelectionByMode.set(mode, applied);
   updateCatalogueHint(mode);
+  if (applied.length > 0) {
+    if (catalogueHint) {
+      catalogueHint.textContent = 'Chargement des catalogues sélectionnés…';
+    }
+    ensureCatalogueData(applied).catch((error) => console.error('Chargement de catalogue recommandé impossible :', error));
+  }
 }
 
 function filterObjectsByCatalogue(objects = [], catalogueIds = []) {
@@ -463,32 +528,6 @@ function buildCatalogueWeightSnapshot(ids = [], mode) {
   return snapshot;
 }
 
-function normalizeCatalogueEntry(entry = {}) {
-  const weights = entry.observationWeights || {};
-  return {
-    ...entry,
-    observationWeights: {
-      visual: clampWeight(weights.visual, 1),
-      astrophoto: clampWeight(weights.astrophoto, 1),
-      research: clampWeight(weights.research, 1)
-    }
-  };
-}
-
-function normalizeObjectEntry(entry = {}, fallbackCatalogueId = null) {
-  const refs = Array.isArray(entry.catalogueRefs) ? entry.catalogueRefs.filter(Boolean) : [];
-  const primary = entry.primaryCatalogueId || refs[0] || fallbackCatalogueId;
-  const uniqueRefs = Array.from(new Set(refs.length > 0 ? refs : primary ? [primary] : []));
-  const slug = entry.slug || buildObjectSlug({ ...entry, catalogueRefs: uniqueRefs }, primary);
-  return {
-    ...entry,
-    primaryCatalogueId: primary,
-    catalogueRefs: uniqueRefs,
-    slug,
-    angularSizeArcmin: Number.isFinite(entry.angularSizeArcmin) ? entry.angularSizeArcmin : null,
-    surfaceBrightness: Number.isFinite(entry.surfaceBrightness) ? entry.surfaceBrightness : null
-  };
-}
 
 function populateCatalogueSelection(catalogues = [], objects = []) {
   if (!catalogueSelection) return;
@@ -534,10 +573,20 @@ function populateCatalogueSelection(catalogues = [], objects = []) {
     label.appendChild(content);
     catalogueSelection.appendChild(label);
     catalogueCheckboxMap.set(catalogue.id, { checkbox, label });
-    checkbox.addEventListener('change', () => {
+    checkbox.addEventListener('change', async () => {
       const mode = getActiveObservationMode();
-      catalogueSelectionByMode.set(mode, getSelectedCatalogueIds());
-      updateCatalogueHint(mode);
+      const selectedIds = getSelectedCatalogueIds();
+      catalogueSelectionByMode.set(mode, selectedIds);
+      if (catalogueHint) {
+        catalogueHint.textContent = 'Chargement des catalogues sélectionnés…';
+      }
+      try {
+        await ensureCatalogueData(selectedIds);
+      } catch (error) {
+        console.error('Chargement de catalogue interrompu :', error);
+      } finally {
+        updateCatalogueHint(mode);
+      }
     });
   });
 }
@@ -1827,6 +1876,7 @@ async function handleSessionSubmit(event) {
     resultsPanel.classList.remove('hidden');
     return;
   }
+  await ensureCatalogueData(selectedCatalogues);
   const filteredObjects = filterObjectsByCatalogue(objectsCatalog, selectedCatalogues);
   if (!filteredObjects || filteredObjects.length === 0) {
     resultsHint.textContent =
@@ -2033,8 +2083,19 @@ initNightMode();
 
 (async function bootstrap() {
   try {
-    await loadCatalog();
+    const { catalogues, objects, sources } = await loadCatalog();
+    catalogueDefinitions = Array.isArray(catalogues) ? catalogues : [];
+    catalogueSources = sources instanceof Map ? sources : new Map();
+    catalogueMetaMap.clear();
+    catalogueDefinitions.forEach((catalogue) => {
+      catalogueMetaMap.set(catalogue.id, catalogue);
+    });
+    catalogueSelectionByMode.clear();
+    registerCatalogueData(objects);
+    populateTypeFilter();
+    populateCatalogueSelection(catalogueDefinitions, objectsCatalog);
     initDefaults();
+    await ensureCatalogueData(getSelectedCatalogueIds());
   } catch (error) {
     console.error(error);
     resultsHint.textContent = 'Erreur de chargement : impossible de récupérer les objets célestes.';

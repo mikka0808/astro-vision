@@ -134,6 +134,79 @@
       }
     }
   ],
+  "sources": [
+    {
+      "catalogueId": "caldwell",
+      "url": "https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/caldwell.json",
+      "format": "openngc-subset",
+      "description": "OpenNGC — Caldwell subset (Mattia Verga)",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "catalogueId": "ngc",
+      "url": "https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/openngc.json",
+      "format": "openngc",
+      "description": "OpenNGC — New General Catalogue (Mattia Verga)",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "catalogueId": "ic",
+      "url": "https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/openngc.json",
+      "format": "openngc",
+      "description": "OpenNGC — Index Catalogue (Mattia Verga)",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "catalogueId": "sharpless",
+      "url": "https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/sharpless.json",
+      "format": "openngc-subset",
+      "description": "OpenNGC — Sharpless nebulae (Mattia Verga)",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "catalogueId": "ldn",
+      "url": "https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/ldn.json",
+      "format": "openngc-subset",
+      "description": "OpenNGC — Lynds dark nebulae (Mattia Verga)",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "catalogueId": "vdb",
+      "url": "https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/vdb.json",
+      "format": "openngc-subset",
+      "description": "OpenNGC — van den Bergh reflection nebulae (Mattia Verga)",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "catalogueId": "gaia",
+      "url": "https://cdn.jsdelivr.net/gh/astronexus/stellarium-catalogs@master/catalog-gaia-bright.json",
+      "format": "gaia-bright",
+      "limit": 400,
+      "description": "Gaia DR3 bright stars (Astronexus curated subset)",
+      "license": "ESA Gaia DR3, CC BY-SA 4.0"
+    },
+    {
+      "catalogueId": "ugc",
+      "url": "https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/openngc.json",
+      "format": "openngc",
+      "description": "OpenNGC — Uppsala General Catalogue (Mattia Verga)",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "catalogueId": "arp",
+      "url": "https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/openngc.json",
+      "format": "openngc",
+      "description": "OpenNGC — Atlas of Peculiar Galaxies (Mattia Verga)",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "catalogueId": "pgc",
+      "url": "https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/openngc.json",
+      "format": "openngc",
+      "description": "OpenNGC — Principal Galaxies Catalogue (Mattia Verga)",
+      "license": "CC BY-SA 4.0"
+    }
+  ],
   "objects": [
     {
       "number": 1,
