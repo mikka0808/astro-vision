@@ -45,6 +45,22 @@ const nightModeToggle = document.getElementById('nightModeToggle');
 const catalogueHeading = document.getElementById('catalogueTitle');
 const catalogueSubheading = document.getElementById('catalogueSubtitle');
 
+function normaliseCatalogueId(id) {
+  if (typeof id !== 'string') return '';
+  return id.trim().toLowerCase();
+}
+
+function normaliseCatalogueIdList(ids = []) {
+  if (!Array.isArray(ids)) return [];
+  return Array.from(
+    new Set(
+      ids
+        .map(normaliseCatalogueId)
+        .filter(Boolean)
+    )
+  );
+}
+
 const SORT_BY = {
   score: 'score',
   name: 'name',
@@ -54,13 +70,13 @@ const SORT_BY = {
 function filterObjectsByCatalogue(objects = [], catalogueIds = null) {
   if (!Array.isArray(objects) || objects.length === 0) return [];
   if (catalogueIds === null) return objects;
-  const active = Array.isArray(catalogueIds) ? catalogueIds.filter(Boolean) : [];
+  const active = normaliseCatalogueIdList(catalogueIds);
   if (active.length === 0) return [];
   const allowed = new Set(active);
   return objects.filter((object) => {
     const refs = Array.isArray(object.catalogueRefs) ? object.catalogueRefs : [];
     if (refs.length === 0) return false;
-    return refs.some((id) => allowed.has(id));
+    return refs.some((id) => allowed.has(normaliseCatalogueId(id)));
   });
 }
 
@@ -69,12 +85,21 @@ function formatCatalogueList(ids = [], catalogues = []) {
     return '—';
   }
   const meta = new Map();
-  catalogues.forEach((catalogue) => {
-    meta.set(catalogue.id, catalogue);
-  });
+  if (Array.isArray(catalogues) && catalogues.length > 0) {
+    catalogues.forEach((catalogue) => {
+      const normalizedId = normaliseCatalogueId(catalogue.id);
+      if (normalizedId) {
+        meta.set(normalizedId, catalogue);
+      }
+    });
+  } else if (catalogueIdIndex.size > 0) {
+    catalogueIdIndex.forEach((catalogue, key) => {
+      meta.set(key, catalogue);
+    });
+  }
   return ids
     .map((id) => {
-      const catalogue = meta.get(id);
+      const catalogue = meta.get(normaliseCatalogueId(id));
       if (!catalogue) return id.toUpperCase();
       if (catalogue.abbreviation) {
         return `${catalogue.abbreviation}`;
@@ -136,6 +161,7 @@ const SCORE_CLASSES = {
 };
 
 let catalogueDefinitions = [];
+let catalogueIdIndex = new Map();
 let activeCatalogueIds = null;
 let catalogueEntries = [];
 let currentSort = SORT_BY.score;
@@ -152,7 +178,7 @@ let lastSessionSnapshot = null;
 function incrementCatalogueCounts(object) {
   if (!object) return;
   const refs = Array.isArray(object.catalogueRefs) ? object.catalogueRefs.filter(Boolean) : [];
-  const uniqueRefs = Array.from(new Set(refs));
+  const uniqueRefs = Array.from(new Set(refs.map(normaliseCatalogueId).filter(Boolean)));
   uniqueRefs.forEach((id) => {
     const current = catalogueObjectCounts.get(id) || 0;
     catalogueObjectCounts.set(id, current + 1);
@@ -190,7 +216,7 @@ function appendCatalogueObjects(objects = []) {
 }
 
 async function ensureCatalogueObjects(ids = [], { refreshUI = true } = {}) {
-  const requested = Array.isArray(ids) ? ids.filter(Boolean) : [];
+  const requested = normaliseCatalogueIdList(ids);
   const toLoad = requested.filter((id) => {
     if (loadedCatalogueIds.has(id)) return false;
     if (catalogueLoadPromises.has(id)) return true;
@@ -251,7 +277,7 @@ function prefetchRemainingCatalogues() {
     return;
   }
   const remainingIds = catalogueDefinitions
-    .map((catalogue) => catalogue.id)
+    .map((catalogue) => normaliseCatalogueId(catalogue.id))
     .filter((id) => id && !loadedCatalogueIds.has(id));
   if (remainingIds.length === 0) {
     return;
@@ -271,7 +297,7 @@ function prefetchRemainingCatalogues() {
 
 function buildSourceSummary(ids = []) {
   const details = ids
-    .map((id) => getCatalogueSourceSummary(id, catalogueSources))
+    .map((id) => getCatalogueSourceSummary(normaliseCatalogueId(id), catalogueSources))
     .filter((info) => info && info.description)
     .map((info) => {
       const license = info.license ? ` (${info.license})` : '';
@@ -286,11 +312,13 @@ function buildSourceSummary(ids = []) {
 function getSelectionIds(selection = activeCatalogueIds) {
   if (selection === null) {
     return Array.isArray(catalogueDefinitions)
-      ? catalogueDefinitions.map((catalogue) => catalogue.id).filter(Boolean)
+      ? catalogueDefinitions
+          .map((catalogue) => normaliseCatalogueId(catalogue.id))
+          .filter(Boolean)
       : [];
   }
   if (Array.isArray(selection)) {
-    return selection.filter(Boolean);
+    return normaliseCatalogueIdList(selection);
   }
   return [];
 }
@@ -302,7 +330,7 @@ function hasActiveCatalogueSelection(selection = activeCatalogueIds) {
   if (!Array.isArray(selection)) {
     return false;
   }
-  return selection.length > 0;
+  return normaliseCatalogueIdList(selection).length > 0;
 }
 
 function formatCatalogueOptionLabel(catalogue) {
@@ -316,10 +344,11 @@ function formatCatalogueOptionLabel(catalogue) {
 }
 
 function shouldCatalogueBeChecked(id) {
-  if (!id) return false;
+  const normalized = normaliseCatalogueId(id);
+  if (!normalized) return false;
   if (activeCatalogueIds === null) return true;
   if (!Array.isArray(activeCatalogueIds)) return false;
-  return activeCatalogueIds.includes(id);
+  return activeCatalogueIds.includes(normalized);
 }
 
 function readCatalogueSelectionFromUI() {
@@ -330,7 +359,10 @@ function readCatalogueSelectionFromUI() {
   if (inputs.length === 0) {
     return activeCatalogueIds;
   }
-  const selected = inputs.filter((input) => input.checked).map((input) => input.value);
+  const selected = inputs
+    .filter((input) => input.checked)
+    .map((input) => normaliseCatalogueId(input.value))
+    .filter(Boolean);
   if (selected.length === 0) {
     return [];
   }
@@ -372,8 +404,9 @@ function updateCatalogueSelectionSummary() {
 }
 
 async function applyCatalogueSelection(selection) {
-  const selectionIds = getSelectionIds(selection);
-  activeCatalogueIds = selection;
+  const normalizedSelection = selection === null ? null : normaliseCatalogueIdList(selection);
+  const selectionIds = getSelectionIds(normalizedSelection);
+  activeCatalogueIds = normalizedSelection === null ? null : selectionIds;
   const pending = selectionIds.filter((id) => !loadedCatalogueIds.has(id));
   if (pending.length > 0 && catalogueHint) {
     catalogueHint.textContent = 'Chargement des catalogues sélectionnés…';
@@ -414,6 +447,10 @@ function updateCatalogueSelectionControls() {
     return;
   }
   catalogueDefinitions.forEach((catalogue) => {
+    const normalizedId = normaliseCatalogueId(catalogue.id);
+    if (!normalizedId) {
+      return;
+    }
     const label = document.createElement('label');
     label.className = 'filter-option';
     if (catalogue.description) {
@@ -430,11 +467,11 @@ function updateCatalogueSelectionControls() {
       });
     });
     const span = document.createElement('span');
-    const count = catalogueObjectCounts.get(catalogue.id);
+    const count = catalogueObjectCounts.get(normalizedId);
     let countText = '…';
     if (Number.isFinite(count)) {
       countText = count.toLocaleString('fr-FR');
-    } else if (loadedCatalogueIds.has(catalogue.id)) {
+    } else if (loadedCatalogueIds.has(normalizedId)) {
       countText = '0';
     }
     span.textContent = `${formatCatalogueOptionLabel(catalogue)} (${countText})`;
@@ -1033,19 +1070,23 @@ function mergeMetrics(objects, snapshot) {
 }
 
 function resolveCatalogueSelection(snapshot, catalogues = []) {
-  const knownIds = new Set(catalogues.map((catalogue) => catalogue.id));
+  const knownIds = new Set(catalogues.map((catalogue) => normaliseCatalogueId(catalogue.id)).filter(Boolean));
   const stored = Array.isArray(snapshot?.context?.catalogueIds)
-    ? snapshot.context.catalogueIds.filter((id) => knownIds.has(id))
+    ? normaliseCatalogueIdList(snapshot.context.catalogueIds).filter((id) => knownIds.has(id))
     : [];
   if (stored.length > 0) {
     return stored;
   }
-  const defaults = catalogues.filter((catalogue) => catalogue.defaultSelected).map((catalogue) => catalogue.id);
+  const defaults = catalogues
+    .filter((catalogue) => catalogue.defaultSelected)
+    .map((catalogue) => normaliseCatalogueId(catalogue.id))
+    .filter(Boolean);
   if (defaults.length > 0) {
     return defaults;
   }
   if (catalogues.length > 0) {
-    return [catalogues[0].id];
+    const first = normaliseCatalogueId(catalogues[0].id);
+    return first ? [first] : [];
   }
   return [];
 }
@@ -1056,8 +1097,23 @@ async function bootstrap() {
       loadCatalog(),
       Promise.resolve(readSessionSnapshot())
     ]);
-    catalogueDefinitions = catalogues;
-    catalogueSources = sources instanceof Map ? sources : new Map();
+    catalogueDefinitions = Array.isArray(catalogues) ? catalogues : [];
+    catalogueIdIndex = new Map();
+    catalogueDefinitions.forEach((catalogue) => {
+      const normalizedId = normaliseCatalogueId(catalogue.id);
+      if (normalizedId) {
+        catalogueIdIndex.set(normalizedId, catalogue);
+      }
+    });
+    const sourceEntries = sources instanceof Map ? sources : new Map();
+    catalogueSources = new Map();
+    sourceEntries.forEach((value, key) => {
+      const normalizedKey = normaliseCatalogueId(key || value?.catalogueId);
+      if (!normalizedKey) {
+        return;
+      }
+      catalogueSources.set(normalizedKey, { ...value, catalogueId: normalizedKey });
+    });
     registerInitialObjects(objects);
     activeCatalogueIds = resolveCatalogueSelection(snapshot, catalogues);
     if (!Array.isArray(activeCatalogueIds) || activeCatalogueIds.length === 0) {
