@@ -25,6 +25,12 @@ import {
   fetchCatalogueObjectsFromSource,
   getCatalogueSourceSummary
 } from './catalogue-data.js';
+import {
+  normaliseCatalogueId,
+  normaliseCatalogueIdList,
+  filterObjectsByCatalogue,
+  countObjectsByCatalogue
+} from './catalogue-utils.js';
 
 const catalogueGrid = document.getElementById('catalogueGrid');
 const catalogueHint = document.getElementById('catalogueHint');
@@ -45,40 +51,11 @@ const nightModeToggle = document.getElementById('nightModeToggle');
 const catalogueHeading = document.getElementById('catalogueTitle');
 const catalogueSubheading = document.getElementById('catalogueSubtitle');
 
-function normaliseCatalogueId(id) {
-  if (typeof id !== 'string') return '';
-  return id.trim().toLowerCase();
-}
-
-function normaliseCatalogueIdList(ids = []) {
-  if (!Array.isArray(ids)) return [];
-  return Array.from(
-    new Set(
-      ids
-        .map(normaliseCatalogueId)
-        .filter(Boolean)
-    )
-  );
-}
-
 const SORT_BY = {
   score: 'score',
   name: 'name',
   magnitude: 'magnitude'
 };
-
-function filterObjectsByCatalogue(objects = [], catalogueIds = null) {
-  if (!Array.isArray(objects) || objects.length === 0) return [];
-  if (catalogueIds === null) return objects;
-  const active = normaliseCatalogueIdList(catalogueIds);
-  if (active.length === 0) return [];
-  const allowed = new Set(active);
-  return objects.filter((object) => {
-    const refs = Array.isArray(object.catalogueRefs) ? object.catalogueRefs : [];
-    if (refs.length === 0) return false;
-    return refs.some((id) => allowed.has(normaliseCatalogueId(id)));
-  });
-}
 
 function formatCatalogueList(ids = [], catalogues = []) {
   if (!ids || ids.length === 0) {
@@ -175,16 +152,6 @@ let rawCatalogueObjects = [];
 let enrichedCatalogueObjects = [];
 let lastSessionSnapshot = null;
 
-function incrementCatalogueCounts(object) {
-  if (!object) return;
-  const refs = Array.isArray(object.catalogueRefs) ? object.catalogueRefs.filter(Boolean) : [];
-  const uniqueRefs = Array.from(new Set(refs.map(normaliseCatalogueId).filter(Boolean)));
-  uniqueRefs.forEach((id) => {
-    const current = catalogueObjectCounts.get(id) || 0;
-    catalogueObjectCounts.set(id, current + 1);
-  });
-}
-
 function registerInitialObjects(objects = []) {
   objectSlugIndex.clear();
   rawCatalogueObjects = [];
@@ -206,13 +173,21 @@ function appendCatalogueObjects(objects = []) {
     }
     objectSlugIndex.set(object.slug, object);
     rawCatalogueObjects.push(object);
-    incrementCatalogueCounts(object);
     added.push(object);
   });
   if (added.length > 0) {
     enrichedCatalogueObjects = enrichCatalogueData(rawCatalogueObjects);
+    recalculateCatalogueCounts();
   }
   return added;
+}
+
+function recalculateCatalogueCounts() {
+  catalogueObjectCounts.clear();
+  const counts = countObjectsByCatalogue(enrichedCatalogueObjects);
+  counts.forEach((value, key) => {
+    catalogueObjectCounts.set(key, value);
+  });
 }
 
 async function ensureCatalogueObjects(ids = [], { refreshUI = true } = {}) {

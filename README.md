@@ -51,3 +51,13 @@ Le fichier `objects.json` décrit désormais une collection de catalogues et leu
 ## Sources de données externes
 
 - Les objets du catalogue IC sont téléchargés à la demande via le service [SIMBAD TAP](https://simbad.u-strasbg.fr/simbad/sim-tap), en interrogeant uniquement les colonnes essentielles (position, magnitude, type). Cela permet d'intégrer l'ensemble des 5 387 entrées sans charger un fichier massif dans le navigateur.
+
+## Tests
+
+L'application dispose d'un petit ensemble de tests Node.js pour vérifier la cohérence des fonctions de normalisation et de filtrage des catalogues. Pour les exécuter :
+
+```bash
+npm test
+```
+
+Le moteur de tests intégré (`node --test`) valide notamment que les objets comptabilisés pour un catalogue correspondent bien à ceux affichés lors du filtrage.
