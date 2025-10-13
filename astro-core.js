@@ -1064,7 +1064,7 @@ export function enrichCatalogueData(objects = []) {
 
 export function buildWeatherSummary(data) {
   if (!data) {
-    return "Aucune donnée météo stockée. Relance l'analyse depuis la page principale.";
+    return "Aucune donnée météo enregistrée pour le moment. Elles apparaîtront après ta prochaine analyse.";
   }
   const { cover = 100, precipProb = 0, weatherCode = 0, wind = 0, periodLabel = '–' } = data;
   const sky = cover <= 20 ? 'excellent' : cover <= 45 ? 'bon' : cover <= 70 ? 'mitigé' : 'difficile';

@@ -383,6 +383,10 @@ async function applyCatalogueSelection(selection) {
       await ensureCatalogueObjects(selectionIds, { refreshUI: false });
     } catch (error) {
       console.error('Impossible de charger certains catalogues sélectionnés :', error);
+      if (catalogueHint) {
+        catalogueHint.textContent =
+          'Impossible de télécharger certains catalogues pour le moment. Vérifie ta connexion ou réessaie plus tard.';
+      }
     }
   }
   const selectionObjects = filterObjectsByCatalogue(enrichedCatalogueObjects, activeCatalogueIds);
@@ -471,7 +475,7 @@ function updateCatalogueSummary(filteredObjects = [], snapshot = null) {
   const suffix = snapshot
     ? 'Triés automatiquement par score décroissant. Clique sur une vignette pour ouvrir la fiche détaillée.'
     :
-        'Lance une analyse depuis la page principale pour obtenir les scores de visibilité et clique sur une vignette pour consulter la fiche détaillée.';
+        'Les scores de visibilité seront ajoutés après ta prochaine analyse. Clique sur une vignette pour consulter la fiche détaillée.';
   const sourceText = buildSourceSummary(selectionIds);
   if (catalogueHint) {
     const hint = `${baseMessage} — sélection : ${displayedSelection}. ${suffix}`;
@@ -687,7 +691,7 @@ async function loadCatalog() {
 
 function formatSessionContext(snapshot) {
   if (!snapshot) {
-    return "Aucune analyse récente trouvée. Retourne sur la page principale pour lancer un calcul.";
+    return "Aucune session enregistrée. Consulte librement le catalogue et reviens sur la page principale pour ajouter tes futures analyses.";
   }
   const { context } = snapshot;
   if (!context) {
@@ -706,6 +710,11 @@ function formatSessionContext(snapshot) {
 
 function renderSessionWeather(weather) {
   if (!sessionWeather) return;
+  if (!weather) {
+    sessionWeather.textContent =
+      'Aucune donnée météo enregistrée pour le moment. Elles apparaîtront après ta prochaine analyse.';
+    return;
+  }
   sessionWeather.textContent = buildWeatherSummary(weather);
 }
 
@@ -713,7 +722,7 @@ function renderSessionDecision(decision) {
   if (!sessionDecision) return;
   if (!decision || !Number.isFinite(decision.globalScore)) {
     sessionDecision.textContent =
-      'Score global indisponible. Lance une nouvelle analyse pour obtenir l’aide à la décision.';
+      'Scores personnalisés disponibles après avoir enregistré une session sur la page principale.';
     return;
   }
   const score = Math.max(0, Math.min(100, Math.round((decision.globalScore ?? 0) * 100)));
@@ -749,7 +758,8 @@ function resolveMoon(snapshot) {
 function renderSessionMoon(moon) {
   if (!sessionMoon) return;
   if (!moon) {
-    sessionMoon.textContent = 'Phase lunaire indisponible. Relance une analyse pour l\'actualiser.';
+    sessionMoon.textContent =
+      'Phase lunaire non calculée. Elle sera ajoutée automatiquement dès qu’une session sera enregistrée.';
     return;
   }
   sessionMoon.textContent = `${moon.emoji ?? '🌙'} ${moon.name} — ${formatIllumination(moon.illumination)} éclairée. ${moon.description}`;
@@ -761,7 +771,8 @@ function renderSessionEvents(events) {
   if (!events || events.length === 0) {
     const empty = document.createElement('li');
     empty.className = 'event-item';
-    empty.innerHTML = '<p>Aucun événement enregistré. Lance une nouvelle analyse pour obtenir les prochains phénomènes.</p>';
+    empty.innerHTML =
+      '<p>Aucun événement enregistré pour l’instant. Ils apparaîtront après ta prochaine analyse.</p>';
     sessionEvents.appendChild(empty);
     return;
   }
