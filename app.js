@@ -31,6 +31,7 @@ const dateInput = document.getElementById('sessionDate');
 const timeInput = document.getElementById('sessionTime');
 const durationSelect = document.getElementById('sessionDuration');
 const useSunsetBtn = document.getElementById('useSunset');
+const useAstronightBtn = document.getElementById('useAstronight');
 const sunsetHint = document.getElementById('sunsetHint');
 const bortleInput = document.getElementById('bortle');
 const bortleValue = document.getElementById('bortleValue');
@@ -50,11 +51,14 @@ const resultsHint = document.getElementById('resultsHint');
 const targetsList = document.getElementById('targets');
 const filterSummary = document.getElementById('filterSummary');
 const typeFilterOptions = document.getElementById('typeFilterOptions');
+const catalogueFilterOptions = document.getElementById('catalogueFilterOptions');
 const spinnerButtons = document.querySelectorAll('.spinner-btn');
 
 const SESSION_SNAPSHOT_VERSION = 3;
 let objectsCatalog = [];
 let cachedSunsetTime = null;
+let cachedAstronightStart = null;
+let cachedAstronightEnd = null;
 let sunsetDebounce = null;
 let cachedResults = [];
 let cachedWeather = null;
@@ -70,6 +74,7 @@ async function loadCatalog() {
   const data = await response.json();
   objectsCatalog = enrichCatalogueData(data);
   populateTypeFilter();
+  populateCatalogueFilter();
 }
 
 function updateCoordinateInput(input, delta) {
@@ -92,11 +97,17 @@ function triggerCoordinateUpdates() {
   if (sunsetDebounce) {
     clearTimeout(sunsetDebounce);
   }
-  sunsetDebounce = setTimeout(updateSunsetFromInputs, 400);
+  sunsetDebounce = setTimeout(updateNightWindowsFromInputs, 400);
 }
 
 function listCategories() {
   return Array.from(new Set(objectsCatalog.map((obj) => obj.category))).sort((a, b) =>
+    a.localeCompare(b, 'fr', { sensitivity: 'base' })
+  );
+}
+
+function listCatalogues() {
+  return Array.from(new Set(objectsCatalog.map((obj) => obj.catalogue).filter(Boolean))).sort((a, b) =>
     a.localeCompare(b, 'fr', { sensitivity: 'base' })
   );
 }
@@ -143,26 +154,78 @@ function populateTypeFilter() {
   updateFilterSummary();
 }
 
+function populateCatalogueFilter() {
+  if (!catalogueFilterOptions) return;
+  catalogueFilterOptions.innerHTML = '';
+  const catalogues = listCatalogues();
+  if (catalogues.length === 0) {
+    const info = document.createElement('p');
+    info.className = 'help-text';
+    info.textContent = 'Catalogue en cours de chargement…';
+    catalogueFilterOptions.appendChild(info);
+    return;
+  }
+  catalogues.forEach((catalogue) => {
+    const optionId = `catalogue-${catalogue.toLowerCase().replace(/[^a-z0-9]+/gi, '-')}`;
+    const label = document.createElement('label');
+    label.className = 'filter-option';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = catalogue;
+    checkbox.id = optionId;
+    checkbox.addEventListener('change', () => {
+      updateFilteredTargets();
+    });
+    const span = document.createElement('span');
+    span.textContent = catalogue;
+    label.appendChild(checkbox);
+    label.appendChild(span);
+    catalogueFilterOptions.appendChild(label);
+  });
+  const resetBtn = document.createElement('button');
+  resetBtn.type = 'button';
+  resetBtn.className = 'link-button';
+  resetBtn.textContent = 'Réinitialiser';
+  resetBtn.addEventListener('click', () => {
+    catalogueFilterOptions.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+      input.checked = false;
+    });
+    updateFilteredTargets();
+  });
+  catalogueFilterOptions.appendChild(resetBtn);
+  updateFilterSummary();
+}
+
 function getActiveTypeFilters() {
   if (!typeFilterOptions) return [];
   return Array.from(typeFilterOptions.querySelectorAll('input[type="checkbox"]:checked')).map((input) => input.value);
 }
 
+function getActiveCatalogueFilters() {
+  if (!catalogueFilterOptions) return [];
+  return Array.from(catalogueFilterOptions.querySelectorAll('input[type="checkbox"]:checked')).map((input) => input.value);
+}
+
 function updateFilterSummary() {
   if (!filterSummary) return;
   const selected = getActiveTypeFilters();
-  if (selected.length === 0) {
-    filterSummary.textContent = 'Tous les types sont affichés.';
-  } else {
-    filterSummary.textContent = `Filtre actif : ${selected.join(', ')}.`;
-  }
+  const selectedCatalogues = getActiveCatalogueFilters();
+  const typeText = selected.length === 0 ? 'Tous les types' : `Types : ${selected.join(', ')}`;
+  const catalogueText =
+    selectedCatalogues.length === 0 ? 'tous les catalogues' : `catalogues : ${selectedCatalogues.join(', ')}`;
+  filterSummary.textContent = `${typeText}, ${catalogueText}.`;
 }
 
 function updateFilteredTargets() {
   updateFilterSummary();
   if (!cachedResults || cachedResults.length === 0) return;
   const selected = getActiveTypeFilters();
-  const matches = selectTopTargets(cachedResults, { limit: cachedResults.length, typeFilter: selected });
+  const selectedCatalogues = getActiveCatalogueFilters();
+  const matches = selectTopTargets(cachedResults, {
+    limit: cachedResults.length,
+    typeFilter: selected,
+    catalogueFilter: selectedCatalogues
+  });
   const display = matches.slice(0, 8);
   renderTargets(display, { total: cachedResults.length, matchCount: matches.length });
 }
@@ -264,6 +327,7 @@ function renderEvents(events) {
 function renderTargets(targets, stats = {}) {
   targetsList.innerHTML = '';
   const selectedTypes = getActiveTypeFilters();
+  const selectedCatalogues = getActiveCatalogueFilters();
   const total = stats.total ?? targets.length;
   const matchCount = stats.matchCount ?? targets.length;
 
@@ -271,6 +335,9 @@ function renderTargets(targets, stats = {}) {
     if (selectedTypes.length > 0 && matchCount === 0 && total > 0) {
       resultsHint.textContent =
         "Aucun objet ne correspond aux types sélectionnés pour cette fenêtre. Retire un filtre ou élargis la durée.";
+    } else if (selectedCatalogues.length > 0 && matchCount === 0 && total > 0) {
+      resultsHint.textContent =
+        "Aucun objet ne correspond aux catalogues sélectionnés pour cette fenêtre. Active un catalogue supplémentaire.";
     } else {
       resultsHint.textContent =
         "Aucune cible satisfaisante pour cette fenêtre : tente de changer l'heure, la date ou vise un ciel plus dégagé.";
@@ -278,8 +345,9 @@ function renderTargets(targets, stats = {}) {
   } else {
     const base = `Top ${targets.length} cibles optimisées selon la météo, la hauteur, la saison et la Lune.`;
     const filterNote = selectedTypes.length > 0 ? ` Filtre type : ${selectedTypes.join(', ')}.` : '';
+    const catalogueNote = selectedCatalogues.length > 0 ? ` Catalogues : ${selectedCatalogues.join(', ')}.` : '';
     const matchNote = matchCount > targets.length ? ` (${targets.length} sur ${matchCount} correspondances)` : '';
-    resultsHint.textContent = `${base}${filterNote}${matchNote}`;
+    resultsHint.textContent = `${base}${filterNote}${catalogueNote}${matchNote}`;
   }
 
   targets.forEach((entry) => {
@@ -297,11 +365,12 @@ function renderTargets(targets, stats = {}) {
     const bestMoment = formatLocalTime(entry.bestTime);
     const direction = describeAzimuth(entry.azimuth);
     const startDirection = describeAzimuth(entry.startAzimuth);
+    const catalogueLabel = entry.object.catalogue || entry.object.catalogueCode || 'Catalogue inconnu';
     card.innerHTML = `
       <header class="target-card__header">
         <div>
           <h3>${entry.object.name}</h3>
-          <div class="meta">${entry.object.category || entry.object.type} • ${entry.object.constellation} • Mag ${entry.object.magnitude}</div>
+          <div class="meta">${entry.object.category || entry.object.type} • ${entry.object.constellation} • ${catalogueLabel} • Mag ${entry.object.magnitude}</div>
         </div>
         <span class="score-chip">${Math.max(0, Math.min(100, scoreValue))}/100</span>
       </header>
@@ -494,7 +563,12 @@ async function handleSessionSubmit(event) {
     };
     updateFilterSummary();
     const selected = getActiveTypeFilters();
-    const matches = selectTopTargets(scoredEntries, { limit: scoredEntries.length, typeFilter: selected });
+    const selectedCatalogues = getActiveCatalogueFilters();
+    const matches = selectTopTargets(scoredEntries, {
+      limit: scoredEntries.length,
+      typeFilter: selected,
+      catalogueFilter: selectedCatalogues
+    });
     const display = matches.slice(0, 8);
     renderTargets(display, { total: scoredEntries.length, matchCount: matches.length });
     storeSessionSnapshot({
@@ -571,6 +645,16 @@ spinnerButtons.forEach((button) => {
 useSunsetBtn.addEventListener('click', () => {
   if (cachedSunsetTime) {
     timeInput.value = cachedSunsetTime.slice(0, 5);
+  } else {
+    sunsetHint.textContent = 'Aucun coucher du soleil calculé : renseigne des coordonnées et une date.';
+  }
+});
+
+useAstronightBtn.addEventListener('click', () => {
+  if (cachedAstronightStart) {
+    timeInput.value = cachedAstronightStart.slice(0, 5);
+  } else {
+    sunsetHint.textContent = 'Nuit astronomique indisponible : vérifie les coordonnées et relance le calcul.';
   }
 });
 refreshBortleBtn.addEventListener('click', autoFetchBortle);
@@ -618,33 +702,67 @@ async function resolveAddress() {
   }
 }
 
-async function updateSunsetFromInputs() {
+async function updateNightWindowsFromInputs() {
   const lat = parseCoordinate(latitudeInput.value);
   const lon = parseCoordinate(longitudeInput.value);
   const dateValue = dateInput.value;
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || !dateValue) {
-    sunsetHint.textContent = 'Renseigne des coordonnées pour proposer le créneau.';
+    sunsetHint.textContent = 'Renseigne des coordonnées pour proposer un créneau nocturne.';
     cachedSunsetTime = null;
+    cachedAstronightStart = null;
+    cachedAstronightEnd = null;
     return;
   }
-  sunsetHint.textContent = 'Calcul du coucher du soleil…';
+  sunsetHint.textContent = 'Calcul des créneaux nocturnes…';
   try {
     const response = await fetch(
       `https://api.sunrise-sunset.org/json?lat=${lat}&lng=${lon}&date=${dateValue}&formatted=0`
     );
     if (!response.ok) throw new Error('sunset');
     const data = await response.json();
-    const sunsetISO = data?.results?.sunset;
-    if (!sunsetISO) throw new Error('sunset');
-    const sunsetDate = new Date(sunsetISO);
-    const hours = sunsetDate.getHours().toString().padStart(2, '0');
-    const minutes = sunsetDate.getMinutes().toString().padStart(2, '0');
-    cachedSunsetTime = `${hours}:${minutes}`;
-    sunsetHint.textContent = `Suggestion : commencer à ${cachedSunsetTime} (coucher du soleil).`;
+    const results = data?.results ?? {};
+    const toInputTime = (iso) => {
+      if (!iso) return null;
+      const instant = new Date(iso);
+      if (Number.isNaN(instant.getTime())) return null;
+      const hours = instant.getHours().toString().padStart(2, '0');
+      const minutes = instant.getMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
+    };
+    const toLabel = (iso) => {
+      if (!iso) return null;
+      const instant = new Date(iso);
+      if (Number.isNaN(instant.getTime())) return null;
+      return instant.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    cachedSunsetTime = toInputTime(results.sunset);
+    cachedAstronightStart = toInputTime(results.astronomical_twilight_end);
+    cachedAstronightEnd = toInputTime(results.astronomical_twilight_begin);
+
+    const messages = [];
+    const sunsetLabel = toLabel(results.sunset);
+    const astroStartLabel = toLabel(results.astronomical_twilight_end);
+    const astroEndLabel = toLabel(results.astronomical_twilight_begin);
+    if (sunsetLabel) {
+      messages.push(`coucher du soleil ${sunsetLabel}`);
+    }
+    if (astroStartLabel && astroEndLabel) {
+      messages.push(`nuit astro ${astroStartLabel} → ${astroEndLabel}`);
+    } else if (astroStartLabel) {
+      messages.push(`nuit astro dès ${astroStartLabel}`);
+    }
+    if (messages.length === 0) {
+      sunsetHint.textContent = "Nuit astronomique : aucune donnée fiable. Ajuste manuellement l'heure.";
+    } else {
+      sunsetHint.textContent = `Suggestions : ${messages.join(' • ')}.`;
+    }
   } catch (error) {
     console.error(error);
     cachedSunsetTime = null;
-    sunsetHint.textContent = 'Impossible de calculer le coucher du soleil pour le moment.';
+    cachedAstronightStart = null;
+    cachedAstronightEnd = null;
+    sunsetHint.textContent = 'Impossible de calculer la nuit astronomique pour le moment.';
   }
 }
 
@@ -698,7 +816,11 @@ function storeSessionSnapshot({
         localDate: dateValue,
         localTime: timeValue,
         durationHours: duration,
-        dateISO: observationDateUTC.toISOString()
+        dateISO: observationDateUTC.toISOString(),
+        filters: {
+          types: getActiveTypeFilters(),
+          catalogues: getActiveCatalogueFilters()
+        }
       },
       weather,
       moon,

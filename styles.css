@@ -166,10 +166,16 @@ select:focus {
 .with-action {
   display: flex;
   gap: 0.6rem;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .with-action input {
   flex: 1;
+}
+
+.with-action button.secondary {
+  flex: 0 0 auto;
 }
 
 button {

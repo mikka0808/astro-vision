@@ -1868,5 +1868,139 @@
     ],
     "minBortle": 5,
     "description": "Galaxie elliptique massive composée d'étoiles âgées. Visible dans la constellation de Andromède."
+  },
+  {
+    "number": 201,
+    "name": "C14 - Double amas de Persée",
+    "type": "Amas ouvert double",
+    "constellation": "Persée",
+    "raHours": 2.333,
+    "decDeg": 57.15,
+    "magnitude": 4.3,
+    "bestMonths": [
+      9,
+      10,
+      11,
+      12,
+      1,
+      2
+    ],
+    "minBortle": 7,
+    "description": "Deux amas ouverts proches l'un de l'autre, visibles à l'œil nu sous un ciel sombre."
+  },
+  {
+    "number": 202,
+    "name": "C27 - Nébuleuse de la Rosette",
+    "type": "Nébuleuse en émission",
+    "constellation": "Licorne",
+    "raHours": 6.55,
+    "decDeg": 4.95,
+    "magnitude": 9.0,
+    "bestMonths": [
+      12,
+      1,
+      2
+    ],
+    "minBortle": 4,
+    "description": "Immense nébuleuse en émission entourant un amas d'étoiles jeunes. Superbe avec un filtre OIII."
+  },
+  {
+    "number": 203,
+    "name": "C33 - Grand Voile du Cygne",
+    "type": "Reste de supernova",
+    "constellation": "Cygne",
+    "raHours": 20.85,
+    "decDeg": 30.7,
+    "magnitude": 5.2,
+    "bestMonths": [
+      7,
+      8,
+      9
+    ],
+    "minBortle": 4,
+    "description": "Filaments nébuleux spectaculaires répartis sur un large champ. À privilégier avec filtre et champ large."
+  },
+  {
+    "number": 301,
+    "name": "NGC 253 - Galaxie du Sculpteur",
+    "type": "Galaxie spirale",
+    "constellation": "Sculpteur",
+    "raHours": 0.793,
+    "decDeg": -25.288,
+    "magnitude": 8.0,
+    "bestMonths": [
+      9,
+      10,
+      11
+    ],
+    "minBortle": 4,
+    "description": "Galaxie spirale lumineuse et allongée, idéale pour débuter l'observation du ciel austral." 
+  },
+  {
+    "number": 302,
+    "name": "NGC 7000 - Nébuleuse de l'Amérique du Nord",
+    "type": "Nébuleuse en émission",
+    "constellation": "Cygne",
+    "raHours": 20.95,
+    "decDeg": 44.333,
+    "magnitude": 4.0,
+    "bestMonths": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "minBortle": 5,
+    "description": "Nébuleuse étendue dessinant le continent nord-américain, sublime en photo grand champ."
+  },
+  {
+    "number": 303,
+    "name": "NGC 7331 - Galaxie du Cerf-Volant",
+    "type": "Galaxie spirale",
+    "constellation": "Pégase",
+    "raHours": 22.666,
+    "decDeg": 34.4,
+    "magnitude": 9.4,
+    "bestMonths": [
+      8,
+      9,
+      10
+    ],
+    "minBortle": 4,
+    "description": "Galaxie spirale inclinée rappelant notre Voie lactée, accompagnée de petites galaxies satellites."
+  },
+  {
+    "number": 401,
+    "name": "IC 1396 - Trompe d'éléphant",
+    "type": "Nébuleuse en émission",
+    "constellation": "Céphée",
+    "raHours": 21.333,
+    "decDeg": 57.5,
+    "magnitude": 7.0,
+    "bestMonths": [
+      7,
+      8,
+      9,
+      10
+    ],
+    "minBortle": 4,
+    "description": "Région de formation stellaire immense aux structures sombres caractéristiques." 
+  },
+  {
+    "number": 402,
+    "name": "IC 405 - Nébuleuse de l'Étoile flamboyante",
+    "type": "Nébuleuse en émission",
+    "constellation": "Cocher",
+    "raHours": 5.683,
+    "decDeg": 34.3,
+    "magnitude": 6.0,
+    "bestMonths": [
+      11,
+      12,
+      1,
+      2
+    ],
+    "minBortle": 5,
+    "description": "Nébuleuse mêlant émission et réflexion autour de l'étoile AE Aurigae, riche en nuances rouges et bleues."
   }
 ]

@@ -153,6 +153,20 @@ const COMPASS_SECTORS = [
   'NNO'
 ];
 
+const CATALOGUE_LABELS = {
+  M: 'Messier',
+  NGC: 'NGC',
+  IC: 'IC',
+  C: 'Caldwell',
+  B: 'Barnard',
+  SH2: 'Sharpless',
+  LDN: 'Lynds Dark Nebula',
+  LBN: 'Lynds Bright Nebula',
+  PK: 'Catalogue PK',
+  ABELL: 'Abell',
+  OTHER: 'Autres catalogues'
+};
+
 function clamp01(value, fallback = 0) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return fallback;
@@ -513,12 +527,16 @@ export function applyWeather(results, weather = {}) {
 }
 
 export function selectTopTargets(results, options = {}) {
-  const { limit = 8, typeFilter = [] } = options;
-  const normalizedFilter = Array.isArray(typeFilter) ? typeFilter.filter(Boolean) : [];
+  const { limit = 8, typeFilter = [], catalogueFilter = [] } = options;
+  const normalizedTypeFilter = Array.isArray(typeFilter) ? typeFilter.filter(Boolean) : [];
+  const normalizedCatalogueFilter = Array.isArray(catalogueFilter) ? catalogueFilter.filter(Boolean) : [];
   return results
     .filter((entry) => entry.altitude > 15 && entry.score > 0.05)
     .filter((entry) =>
-      normalizedFilter.length === 0 ? true : normalizedFilter.includes(entry.object.category || entry.object.type)
+      normalizedTypeFilter.length === 0 ? true : normalizedTypeFilter.includes(entry.object.category || entry.object.type)
+    )
+    .filter((entry) =>
+      normalizedCatalogueFilter.length === 0 ? true : normalizedCatalogueFilter.includes(entry.object.catalogue)
     )
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
@@ -549,10 +567,35 @@ function normaliseTypeLabel(type = '') {
   return 'Autres objets';
 }
 
+function inferCatalogueInfo(object = {}) {
+  const providedLabel = object.catalogue;
+  const providedCode = object.catalogueCode;
+  if (providedLabel) {
+    const candidateCode = (providedCode || providedLabel.split(' ')[0] || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const code = CATALOGUE_LABELS[candidateCode] ? candidateCode : candidateCode.replace(/\d+$/, '') || 'OTHER';
+    const label = CATALOGUE_LABELS[code] || providedLabel;
+    return { catalogue: label, catalogueCode: code };
+  }
+  const rawName = object.name || '';
+  const prefix = rawName.split('-')[0] || rawName;
+  const cleaned = prefix.replace(/[^A-Za-z0-9]/g, '');
+  const match = cleaned.match(/^([A-Za-z]+)(\d*)/);
+  if (!match) {
+    return { catalogue: CATALOGUE_LABELS.OTHER, catalogueCode: 'OTHER' };
+  }
+  const letters = match[1].toUpperCase();
+  const digits = match[2] || '';
+  const candidates = [letters, `${letters}${digits}`];
+  const code = candidates.find((candidate) => CATALOGUE_LABELS[candidate]) || letters || 'OTHER';
+  const label = CATALOGUE_LABELS[code] || `Catalogue ${letters}`;
+  return { catalogue: label, catalogueCode: code };
+}
+
 export function enrichCatalogueData(objects = []) {
   return objects.map((object) => ({
     ...object,
-    category: normaliseTypeLabel(object.type || '')
+    category: normaliseTypeLabel(object.type || ''),
+    ...inferCatalogueInfo(object)
   }));
 }
 
