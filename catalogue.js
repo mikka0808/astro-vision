@@ -564,16 +564,21 @@ function updateCatalogueFilterSummary(count = 0, total = 0) {
   }
 }
 
+function resolveObjectCategory(object) {
+  if (!object) return 'Objet céleste';
+  return object.category || object.type || 'Objet céleste';
+}
+
 function applyTypeFilter(entries) {
   if (!Array.isArray(entries)) return [];
   if (!activeTypeFilters || activeTypeFilters.length === 0) return entries;
-  return entries.filter(({ object }) => activeTypeFilters.includes(object.category || object.type));
+  return entries.filter(({ object }) => activeTypeFilters.includes(resolveObjectCategory(object)));
 }
 
 function populateCatalogueTypeFilter(objects) {
   if (!catalogueTypeOptions) return;
   catalogueTypeOptions.innerHTML = '';
-  const categories = Array.from(new Set(objects.map((object) => object.category))).sort((a, b) =>
+  const categories = Array.from(new Set(objects.map((object) => resolveObjectCategory(object)))).sort((a, b) =>
     a.localeCompare(b, 'fr', { sensitivity: 'base' })
   );
   activeTypeFilters = activeTypeFilters.filter((category) => categories.includes(category));
@@ -852,7 +857,7 @@ function buildCard(object, metrics) {
   const direction = describeAzimuth(metrics?.azimuth);
   const startDirection = describeAzimuth(metrics?.startAzimuth);
   const endDirection = describeAzimuth(metrics?.endAzimuth);
-  const typeLabel = object.category || object.type || 'Objet céleste';
+  const typeLabel = resolveObjectCategory(object);
   const magnitudeText = Number.isFinite(object.magnitude) ? object.magnitude.toFixed(1) : '—';
   const catalogueLabel = formatCatalogueList(
     Array.isArray(object.catalogueRefs) && object.catalogueRefs.length > 0
