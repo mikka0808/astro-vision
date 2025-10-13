@@ -171,7 +171,7 @@ function appendCatalogueObjects(objects = []) {
   return added;
 }
 
-async function ensureCatalogueObjects(ids = []) {
+async function ensureCatalogueObjects(ids = [], { refreshUI = true } = {}) {
   const requested = Array.isArray(ids) ? ids.filter(Boolean) : [];
   const toLoad = requested.filter((id) => {
     if (loadedCatalogueIds.has(id)) return false;
@@ -220,12 +220,36 @@ async function ensureCatalogueObjects(ids = []) {
     catalogueHint.textContent =
       'Certains catalogues distants n’ont pas pu être chargés. Réessaie plus tard ou vérifie ta connexion.';
   }
-  if (collected.length > 0) {
+  if (collected.length > 0 && refreshUI) {
     const selectionObjects = filterObjectsByCatalogue(enrichedCatalogueObjects, activeCatalogueIds);
     populateCatalogueTypeFilter(selectionObjects);
     updateCatalogueSummary(selectionObjects, lastSessionSnapshot);
   }
   return collected;
+}
+
+function prefetchRemainingCatalogues() {
+  if (!Array.isArray(catalogueDefinitions) || catalogueDefinitions.length === 0) {
+    return;
+  }
+  const remainingIds = catalogueDefinitions
+    .map((catalogue) => catalogue.id)
+    .filter((id) => id && !loadedCatalogueIds.has(id));
+  if (remainingIds.length === 0) {
+    return;
+  }
+  ensureCatalogueObjects(remainingIds, { refreshUI: false })
+    .then((added) => {
+      if (!Array.isArray(added) || added.length === 0) {
+        return;
+      }
+      const selectionObjects = filterObjectsByCatalogue(enrichedCatalogueObjects, activeCatalogueIds);
+      populateCatalogueTypeFilter(selectionObjects);
+      updateCatalogueSummary(selectionObjects, lastSessionSnapshot);
+    })
+    .catch((error) => {
+      console.error('Préchargement des catalogues incomplet :', error);
+    });
 }
 
 function buildSourceSummary(ids = []) {
@@ -803,6 +827,7 @@ async function bootstrap() {
     populateCatalogueTypeFilter(filteredObjects);
     updateCatalogue();
     updateCatalogueSummary(filteredObjects, snapshot);
+    prefetchRemainingCatalogues();
     if (!snapshot && sessionPanel) {
       sessionPanel.classList.add('warning');
     }

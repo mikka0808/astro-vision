@@ -253,8 +253,10 @@ async function ensureCatalogueData(ids = [], { refreshUI = true } = {}) {
     }
   });
   if (collected.length > 0) {
-    populateTypeFilter();
-    refreshCatalogueSelectionUI();
+    if (refreshUI) {
+      populateTypeFilter();
+      refreshCatalogueSelectionUI();
+    }
   } else if (refreshUI) {
     updateCatalogueHint(getActiveObservationMode());
   }
@@ -263,6 +265,30 @@ async function ensureCatalogueData(ids = [], { refreshUI = true } = {}) {
       'Certains catalogues distants n’ont pas pu être chargés. Réessaie plus tard ou vérifie ta connexion.';
   }
   return collected;
+}
+
+function prefetchRemainingCatalogueData() {
+  if (!Array.isArray(catalogueDefinitions) || catalogueDefinitions.length === 0) {
+    return;
+  }
+  const remainingIds = catalogueDefinitions
+    .map((catalogue) => catalogue.id)
+    .filter((id) => id && !loadedCatalogueIds.has(id));
+  if (remainingIds.length === 0) {
+    return;
+  }
+  ensureCatalogueData(remainingIds, { refreshUI: false })
+    .then((added) => {
+      if (!Array.isArray(added) || added.length === 0) {
+        return;
+      }
+      populateTypeFilter();
+      refreshCatalogueSelectionUI();
+      updateCatalogueHint(getActiveObservationMode());
+    })
+    .catch((error) => {
+      console.error('Préchargement des catalogues incomplet :', error);
+    });
 }
 
 async function loadCatalog() {
@@ -2096,6 +2122,7 @@ initNightMode();
     populateCatalogueSelection(catalogueDefinitions, objectsCatalog);
     initDefaults();
     await ensureCatalogueData(getSelectedCatalogueIds());
+    prefetchRemainingCatalogueData();
   } catch (error) {
     console.error(error);
     resultsHint.textContent = 'Erreur de chargement : impossible de récupérer les objets célestes.';
