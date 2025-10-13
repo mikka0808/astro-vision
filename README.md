@@ -47,3 +47,7 @@ Le fichier `objects.json` décrit désormais une collection de catalogues et leu
 - Chaque entrée `catalogues` fournit des métadonnées, un acronyme et des pondérations par type d'observation (`visual`, `astrophoto`, `research`).
 - Les objets peuvent être associés à plusieurs catalogues via `catalogueRefs`, tout en conservant un catalogue principal (`primaryCatalogueId`).
 - Les attributs complémentaires (`angularSizeArcmin`, `surfaceBrightness`, etc.) permettent d'étendre facilement les métadonnées disponibles dans l'application.
+
+## Sources de données externes
+
+- Les objets du catalogue IC sont téléchargés à la demande via le service [SIMBAD TAP](https://simbad.u-strasbg.fr/simbad/sim-tap), en interrogeant uniquement les colonnes essentielles (position, magnitude, type). Cela permet d'intégrer l'ensemble des 5 387 entrées sans charger un fichier massif dans le navigateur.

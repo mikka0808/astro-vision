@@ -1,3 +1,21 @@
+const SIMBAD_IC_QUERY = `
+SELECT i.id AS designation,
+       b.main_id AS main_id,
+       b.ra AS ra_deg,
+       b.dec AS dec_deg,
+       b.otype_txt AS type_txt,
+       b.constellation AS constellation,
+       b.flux_v AS mag_v,
+       b.flux_b AS mag_b,
+       b.flux_r AS mag_r,
+       b.dim_majaxis AS major_axis,
+       b.dim_minaxis AS minor_axis
+FROM basic AS b
+JOIN ident AS i ON i.oidref = b.oid
+WHERE i.id LIKE 'IC %'
+ORDER BY designation
+`.trim();
+
 const DEFAULT_CATALOGUE_SOURCES = {
   caldwell: {
     catalogueId: 'caldwell',
@@ -16,11 +34,13 @@ const DEFAULT_CATALOGUE_SOURCES = {
   },
   ic: {
     catalogueId: 'ic',
-    url: 'https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/openngc.json',
-    format: 'openngc',
-    cacheKey: 'openngc-master',
-    description: 'OpenNGC — Master catalogue (Mattia Verga)',
-    license: 'CC BY-SA 4.0'
+    url: 'https://simbad.u-strasbg.fr/simbad/sim-tap/sync',
+    format: 'simbad-ic',
+    cacheKey: 'simbad-ic',
+    description: 'SIMBAD TAP — Index Catalogue (CDS, Strasbourg)',
+    license: 'SIMBAD database © CDS (CC BY 4.0)',
+    maxRecords: 6000,
+    query: SIMBAD_IC_QUERY
   },
   sharpless: {
     catalogueId: 'sharpless',
@@ -379,6 +399,33 @@ const CONSTELLATION_MAP = {
   Vul: 'Petit Renard'
 };
 
+const SIMBAD_TYPE_MAP = {
+  Galaxy: 'Galaxie',
+  'Galaxy in Pair': 'Galaxie en interaction',
+  'Galaxy in Cluster': 'Galaxie en amas',
+  'Interacting Galaxies': 'Galaxies en interaction',
+  'Group of galaxies': 'Groupe de galaxies',
+  'Galaxy pair': 'Galaxies en interaction',
+  'Open Cluster': 'Amas ouvert',
+  'Globular Cluster': 'Amas globulaire',
+  'Planetary Nebula': 'Nébuleuse planétaire',
+  'HII (ionized) region': 'Région H II',
+  'HII region': 'Région H II',
+  'Emission Nebula': 'Nébuleuse en émission',
+  'Reflection Nebula': 'Nébuleuse par réflexion',
+  'Bright Nebula': 'Nébuleuse brillante',
+  'Dark Cloud': 'Nébuleuse obscure',
+  'Molecular Cloud': 'Nuage moléculaire',
+  'Supernova Remnant': 'Reste de supernova',
+  'Galaxy cluster': 'Amas de galaxies',
+  'Star': 'Étoile',
+  'Double or multiple star': 'Étoiles multiples',
+  'Multiple star': 'Étoiles multiples',
+  'Binary Star': 'Étoile double',
+  Nebula: 'Nébuleuse',
+  'Nonexistent object': 'Objet inexistant'
+};
+
 function translateConstellation(code) {
   if (!code) return 'Constellation inconnue';
   const key = String(code).trim();
@@ -436,6 +483,22 @@ function translateOpenNgcType(code) {
   return clean;
 }
 
+function translateSimbadType(label) {
+  if (!label) return 'Objet céleste';
+  const clean = String(label).trim();
+  if (!clean) return 'Objet céleste';
+  if (SIMBAD_TYPE_MAP[clean]) {
+    return SIMBAD_TYPE_MAP[clean];
+  }
+  const normalized = clean.toLowerCase();
+  if (normalized.includes('galax')) return 'Galaxie';
+  if (normalized.includes('neb')) return 'Nébuleuse';
+  if (normalized.includes('cluster')) return 'Amas stellaire';
+  if (normalized.includes('hii')) return 'Région H II';
+  if (normalized.includes('star')) return 'Étoile';
+  return clean;
+}
+
 function estimateBestMonths(raHours) {
   if (!Number.isFinite(raHours)) return [];
   const rawMonth = ((raHours - 12) / 2) + 3;
@@ -483,6 +546,22 @@ function buildDescription({ typeLabel, constellationName, magnitude }) {
   return parts.join(' ');
 }
 
+function buildSimbadDescription({ typeLabel, constellationName, magnitude }) {
+  const parts = [];
+  if (typeLabel && constellationName) {
+    parts.push(`${typeLabel} localisé dans la constellation de ${constellationName}.`);
+  } else if (constellationName) {
+    parts.push(`Objet situé dans la constellation de ${constellationName}.`);
+  } else if (typeLabel) {
+    parts.push(`${typeLabel} répertorié dans ce catalogue.`);
+  }
+  if (Number.isFinite(magnitude)) {
+    parts.push(`Magnitude ${magnitude.toFixed(1)} (valeur SIMBAD).`);
+  }
+  parts.push('Données agrégées via le service SIMBAD TAP (CDS).');
+  return parts.join(' ');
+}
+
 function parseAngularSize(entry) {
   const major = parseNumber(entry.major ?? entry.majorAxis ?? entry.majAxis ?? entry.diamMajor ?? entry.diameter);
   const minor = parseNumber(entry.minor ?? entry.minorAxis ?? entry.minAxis ?? entry.diamMinor ?? entry.diameterMinor);
@@ -500,6 +579,17 @@ function parseAngularSize(entry) {
       return (matches[0] + matches[1]) / 2;
     }
   }
+  return null;
+}
+
+function parseSimbadAngularSize(entry = {}) {
+  const major = parseNumber(entry.major_axis ?? entry.major ?? entry.dim_majaxis);
+  const minor = parseNumber(entry.minor_axis ?? entry.minor ?? entry.dim_minaxis);
+  if (Number.isFinite(major) && Number.isFinite(minor)) {
+    return (major + minor) / 2;
+  }
+  if (Number.isFinite(major)) return major;
+  if (Number.isFinite(minor)) return minor;
   return null;
 }
 
@@ -713,6 +803,126 @@ function transformGaiaEntry(entry) {
   };
 }
 
+function parseSimbadTapPayload(payload) {
+  if (!payload) return [];
+  const metadata = Array.isArray(payload.metadata) ? payload.metadata : Array.isArray(payload.columns) ? payload.columns : [];
+  const columnNames = metadata
+    .map((entry) => entry?.name || entry?.NAME || entry?.id || entry?.ID)
+    .filter(Boolean);
+  const rows = Array.isArray(payload.data)
+    ? payload.data
+    : Array.isArray(payload.rows)
+    ? payload.rows
+    : Array.isArray(payload.table?.data)
+    ? payload.table.data
+    : [];
+  if (columnNames.length === 0) {
+    return rows.map((row) => (row && typeof row === 'object' ? row : {}));
+  }
+  return rows.map((row) => {
+    if (Array.isArray(row)) {
+      const record = {};
+      columnNames.forEach((name, index) => {
+        record[name] = row[index];
+      });
+      return record;
+    }
+    if (row && typeof row === 'object') {
+      return row;
+    }
+    return {};
+  });
+}
+
+function transformSimbadIcEntry(entry = {}) {
+  const rawDesignation = entry.designation || entry.id || entry.ID || entry.ic || entry.IC;
+  const designation = rawDesignation ? String(rawDesignation).trim() : null;
+  const raDeg = parseNumber(entry.ra_deg ?? entry.ra ?? entry.ra_icrs ?? entry.ra2000);
+  const decDeg = parseNumber(entry.dec_deg ?? entry.dec ?? entry.dec_icrs ?? entry.dec2000);
+  if (!designation || !Number.isFinite(raDeg) || !Number.isFinite(decDeg)) {
+    return null;
+  }
+  const raHours = raDeg / 15;
+  const magnitude = parseNumber(entry.mag_v ?? entry.MAG_V ?? entry.mag_b ?? entry.mag_r ?? entry.vmag ?? entry.bmag);
+  const typeLabel = translateSimbadType(entry.type_txt ?? entry.TYPE_TXT ?? entry.object_type ?? entry.otype);
+  const constellationName = translateConstellation(entry.constellation ?? entry.CONSTELLATION);
+  const bestMonths = estimateBestMonths(raHours);
+  const minBortle = estimateMinimumBortle(magnitude, typeLabel);
+  const angularSize = parseSimbadAngularSize(entry);
+  const description = buildSimbadDescription({ typeLabel, constellationName, magnitude });
+  const mainId = entry.main_id || entry.MAIN_ID;
+  const name = mainId && mainId !== designation ? `${designation} — ${mainId}` : designation;
+  const numberMatch = designation.match(/(\d+)/);
+  const number = numberMatch ? Number(numberMatch[1]) : null;
+  return {
+    designation,
+    name,
+    type: typeLabel,
+    constellation: constellationName,
+    raHours,
+    decDeg,
+    magnitude: Number.isFinite(magnitude) ? magnitude : null,
+    bestMonths,
+    minBortle,
+    description,
+    primaryCatalogueId: 'ic',
+    catalogueRefs: ['ic'],
+    angularSizeArcmin: Number.isFinite(angularSize) ? angularSize : null,
+    surfaceBrightness: null,
+    number: Number.isFinite(number) ? number : null
+  };
+}
+
+async function fetchSimbadIcCatalogue(config = {}) {
+  const url = config.url;
+  if (!url) {
+    return [];
+  }
+  const query = (config.query || SIMBAD_IC_QUERY || '').trim();
+  if (!query) {
+    return [];
+  }
+  const params = new URLSearchParams();
+  params.set('request', 'doQuery');
+  params.set('lang', 'adql');
+  params.set('format', 'json');
+  params.set('query', query);
+  const maxRecords = config.maxRecords || config.maxrec;
+  if (Number.isFinite(maxRecords)) {
+    params.set('maxrec', String(maxRecords));
+  } else if (typeof maxRecords === 'string' && maxRecords) {
+    params.set('maxrec', maxRecords);
+  }
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+      Accept: 'application/json'
+    },
+    body: params.toString()
+  });
+  if (!response.ok) {
+    throw new Error(`Impossible de télécharger le catalogue IC via SIMBAD (${response.status}).`);
+  }
+  const payload = await response.json();
+  const rows = parseSimbadTapPayload(payload);
+  const seen = new Set();
+  const entries = [];
+  rows.forEach((row) => {
+    const transformed = transformSimbadIcEntry(row);
+    if (!transformed || !transformed.designation) {
+      return;
+    }
+    const key = transformed.designation.toUpperCase();
+    if (seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    entries.push(transformed);
+  });
+  return entries;
+}
+
 async function fetchSourcePayload(config) {
   const key = config.cacheKey || config.url;
   if (payloadCache.has(key)) {
@@ -774,6 +984,10 @@ export async function fetchCatalogueObjectsFromSource(catalogueId, sources = new
     return cached.map((item) => ({ ...item }));
   }
   const promise = (async () => {
+    if (config.format === 'simbad-ic') {
+      const simbadEntries = await fetchSimbadIcCatalogue(config);
+      return simbadEntries.map((entry) => normalizeObjectEntry(entry, 'ic'));
+    }
     const raw = await fetchSourcePayload(config);
     let entries = [];
     if (config.format === 'gaia-bright') {
