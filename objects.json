@@ -137,10 +137,10 @@
   "sources": [
     {
       "catalogueId": "caldwell",
-      "url": "https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/caldwell.json",
+      "url": "./data/caldwell-catalogue.json",
       "format": "openngc-subset",
-      "description": "OpenNGC — Caldwell subset (Mattia Verga)",
-      "license": "CC BY-SA 4.0"
+      "description": "Catalogue Caldwell intégré (sélection complète)",
+      "license": "Domaine public"
     },
     {
       "catalogueId": "ngc",
@@ -2739,56 +2739,6 @@
       "surfaceBrightness": null
     },
     {
-      "designation": "C14",
-      "name": "C14 - Double amas de Persée",
-      "type": "Amas ouvert",
-      "constellation": "Persée",
-      "raHours": 2.32,
-      "decDeg": 57.15,
-      "magnitude": 4,
-      "bestMonths": [
-        9,
-        10,
-        11,
-        12
-      ],
-      "minBortle": 7,
-      "description": "Deux amas ouverts stellaires voisins formant une paire spectaculaire visible à l’œil nu sous un ciel limpide.",
-      "primaryCatalogueId": "caldwell",
-      "catalogueRefs": [
-        "caldwell",
-        "ngc"
-      ],
-      "angularSizeArcmin": 60,
-      "surfaceBrightness": 13.2,
-      "distanceLy": 7600
-    },
-    {
-      "designation": "C33",
-      "name": "C33 - Nébuleuse du Voile Est",
-      "type": "Nébuleuse en émission",
-      "constellation": "Cygne",
-      "raHours": 20.83,
-      "decDeg": 31.03,
-      "magnitude": 5,
-      "bestMonths": [
-        7,
-        8,
-        9,
-        10
-      ],
-      "minBortle": 5,
-      "description": "Filaments lumineux du rémanent de supernova du Voile, visibles en photo comme en visuel avec filtres OIII.",
-      "primaryCatalogueId": "caldwell",
-      "catalogueRefs": [
-        "caldwell",
-        "ngc"
-      ],
-      "angularSizeArcmin": 70,
-      "surfaceBrightness": 14.2,
-      "distanceLy": 2400
-    },
-    {
       "designation": "NGC 253",
       "name": "NGC 253 - Galaxie du Sculpteur",
       "type": "Galaxie spirale",
@@ -2843,7 +2793,7 @@
       "type": "Nébuleuse en émission",
       "constellation": "Orion",
       "raHours": 5.88,
-      "decDeg": -2.0,
+      "decDeg": -2,
       "magnitude": 7.3,
       "bestMonths": [
         11,
@@ -2966,7 +2916,7 @@
       "type": "Amas ouvert",
       "constellation": "Colombe",
       "raHours": 4.9,
-      "decDeg": -30.0,
+      "decDeg": -30,
       "magnitude": 9,
       "bestMonths": [
         10,

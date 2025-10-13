@@ -1,10 +1,10 @@
 const DEFAULT_CATALOGUE_SOURCES = {
   caldwell: {
     catalogueId: 'caldwell',
-    url: 'https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/caldwell.json',
+    url: './data/caldwell-catalogue.json',
     format: 'openngc-subset',
-    description: 'OpenNGC — Caldwell subset (Mattia Verga)',
-    license: 'CC BY-SA 4.0'
+    description: 'Catalogue Caldwell (sélection complète intégrée)',
+    license: 'Données compilées — domaine public'
   },
   ngc: {
     catalogueId: 'ngc',
