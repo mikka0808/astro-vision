@@ -108,6 +108,7 @@ let cachedMoon = null;
 let cachedEvents = [];
 let cachedContext = null;
 let cachedDecision = null;
+let cachedSourceObjects = [];
 let astrophotoSettings = { enabled: false, profileId: 'visual' };
 let bortleDebounce = null;
 let lastBortleSummary = '';
@@ -881,13 +882,83 @@ function updateFilterSummary() {
   }
 }
 
-function updateFilteredTargets() {
+function renderResultsView(results = []) {
+  const list = Array.isArray(results) ? results : [];
   updateFilterSummary();
-  if (!cachedResults || cachedResults.length === 0) return;
   const selected = getActiveTypeFilters();
-  const matches = selectTopTargets(cachedResults, { limit: cachedResults.length, typeFilter: selected });
+  const matches = selectTopTargets(list, { limit: list.length, typeFilter: selected });
   const display = matches.slice(0, 8);
-  renderTargets(display, { total: cachedResults.length, matchCount: matches.length });
+  renderTargets(display, { total: list.length, matchCount: matches.length });
+  return { matches, display };
+}
+
+function updateFilteredTargets() {
+  if (!cachedResults || cachedResults.length === 0) {
+    updateFilterSummary();
+    return;
+  }
+  const { display } = renderResultsView(cachedResults);
+  if (cachedContext) {
+    prepareSkyMap(cachedContext, display);
+  }
+}
+
+function refreshScoresAfterBortle(value, summary) {
+  if (!cachedContext) return;
+  const lat = Number(cachedContext.latitude);
+  const lon = Number(cachedContext.longitude);
+  const duration = Number(cachedContext.durationHours);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || !Number.isFinite(duration)) {
+    cachedContext = {
+      ...cachedContext,
+      bortle: value,
+      bortleSummary: summary ?? cachedContext.bortleSummary ?? ''
+    };
+    return;
+  }
+  let observationDate = null;
+  if (cachedContext.date instanceof Date && !Number.isNaN(cachedContext.date.getTime())) {
+    observationDate = cachedContext.date;
+  } else if (cachedContext.dateISO) {
+    const parsed = new Date(cachedContext.dateISO);
+    if (!Number.isNaN(parsed.getTime())) {
+      observationDate = parsed;
+    }
+  }
+  if (!(observationDate instanceof Date)) {
+    return;
+  }
+  if (!Array.isArray(cachedSourceObjects) || cachedSourceObjects.length === 0) {
+    cachedContext = {
+      ...cachedContext,
+      bortle: value,
+      bortleSummary: summary ?? cachedContext.bortleSummary ?? ''
+    };
+    return;
+  }
+  try {
+    const evaluated = evaluateTargets(cachedSourceObjects, {
+      lat,
+      lon,
+      bortle: value,
+      date: observationDate,
+      durationHours: duration,
+      moonIllumination: cachedMoon?.illumination ?? 0
+    });
+    const scored = applyWeather(evaluated, cachedWeather || {});
+    const weighted = applyObservationWeights(scored, cachedContext.observationMode);
+    cachedResults = weighted;
+    cachedContext = {
+      ...cachedContext,
+      bortle: value,
+      bortleSummary: summary ?? cachedContext.bortleSummary ?? ''
+    };
+    const { display } = renderResultsView(weighted);
+    prepareSkyMap(cachedContext, display);
+    refreshDecisionSupport();
+  } catch (error) {
+    console.warn('Impossible de recalculer les scores après mise à jour de la pollution lumineuse :', error);
+  }
 }
 
 function initDefaults() {
@@ -1917,6 +1988,7 @@ async function handleSessionSubmit(event) {
   cachedEvents = [];
   cachedContext = null;
   cachedDecision = null;
+  cachedSourceObjects = [];
   lastBortleSummary = bortleHint?.textContent ?? '';
   updateFilterSummary();
 
@@ -1970,6 +2042,7 @@ async function handleSessionSubmit(event) {
     const scoredEntries = applyWeather(evaluated, weather);
     const weightedEntries = applyObservationWeights(scoredEntries, observationMode);
     const catalogueWeightSnapshot = buildCatalogueWeightSnapshot(selectedCatalogues, observationMode);
+    cachedSourceObjects = filteredObjects;
     cachedResults = weightedEntries;
     cachedWeather = weather;
     cachedMoon = moon;
@@ -1990,11 +2063,7 @@ async function handleSessionSubmit(event) {
       nightDurationHours: computedNightDurationHours,
       nightSessionSlots: computedNightSessionSlots
     };
-    updateFilterSummary();
-    const selected = getActiveTypeFilters();
-    const matches = selectTopTargets(weightedEntries, { limit: weightedEntries.length, typeFilter: selected });
-    const display = matches.slice(0, 8);
-    renderTargets(display, { total: weightedEntries.length, matchCount: matches.length });
+    const { display } = renderResultsView(weightedEntries);
     prepareSkyMap(cachedContext, display);
     const decision = computeDecisionInsights(weightedEntries, {
       weather,
@@ -2303,19 +2372,116 @@ async function autoFetchBortle() {
   )}`;
   const proxied = `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`;
 
+  const classifyBortleFromSqm = (sqm) => {
+    if (!Number.isFinite(sqm)) return NaN;
+    if (sqm >= 21.9) return 1;
+    if (sqm >= 21.6) return 2;
+    if (sqm >= 21.2) return 3;
+    if (sqm >= 20.8) return 4;
+    if (sqm >= 20.0) return 5;
+    if (sqm >= 19.1) return 6;
+    if (sqm >= 18.6) return 7;
+    if (sqm >= 18.0) return 8;
+    return 9;
+  };
+
+  const visitedNodes = new WeakSet();
+  const extractBortleFromPayload = (raw) => {
+    const result = { value: NaN, sourceLabel: null, details: null };
+    if (typeof raw !== 'string') return result;
+    const trimmed = raw.trim();
+    if (!trimmed) return result;
+    const direct = Number(trimmed);
+    if (Number.isFinite(direct) && direct > 0) {
+      return { value: direct, sourceLabel: 'LightPollutionMap.info', details: null };
+    }
+    const extractFromObject = (data) => {
+      if (!data || typeof data !== 'object') return null;
+      if (visitedNodes.has(data)) return null;
+      visitedNodes.add(data);
+      const entries = Object.entries(data);
+      for (const [key, rawValue] of entries) {
+        const lowerKey = String(key).toLowerCase();
+        const numeric = Number(rawValue);
+        if (Number.isFinite(numeric) && numeric > 0) {
+          if (
+            lowerKey === 'bortle' ||
+            lowerKey === 'bortle_class' ||
+            lowerKey === 'bortleclass' ||
+            lowerKey === 'class_bortle' ||
+            lowerKey === 'class' ||
+            lowerKey === 'value' ||
+            lowerKey === 'bortlescale'
+          ) {
+            return { value: numeric, sourceLabel: 'LightPollutionMap.info', details: null };
+          }
+          if (
+            lowerKey === 'sqm' ||
+            lowerKey === 'mag' ||
+            lowerKey === 'sqmvalue' ||
+            lowerKey === 'nsb' ||
+            lowerKey === 'skyquality'
+          ) {
+            const converted = classifyBortleFromSqm(numeric);
+            if (Number.isFinite(converted)) {
+              return {
+                value: converted,
+                sourceLabel: 'LightPollutionMap.info',
+                details: `SQM ${numeric.toFixed(2)}`
+              };
+            }
+          }
+        }
+      }
+      for (const [, value] of entries) {
+        if (value && typeof value === 'object') {
+          const nested = extractFromObject(value);
+          if (nested) return nested;
+        }
+      }
+      return null;
+    };
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        for (const entry of parsed) {
+          const extracted = extractFromObject(entry);
+          if (extracted) return extracted;
+        }
+      } else if (parsed && typeof parsed === 'object') {
+        const extracted = extractFromObject(parsed);
+        if (extracted) return extracted;
+      }
+    } catch (error) {
+      const match = trimmed.match(/([-+]?\d*\.?\d+)/);
+      if (match) {
+        const numeric = Number(match[1]);
+        if (Number.isFinite(numeric) && numeric > 0) {
+          return { value: numeric, sourceLabel: 'LightPollutionMap.info', details: null };
+        }
+      }
+      return result;
+    }
+    return result;
+  };
+
   let baseBortleValue = Number(bortleInput.value);
   if (!Number.isFinite(baseBortleValue)) {
     baseBortleValue = 6;
   }
   let fetched = false;
+  let baseSourceLabel = 'valeur conservée';
+  let baseSourceDetails = '';
 
   try {
     const response = await fetch(proxied);
     if (!response.ok) throw new Error('bortle');
     const text = await response.text();
-    const value = Number(text.trim());
-    if (!Number.isFinite(value)) throw new Error('bortle');
-    baseBortleValue = value;
+    const extracted = extractBortleFromPayload(text);
+    if (!Number.isFinite(extracted.value)) throw new Error('bortle');
+    baseBortleValue = extracted.value;
+    baseSourceLabel = extracted.sourceLabel || 'LightPollutionMap.info';
+    baseSourceDetails = extracted.details || '';
     fetched = true;
   } catch (error) {
     console.error('Impossible de récupérer la valeur brute de Bortle :', error);
@@ -2367,12 +2533,13 @@ async function autoFetchBortle() {
   updateBortleLabel();
 
   const baseRounded = Math.min(9, Math.max(1, Math.round(baseBortleValue)));
+  const sourceLabel = fetched
+    ? baseSourceDetails
+      ? `${baseSourceLabel} — ${baseSourceDetails}`
+      : baseSourceLabel
+    : baseSourceLabel;
   const parts = [`Classe estimée : Bortle ${adjustedClamped}`];
-  parts.push(
-    fetched
-      ? `base ${baseRounded} (LightPollutionMap.info)`
-      : `base ${baseRounded} (valeur conservée)`
-  );
+  parts.push(`base ${baseRounded} (${sourceLabel})`);
   if (adjustments.length > 0) {
     parts.push(`ajustements ${adjustments.join(', ')}`);
   }
@@ -2380,7 +2547,23 @@ async function autoFetchBortle() {
   const summary = `${parts.join(' — ')}.`;
   bortleHint.textContent = summary;
   lastBortleSummary = summary;
+
+  if (cachedContext) {
+    const previousBortle = Number(cachedContext.bortle);
+    const summaryChanged = summary !== (cachedContext.bortleSummary || '');
+    if (!Number.isFinite(previousBortle) || previousBortle !== adjustedClamped || summaryChanged) {
+      refreshScoresAfterBortle(adjustedClamped, summary);
+    } else {
+      cachedContext = {
+        ...cachedContext,
+        bortle: adjustedClamped,
+        bortleSummary: summary
+      };
+    }
+  }
 }
+
+
 
 function storeSessionSnapshot({
   lat,
