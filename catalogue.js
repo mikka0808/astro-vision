@@ -43,6 +43,8 @@ const sessionPanel = document.getElementById('sessionPanel');
 const sortSelect = document.getElementById('catalogueSort');
 const catalogueFilterSummary = document.getElementById('catalogueFilterSummary');
 const catalogueTypeOptions = document.getElementById('catalogueTypeOptions');
+const catalogueDifficultyOptions = document.getElementById('catalogueDifficultyOptions');
+const catalogueSeasonOptions = document.getElementById('catalogueSeasonOptions');
 const catalogueSelectionOptions = document.getElementById('catalogueSelectionOptions');
 const selectAllCataloguesButton = document.getElementById('selectAllCatalogues');
 const clearCatalogueSelectionButton = document.getElementById('clearCatalogueSelection');
@@ -56,6 +58,26 @@ const SORT_BY = {
   name: 'name',
   magnitude: 'magnitude'
 };
+
+const DIFFICULTY_BANDS = [
+  { id: 'urban', label: 'Observation urbaine (Bortle 8 à 9)', min: 8, max: 9 },
+  { id: 'suburban', label: 'Ciel suburbain (Bortle 6 à 7)', min: 6, max: 7 },
+  { id: 'rural', label: 'Ciel rural (Bortle 4 à 5)', min: 4, max: 5 },
+  { id: 'dark', label: 'Site très sombre (Bortle ≤ 3)', min: 0, max: 3 },
+  { id: 'unknown', label: 'Niveau non précisé' }
+];
+
+const DIFFICULTY_LABELS = new Map(DIFFICULTY_BANDS.map((band) => [band.id, band.label]));
+
+const SEASON_GROUPS = [
+  { id: 'winter', label: 'Hiver (décembre à février)', months: [12, 1, 2] },
+  { id: 'spring', label: 'Printemps (mars à mai)', months: [3, 4, 5] },
+  { id: 'summer', label: 'Été (juin à août)', months: [6, 7, 8] },
+  { id: 'autumn', label: 'Automne (septembre à novembre)', months: [9, 10, 11] },
+  { id: 'all-year', label: 'Toute l’année' }
+];
+
+const SEASON_LABELS = new Map(SEASON_GROUPS.map((season) => [season.id, season.label]));
 
 function formatCatalogueList(ids = [], catalogues = []) {
   if (!ids || ids.length === 0) {
@@ -143,6 +165,8 @@ let activeCatalogueIds = null;
 let catalogueEntries = [];
 let currentSort = SORT_BY.score;
 let activeTypeFilters = [];
+let activeDifficultyFilters = [];
+let activeSeasonFilters = [];
 let catalogueSources = new Map();
 const catalogueLoadPromises = new Map();
 const loadedCatalogueIds = new Set();
@@ -241,7 +265,7 @@ async function ensureCatalogueObjects(ids = [], { refreshUI = true } = {}) {
   }
   if (collected.length > 0 && refreshUI) {
     const selectionObjects = filterObjectsByCatalogue(enrichedCatalogueObjects, activeCatalogueIds);
-    populateCatalogueTypeFilter(selectionObjects);
+    populateCatalogueFilters(selectionObjects);
     updateCatalogueSummary(selectionObjects, lastSessionSnapshot);
   }
   return collected;
@@ -261,7 +285,7 @@ function prefetchRemainingCatalogues() {
     .then(() => {
       updateCatalogueSelectionControls();
       const selectionObjects = filterObjectsByCatalogue(enrichedCatalogueObjects, activeCatalogueIds);
-      populateCatalogueTypeFilter(selectionObjects);
+      populateCatalogueFilters(selectionObjects);
       catalogueEntries = mergeMetrics(selectionObjects, lastSessionSnapshot);
       updateCatalogue();
     })
@@ -399,7 +423,7 @@ async function applyCatalogueSelection(selection) {
   }
   const selectionObjects = filterObjectsByCatalogue(enrichedCatalogueObjects, activeCatalogueIds);
   catalogueEntries = mergeMetrics(selectionObjects, lastSessionSnapshot);
-  populateCatalogueTypeFilter(selectionObjects);
+  populateCatalogueFilters(selectionObjects);
   updateCatalogue();
   updateCatalogueSelectionControls();
 }
@@ -428,6 +452,7 @@ function updateCatalogueSelectionControls() {
     }
     const label = document.createElement('label');
     label.className = 'filter-option';
+    label.classList.add('filter-option--catalogue');
     if (catalogue.description) {
       label.title = catalogue.description;
     }
@@ -441,7 +466,6 @@ function updateCatalogueSelectionControls() {
         console.error('Impossible de mettre à jour la sélection de catalogues :', error);
       });
     });
-    const span = document.createElement('span');
     const count = catalogueObjectCounts.get(normalizedId);
     let countText = '…';
     if (Number.isFinite(count)) {
@@ -449,9 +473,29 @@ function updateCatalogueSelectionControls() {
     } else if (loadedCatalogueIds.has(normalizedId)) {
       countText = '0';
     }
-    span.textContent = `${formatCatalogueOptionLabel(catalogue)} (${countText})`;
+    const content = document.createElement('span');
+    content.className = 'filter-option__content';
+    const nameLine = document.createElement('span');
+    nameLine.className = 'filter-option__label';
+    nameLine.textContent = `${formatCatalogueOptionLabel(catalogue)} (${countText})`;
+    content.appendChild(nameLine);
+    const metaParts = [];
+    if (catalogue.focus) {
+      metaParts.push(catalogue.focus);
+    }
+    if (catalogue.coverage) {
+      metaParts.push(catalogue.coverage);
+    } else if (catalogue.type) {
+      metaParts.push(catalogue.type);
+    }
+    if (metaParts.length > 0) {
+      const meta = document.createElement('span');
+      meta.className = 'filter-option__meta';
+      meta.textContent = metaParts.join(' • ');
+      content.appendChild(meta);
+    }
     label.appendChild(checkbox);
-    label.appendChild(span);
+    label.appendChild(content);
     catalogueSelectionOptions.appendChild(label);
   });
   if (selectAllCataloguesButton) {
@@ -555,6 +599,18 @@ function readTypeSelection() {
   return Array.from(catalogueTypeOptions.querySelectorAll('input[type="checkbox"]:checked')).map((input) => input.value);
 }
 
+function readDifficultySelection() {
+  if (!catalogueDifficultyOptions) return [];
+  return Array.from(catalogueDifficultyOptions.querySelectorAll('input[type="checkbox"]:checked')).map(
+    (input) => input.value
+  );
+}
+
+function readSeasonSelection() {
+  if (!catalogueSeasonOptions) return [];
+  return Array.from(catalogueSeasonOptions.querySelectorAll('input[type="checkbox"]:checked')).map((input) => input.value);
+}
+
 function updateCatalogueFilterSummary(count = 0, total = 0) {
   if (!catalogueFilterSummary) return;
   if (!hasActiveCatalogueSelection()) {
@@ -566,33 +622,112 @@ function updateCatalogueFilterSummary(count = 0, total = 0) {
     catalogueFilterSummary.textContent = 'Catalogue en cours de préparation.';
     return;
   }
-  if (count === total && activeTypeFilters.length === 0) {
-    catalogueFilterSummary.textContent = 'Tous les types sont affichés.';
-  } else if (count === 0 && activeTypeFilters.length > 0) {
-    catalogueFilterSummary.textContent =
-      'Aucun objet ne correspond aux types sélectionnés. Réinitialise le filtre pour revoir toute la sélection.';
-  } else {
-    catalogueFilterSummary.textContent = `${count} objets sur ${total} correspondent au filtre.`;
+  const activeFilters = [];
+  if (activeTypeFilters.length > 0) {
+    activeFilters.push(`types (${activeTypeFilters.join(', ')})`);
   }
+  if (activeDifficultyFilters.length > 0) {
+    const labels = activeDifficultyFilters.map((id) => DIFFICULTY_LABELS.get(id) || id);
+    activeFilters.push(`difficulté (${labels.join(', ')})`);
+  }
+  if (activeSeasonFilters.length > 0) {
+    const labels = activeSeasonFilters.map((id) => SEASON_LABELS.get(id) || id);
+    activeFilters.push(`période (${labels.join(', ')})`);
+  }
+
+  if (activeFilters.length === 0 && count === total) {
+    catalogueFilterSummary.textContent = 'Aucun filtre actif : tous les objets sélectionnés sont affichés.';
+    return;
+  }
+
+  if (count === 0) {
+    const details = activeFilters.length > 0 ? ` (${activeFilters.join(' · ')})` : '';
+    catalogueFilterSummary.textContent =
+      `Aucun objet ne correspond aux filtres appliqués${details}. Réinitialise les filtres pour revoir toute la sélection.`;
+    return;
+  }
+
+  const details = activeFilters.length > 0 ? ` selon ${activeFilters.join(' · ')}` : '';
+  catalogueFilterSummary.textContent = `${count} objet${count > 1 ? 's' : ''} sur ${total} correspondent aux filtres${details}.`;
 }
+
+const DEFAULT_CATEGORY_LABEL = 'Objet céleste';
 
 function resolveObjectCategory(object) {
-  if (!object) return 'Objet céleste';
-  return object.category || object.type || 'Objet céleste';
+  if (!object) return DEFAULT_CATEGORY_LABEL;
+  const label = (object.category || object.type || '').trim();
+  return label || DEFAULT_CATEGORY_LABEL;
 }
 
-function applyTypeFilter(entries) {
+function resolveDifficultyBandId(object) {
+  const value = Number(object?.minBortle);
+  if (!Number.isFinite(value)) {
+    return 'unknown';
+  }
+  if (value >= 8) return 'urban';
+  if (value >= 6) return 'suburban';
+  if (value >= 4) return 'rural';
+  return 'dark';
+}
+
+function resolveSeasonTags(object) {
+  const months = Array.isArray(object?.bestMonths)
+    ? object.bestMonths
+        .map((month) => Number(month))
+        .filter((month) => Number.isInteger(month) && month >= 1 && month <= 12)
+    : [];
+  if (months.length === 0) {
+    return ['all-year'];
+  }
+  const uniqueMonths = Array.from(new Set(months));
+  if (uniqueMonths.length >= 10) {
+    return ['all-year'];
+  }
+  const tags = SEASON_GROUPS.filter((season) => Array.isArray(season.months)).reduce((acc, season) => {
+    const matches = season.months.some((month) => uniqueMonths.includes(month));
+    if (matches) {
+      acc.push(season.id);
+    }
+    return acc;
+  }, []);
+  if (tags.length === 0) {
+    return ['all-year'];
+  }
+  const definedSeasons = SEASON_GROUPS.filter((season) => Array.isArray(season.months)).length;
+  if (tags.length === definedSeasons) {
+    return ['all-year'];
+  }
+  return tags;
+}
+
+function applyFilters(entries) {
   if (!Array.isArray(entries)) return [];
-  if (!activeTypeFilters || activeTypeFilters.length === 0) return entries;
-  return entries.filter(({ object }) => activeTypeFilters.includes(resolveObjectCategory(object)));
+  return entries.filter(({ object }) => {
+    const category = resolveObjectCategory(object);
+    if (activeTypeFilters.length > 0 && !activeTypeFilters.includes(category)) {
+      return false;
+    }
+    const difficultyId = resolveDifficultyBandId(object);
+    if (activeDifficultyFilters.length > 0 && !activeDifficultyFilters.includes(difficultyId)) {
+      return false;
+    }
+    const seasons = resolveSeasonTags(object);
+    if (activeSeasonFilters.length > 0 && !seasons.some((season) => activeSeasonFilters.includes(season))) {
+      return false;
+    }
+    return true;
+  });
 }
 
 function populateCatalogueTypeFilter(objects) {
   if (!catalogueTypeOptions) return;
   catalogueTypeOptions.innerHTML = '';
-  const categories = Array.from(new Set(objects.map((object) => resolveObjectCategory(object)))).sort((a, b) =>
-    a.localeCompare(b, 'fr', { sensitivity: 'base' })
-  );
+  const counts = new Map();
+  objects.forEach((object) => {
+    const category = resolveObjectCategory(object);
+    counts.set(category, (counts.get(category) || 0) + 1);
+  });
+  const categories = Array.from(counts.keys()).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
   activeTypeFilters = activeTypeFilters.filter((category) => categories.includes(category));
   if (categories.length === 0) {
     const info = document.createElement('p');
@@ -613,7 +748,8 @@ function populateCatalogueTypeFilter(objects) {
       updateCatalogue();
     });
     const span = document.createElement('span');
-    span.textContent = category;
+    const count = counts.get(category) || 0;
+    span.textContent = count > 0 ? `${category} (${count})` : category;
     label.appendChild(checkbox);
     label.appendChild(span);
     catalogueTypeOptions.appendChild(label);
@@ -630,7 +766,111 @@ function populateCatalogueTypeFilter(objects) {
     updateCatalogue();
   });
   catalogueTypeOptions.appendChild(resetBtn);
-  updateCatalogueFilterSummary(objects.length, objects.length);
+}
+
+function populateCatalogueDifficultyFilter(objects) {
+  if (!catalogueDifficultyOptions) return;
+  catalogueDifficultyOptions.innerHTML = '';
+  const counts = new Map();
+  objects.forEach((object) => {
+    const id = resolveDifficultyBandId(object);
+    counts.set(id, (counts.get(id) || 0) + 1);
+  });
+  const availableBands = DIFFICULTY_BANDS.filter((band) => (counts.get(band.id) || 0) > 0);
+  activeDifficultyFilters = activeDifficultyFilters.filter((id) => availableBands.some((band) => band.id === id));
+  if (availableBands.length === 0) {
+    const info = document.createElement('p');
+    info.className = 'help-text';
+    info.textContent = 'Aucun niveau de difficulté n’est disponible pour cette sélection.';
+    catalogueDifficultyOptions.appendChild(info);
+    return;
+  }
+  availableBands.forEach((band) => {
+    const label = document.createElement('label');
+    label.className = 'filter-option';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = band.id;
+    checkbox.checked = activeDifficultyFilters.includes(band.id);
+    checkbox.addEventListener('change', () => {
+      activeDifficultyFilters = readDifficultySelection();
+      updateCatalogue();
+    });
+    const span = document.createElement('span');
+    const count = counts.get(band.id) || 0;
+    span.textContent = count > 0 ? `${band.label} (${count})` : band.label;
+    label.appendChild(checkbox);
+    label.appendChild(span);
+    catalogueDifficultyOptions.appendChild(label);
+  });
+  const resetBtn = document.createElement('button');
+  resetBtn.type = 'button';
+  resetBtn.className = 'link-button';
+  resetBtn.textContent = 'Réinitialiser';
+  resetBtn.addEventListener('click', () => {
+    catalogueDifficultyOptions.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+      input.checked = false;
+    });
+    activeDifficultyFilters = [];
+    updateCatalogue();
+  });
+  catalogueDifficultyOptions.appendChild(resetBtn);
+}
+
+function populateCatalogueSeasonFilter(objects) {
+  if (!catalogueSeasonOptions) return;
+  catalogueSeasonOptions.innerHTML = '';
+  const counts = new Map();
+  objects.forEach((object) => {
+    resolveSeasonTags(object).forEach((seasonId) => {
+      counts.set(seasonId, (counts.get(seasonId) || 0) + 1);
+    });
+  });
+  const availableSeasons = SEASON_GROUPS.filter((season) => (counts.get(season.id) || 0) > 0);
+  activeSeasonFilters = activeSeasonFilters.filter((id) => availableSeasons.some((season) => season.id === id));
+  if (availableSeasons.length === 0) {
+    const info = document.createElement('p');
+    info.className = 'help-text';
+    info.textContent = 'Aucune période optimale n’est indiquée pour cette sélection.';
+    catalogueSeasonOptions.appendChild(info);
+    return;
+  }
+  availableSeasons.forEach((season) => {
+    const label = document.createElement('label');
+    label.className = 'filter-option';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = season.id;
+    checkbox.checked = activeSeasonFilters.includes(season.id);
+    checkbox.addEventListener('change', () => {
+      activeSeasonFilters = readSeasonSelection();
+      updateCatalogue();
+    });
+    const span = document.createElement('span');
+    const count = counts.get(season.id) || 0;
+    span.textContent = count > 0 ? `${season.label} (${count})` : season.label;
+    label.appendChild(checkbox);
+    label.appendChild(span);
+    catalogueSeasonOptions.appendChild(label);
+  });
+  const resetBtn = document.createElement('button');
+  resetBtn.type = 'button';
+  resetBtn.className = 'link-button';
+  resetBtn.textContent = 'Réinitialiser';
+  resetBtn.addEventListener('click', () => {
+    catalogueSeasonOptions.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+      input.checked = false;
+    });
+    activeSeasonFilters = [];
+    updateCatalogue();
+  });
+  catalogueSeasonOptions.appendChild(resetBtn);
+}
+
+function populateCatalogueFilters(objects) {
+  populateCatalogueTypeFilter(objects);
+  populateCatalogueDifficultyFilter(objects);
+  populateCatalogueSeasonFilter(objects);
 }
 
 function renderCatalogue(entries) {
@@ -662,10 +902,10 @@ function updateCatalogue() {
       catalogueGrid.appendChild(empty);
     }
     updateCatalogueSummary(selectionObjects, lastSessionSnapshot);
-    updateCatalogueFilterSummary(0, selectionObjects.length);
+    updateCatalogueFilterSummary(0, 0);
     return;
   }
-  const filtered = applyTypeFilter(catalogueEntries);
+  const filtered = applyFilters(catalogueEntries);
   const sorted = sortEntries(filtered, currentSort);
   if (!catalogueGrid) {
     updateCatalogueSummary(selectionObjects, lastSessionSnapshot);
@@ -677,7 +917,7 @@ function updateCatalogue() {
     const empty = document.createElement('p');
     empty.className = 'help-text';
     empty.textContent =
-      'Aucun objet ne correspond aux types sélectionnés. Réinitialise le filtre pour afficher de nouveau la sélection complète.';
+      'Aucun objet ne correspond aux filtres sélectionnés. Réinitialise les filtres pour afficher de nouveau la sélection complète.';
     catalogueGrid.appendChild(empty);
   } else {
     renderCatalogue(sorted);
@@ -1107,7 +1347,7 @@ async function bootstrap() {
     }
     const filteredObjects = filterObjectsByCatalogue(enrichedCatalogueObjects, activeCatalogueIds);
     catalogueEntries = mergeMetrics(filteredObjects, snapshot);
-    populateCatalogueTypeFilter(filteredObjects);
+    populateCatalogueFilters(filteredObjects);
     updateCatalogue();
     updateCatalogueSelectionControls();
     prefetchRemainingCatalogues();

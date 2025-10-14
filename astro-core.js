@@ -1041,9 +1041,19 @@ export function formatAltitude(deg) {
 function normaliseTypeLabel(type = '') {
   const value = type.toLowerCase();
   if (value.includes('galaxie')) return 'Galaxies';
-  if (value.includes('nébuleuse') || value.includes('supernova')) return 'Nébuleuses';
+  if ((value.includes('reste') && value.includes('supernova')) || value.includes('crabe')) return 'Vestiges de supernova';
+  if (value.includes('nébuleuse planétaire')) return 'Nébuleuses planétaires';
+  if (value.includes('nébuleuse sombre') || value.includes('nébuleuse obscure') || value.includes('obscur')) {
+    return 'Nébuleuses obscures';
+  }
+  if (value.includes('réflexion')) return 'Nébuleuses par réflexion';
+  if (value.includes('nébuleuse diffuse') || value.includes('nébuleuse lumineuse')) return 'Nébuleuses diffuses';
+  if (value.includes('hii') || value.includes('émission')) return 'Nébuleuses en émission';
+  if (value.includes('nébuleuse')) return 'Nébuleuses';
   if (value.includes('amas globulaire')) return 'Amas globulaires';
-  if (value.includes('amas ouvert') || value.includes("amas d'étoiles")) return 'Amas ouverts';
+  if (value.includes('amas ouvert') || value.includes("amas d'étoiles") || value.includes('amas stellaire')) {
+    return 'Amas ouverts';
+  }
   if (value.includes('amas')) return 'Amas';
   if (value.includes('planète')) return 'Planètes';
   if (value.includes('étoile') || value.includes('double')) return 'Étoiles';

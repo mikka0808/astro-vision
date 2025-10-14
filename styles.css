@@ -1893,6 +1893,28 @@ p.help-text {
   cursor: pointer;
 }
 
+.filter-option--catalogue {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.filter-option__content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.3;
+}
+
+.filter-option__label {
+  font-weight: 600;
+}
+
+.filter-option__meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
 .filter-option input {
   accent-color: var(--accent);
   margin: 0;
