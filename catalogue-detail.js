@@ -522,7 +522,7 @@ function renderSessionMetrics(metrics) {
     ['Début de session', `${startAltitude} • ${describeAzimuth(metrics.startAzimuth)}`],
     ['Fin de session', `${endAltitude} • ${describeAzimuth(metrics.endAzimuth)}`],
     ['Variation sur la fenêtre', driftText],
-    ['Temps au-dessus de 15°', coverageText],
+    ['Temps au-dessus de 30°', coverageText],
     ['Seeing', `${seeingLabel} (${seeingPercent} • ${seeingArcsec})`],
     ['Transparence', `${transparencyLabel} (${transparencyPercent})`],
     ['Aérosols', `${aerosolLabel} (${aerosolPercent})`],

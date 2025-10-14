@@ -23,7 +23,7 @@ export function renderAltitudeSparkline(container, trackSource, options = {}) {
     objectName = 'la cible',
     width = 280,
     height = 140,
-    threshold = 15,
+    threshold = 30,
     showTimes = true,
     palette = null
   } = options;
@@ -75,8 +75,10 @@ export function renderAltitudeSparkline(container, trackSource, options = {}) {
   baseline.setAttribute('class', 'visibility-chart__axis');
   svg.appendChild(baseline);
 
-  if (Number.isFinite(threshold)) {
-    const thresholdY = scaleY(threshold);
+  const thresholdAltitude = Number.isFinite(threshold) ? threshold : null;
+
+  if (thresholdAltitude !== null) {
+    const thresholdY = scaleY(thresholdAltitude);
     const thresholdLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     thresholdLine.setAttribute('x1', margin.left);
     thresholdLine.setAttribute('x2', margin.left + chartWidth);
@@ -128,14 +130,28 @@ export function renderAltitudeSparkline(container, trackSource, options = {}) {
     svg.appendChild(dot);
   });
 
-  [15, 45, 75].forEach((alt) => {
+  const labelCandidates = [];
+  if (thresholdAltitude !== null) {
+    labelCandidates.push(thresholdAltitude);
+  }
+  [30, 60, 45, 75].forEach((alt) => {
+    if (!labelCandidates.some((value) => Math.abs(value - alt) < 0.1)) {
+      labelCandidates.push(alt);
+    }
+  });
+  labelCandidates.forEach((alt) => {
+    if (!Number.isFinite(alt)) return;
     const y = scaleY(alt);
     if (y <= margin.top || y >= margin.top + chartHeight) return;
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     text.setAttribute('x', 6);
     text.setAttribute('y', y + 4);
-    text.setAttribute('class', 'visibility-chart__label');
-    text.textContent = `${alt}°`;
+    const classes = ['visibility-chart__label'];
+    if (thresholdAltitude !== null && Math.abs(alt - thresholdAltitude) < 0.1) {
+      classes.push('visibility-chart__label--threshold');
+    }
+    text.setAttribute('class', classes.join(' '));
+    text.textContent = `${Math.round(alt)}°`;
     svg.appendChild(text);
   });
 

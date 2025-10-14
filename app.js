@@ -100,7 +100,7 @@ const defaultDurationValue = durationSelect ? durationSelect.value : '2';
 const SESSION_SNAPSHOT_VERSION = 8;
 let objectsCatalog = [];
 let catalogueDefinitions = [];
-let cachedSunsetTime = null;
+let cachedNightStartTime = null;
 let sunsetDebounce = null;
 let cachedResults = [];
 let cachedWeather = null;
@@ -125,6 +125,8 @@ const objectSlugIndex = new Map();
 let objectsCatalogRaw = [];
 let computedNightDurationHours = null;
 let computedNightSessionSlots = null;
+let computedNightStartDate = null;
+let computedNightEndDate = null;
 const OBSERVATION_MODES = {
   visual: {
     id: 'visual',
@@ -641,24 +643,54 @@ function describeNightSessions(count) {
   return `${rounded} session${plural} d'1 h${possible}`;
 }
 
+function getSessionStartDate() {
+  if (!dateInput || !timeInput) return null;
+  const dateValue = dateInput.value;
+  const timeValue = timeInput.value;
+  if (!dateValue || !timeValue) return null;
+  const normalizedTime = timeValue.length === 5 ? `${timeValue}:00` : timeValue;
+  const iso = `${dateValue}T${normalizedTime}`;
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  return parsed;
+}
+
 function updateSessionDurationOptions(maxHours) {
   if (!durationSelect) return;
   const previousValue = durationSelect.value;
   let optionSpecs = [];
+  let effectiveMaxHours = Number.isFinite(maxHours) ? maxHours : null;
 
-  if (Number.isFinite(maxHours) && maxHours >= 0.25) {
-    const wholeHoursRaw = Math.floor(maxHours);
-    const wholeHours = Math.max(1, wholeHoursRaw);
-    optionSpecs = Array.from({ length: wholeHours }, (_, index) => {
-      const hourValue = index + 1;
-      return { value: String(hourValue), label: `${hourValue} h` };
-    });
-    const remainder = maxHours - wholeHoursRaw;
-    if (remainder > 0.05) {
-      const totalHours = Math.round(maxHours * 10) / 10;
+  const sessionStartDate = getSessionStartDate();
+  if (computedNightEndDate instanceof Date && sessionStartDate instanceof Date) {
+    const diffMs = computedNightEndDate.getTime() - sessionStartDate.getTime();
+    const diffHours = diffMs / (60 * 60 * 1000);
+    if (Number.isFinite(diffHours) && diffHours > 0.25) {
+      effectiveMaxHours = Number.isFinite(effectiveMaxHours)
+        ? Math.min(effectiveMaxHours, diffHours)
+        : diffHours;
+    } else if (Number.isFinite(diffHours) && diffHours <= 0.25) {
+      effectiveMaxHours = null;
+    }
+  }
+
+  if (Number.isFinite(effectiveMaxHours) && effectiveMaxHours >= 0.25) {
+    const wholeHoursRaw = Math.floor(effectiveMaxHours);
+    const wholeHours = Math.max(0, wholeHoursRaw);
+    if (wholeHours >= 1) {
+      optionSpecs = Array.from({ length: wholeHours }, (_, index) => {
+        const hourValue = index + 1;
+        return { value: String(hourValue), label: `${hourValue} h` };
+      });
+    }
+    const remainder = effectiveMaxHours - wholeHoursRaw;
+    if (remainder > 0.05 || optionSpecs.length === 0) {
+      const totalHours = Math.round(effectiveMaxHours * 10) / 10;
       optionSpecs.push({
         value: totalHours.toFixed(1),
-        label: `Toute la nuit (~${formatHourDuration(totalHours)} h)`,
+        label: `Jusqu'à l'aube (~${formatHourDuration(totalHours)} h restantes)`,
         fullNight: true
       });
     }
@@ -881,6 +913,8 @@ function initDefaults() {
   longitudeInput.value = storedLon ?? formatCoordinate(2.352);
   dateInput.value = storedDate ?? fallbackDate;
   timeInput.value = storedTime ?? fallbackTime;
+
+  updateSessionDurationOptions(computedNightDurationHours);
 
   if (storedDuration) {
     const hasOption = Array.from(durationSelect.options).some((option) => option.value === storedDuration);
@@ -1464,7 +1498,7 @@ function renderTargets(targets, stats = {}) {
           <li>Fin de session : ${endAltitudeText} • ${endDirection}</li>
           <li>Altitude moyenne : ${averageAltitudeText} (min ${minAltitudeText})</li>
           <li>Variation sur la fenêtre : ${driftText}</li>
-          <li>Temps au-dessus de 15° : ${coverageText}</li>
+          <li>Temps au-dessus de 30° : ${coverageText}</li>
           <li>Saison : ${monthValue}%</li>
           <li>Pollution lumineuse : ${bortleValuePct}%</li>
           <li>Influence lunaire : ${moonValue}%</li>
@@ -2030,9 +2064,16 @@ latitudeInput.addEventListener('blur', handleCoordinateBlur);
 longitudeInput.addEventListener('blur', handleCoordinateBlur);
 latitudeInput.addEventListener('input', triggerCoordinateUpdates);
 longitudeInput.addEventListener('input', triggerCoordinateUpdates);
-dateInput.addEventListener('change', triggerCoordinateUpdates);
-timeInput.addEventListener('change', scheduleBortleRefresh);
-timeInput.addEventListener('input', scheduleBortleRefresh);
+dateInput.addEventListener('change', () => {
+  triggerCoordinateUpdates();
+  updateSessionDurationOptions(computedNightDurationHours);
+});
+const handleSessionTimeChange = () => {
+  updateSessionDurationOptions(computedNightDurationHours);
+  scheduleBortleRefresh();
+};
+timeInput.addEventListener('change', handleSessionTimeChange);
+timeInput.addEventListener('input', handleSessionTimeChange);
 resolveAddressBtn.addEventListener('click', resolveAddress);
 addressInput.addEventListener('keydown', (event) => {
   if (event.key === 'Enter') {
@@ -2082,9 +2123,10 @@ if (equipmentSelect) {
 }
 
 useSunsetBtn.addEventListener('click', () => {
-  if (cachedSunsetTime) {
-    timeInput.value = cachedSunsetTime.slice(0, 5);
-  }
+  if (!cachedNightStartTime) return;
+  timeInput.value = cachedNightStartTime.slice(0, 5);
+  updateSessionDurationOptions(computedNightDurationHours);
+  scheduleBortleRefresh();
 });
 refreshBortleBtn.addEventListener('click', autoFetchBortle);
 sessionForm.addEventListener('submit', handleSessionSubmit);
@@ -2166,26 +2208,33 @@ async function updateSunsetFromInputs() {
   const lon = parseCoordinate(longitudeInput.value);
   const dateValue = dateInput.value;
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || !dateValue) {
-    sunsetHint.textContent = 'Renseigne des coordonnées pour proposer le créneau.';
-    cachedSunsetTime = null;
+    sunsetHint.textContent = 'Renseigne des coordonnées pour proposer la nuit astronomique.';
+    cachedNightStartTime = null;
     computedNightDurationHours = null;
     computedNightSessionSlots = null;
+    computedNightStartDate = null;
+    computedNightEndDate = null;
     updateSessionDurationOptions(null);
     return;
   }
-  sunsetHint.textContent = 'Calcul de la nuit noire…';
+  sunsetHint.textContent = 'Calcul du début de la nuit astronomique…';
   try {
     const sunTimes = await requestSunTimes(lat, lon, dateValue);
-    const fullDarkness = sunTimes?.astronomicalDusk ?? sunTimes?.sunset;
-    if (!fullDarkness) throw new Error('sunset');
-    const duskDate = new Date(fullDarkness);
-    const hours = duskDate.getHours().toString().padStart(2, '0');
-    const minutes = duskDate.getMinutes().toString().padStart(2, '0');
-    cachedSunsetTime = `${hours}:${minutes}`;
-    const hintLabel = sunTimes?.astronomicalDusk ? 'nuit astronomique' : 'coucher du soleil';
+    const nightStartISO = sunTimes?.astronomicalDusk ?? sunTimes?.sunset;
+    if (!nightStartISO) throw new Error('sunset');
+    const nightStartDate = new Date(nightStartISO);
+    const hours = nightStartDate.getHours().toString().padStart(2, '0');
+    const minutes = nightStartDate.getMinutes().toString().padStart(2, '0');
+    cachedNightStartTime = `${hours}:${minutes}`;
+    computedNightStartDate = nightStartDate;
+    const hasAstronomical = Boolean(sunTimes?.astronomicalDusk);
+    const hintLabel = hasAstronomical
+      ? 'début de la nuit astronomique'
+      : 'début de la nuit astronomique estimé';
 
     computedNightDurationHours = null;
     computedNightSessionSlots = null;
+    computedNightEndDate = null;
     let nightSessionsText = '';
     try {
       const tomorrowDate = shiftDateValue(dateValue, 1);
@@ -2193,7 +2242,8 @@ async function updateSunsetFromInputs() {
       const dawnISO = tomorrowSun?.astronomicalDawn ?? tomorrowSun?.sunrise ?? null;
       if (dawnISO) {
         const dawnDate = new Date(dawnISO);
-        const diffMs = dawnDate.getTime() - duskDate.getTime();
+        computedNightEndDate = dawnDate;
+        const diffMs = dawnDate.getTime() - nightStartDate.getTime();
         const diffHours = diffMs / (60 * 60 * 1000);
         if (Number.isFinite(diffHours) && diffHours > 0.25) {
           computedNightDurationHours = diffHours;
@@ -2205,24 +2255,30 @@ async function updateSunsetFromInputs() {
       console.warn('Impossible de calculer la durée totale de la nuit :', error);
       computedNightDurationHours = null;
       computedNightSessionSlots = null;
+      computedNightEndDate = null;
     }
 
     updateSessionDurationOptions(computedNightDurationHours);
 
-    const hintParts = [`Suggestion : commencer à ${cachedSunsetTime} (${hintLabel}).`];
+    const hintParts = [`Suggestion : commencer à ${cachedNightStartTime} (${hintLabel}).`];
     if (Number.isFinite(computedNightDurationHours)) {
       const durationLabel = formatHourDuration(computedNightDurationHours);
       const sessionLabel = nightSessionsText ? ` • ${nightSessionsText}` : '';
       hintParts.push(`Nuit noire ≈ ${durationLabel} h${sessionLabel}`);
     }
+    if (!hasAstronomical) {
+      hintParts.push('Crépuscule astronomique indisponible : estimation basée sur la fin du jour.');
+    }
     sunsetHint.textContent = hintParts.join(' — ');
   } catch (error) {
     console.error(error);
-    cachedSunsetTime = null;
+    cachedNightStartTime = null;
     computedNightDurationHours = null;
     computedNightSessionSlots = null;
+    computedNightStartDate = null;
+    computedNightEndDate = null;
     updateSessionDurationOptions(null);
-    sunsetHint.textContent = 'Impossible de calculer la nuit noire pour le moment.';
+    sunsetHint.textContent = 'Impossible de calculer la nuit astronomique pour le moment.';
   }
 }
 

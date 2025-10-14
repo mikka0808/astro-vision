@@ -4,12 +4,14 @@
       "id": "messier",
       "name": "Catalogue Messier",
       "abbreviation": "M",
-      "type": "catalogue visuel",
-      "description": "110 objets compilés par Charles Messier pour aider les observateurs à distinguer les comètes des nébuleuses fixes.",
+      "type": "Sélection historique",
+      "focus": "Observation visuelle polyvalente",
+      "coverage": "110 objets du ciel profond",
+      "description": "110 objets lumineux recensés par Charles Messier pour distinguer comètes et nébuleuses fixes. Idéal pour préparer des nuits d’observation accessibles.",
       "observationWeights": {
         "visual": 1,
-        "astrophoto": 0.85,
-        "research": 0.5
+        "astrophoto": 0.9,
+        "research": 0.6
       },
       "defaultSelected": true
     },
@@ -17,59 +19,69 @@
       "id": "caldwell",
       "name": "Catalogue Caldwell",
       "abbreviation": "C",
-      "type": "sélection visuelle",
-      "description": "109 objets sélectionnés par Patrick Moore pour compléter le catalogue Messier.",
+      "type": "Programme visuel avancé",
+      "focus": "Complément au Messier",
+      "coverage": "109 objets répartis sur les deux hémisphères",
+      "description": "Sélection proposée par Patrick Moore pour compléter Messier avec des nébuleuses et amas spectaculaires, notamment dans l’hémisphère sud.",
       "observationWeights": {
-        "visual": 0.9,
-        "astrophoto": 0.7,
-        "research": 0.4
+        "visual": 0.95,
+        "astrophoto": 0.75,
+        "research": 0.5
       }
     },
     {
       "id": "ngc",
       "name": "New General Catalogue",
       "abbreviation": "NGC",
-      "type": "catalogue étendu",
-      "description": "Plus de 7 800 objets compilés par Dreyer, base de nombreux catalogues modernes.",
+      "type": "Catalogue étendu",
+      "focus": "Référence généraliste",
+      "coverage": "7 840 entrées (amas, nébuleuses, galaxies)",
+      "description": "Compilation de John Dreyer regroupant la plupart des objets du ciel profond accessibles. Base indispensable pour l’astrophotographie et la recherche.",
       "observationWeights": {
-        "visual": 0.75,
+        "visual": 0.7,
         "astrophoto": 1,
-        "research": 0.7
+        "research": 0.85
       }
     },
     {
       "id": "ic",
       "name": "Index Catalogue",
       "abbreviation": "IC",
-      "type": "catalogue étendu",
-      "description": "Catalogue complémentaire au NGC contenant plus de 5 000 objets.",
+      "type": "Catalogue complémentaire",
+      "focus": "Extensions du NGC",
+      "coverage": "5 386 objets du ciel profond",
+      "description": "Deux volumes publiés par Dreyer entre 1895 et 1908 ajoutant galaxies, amas et nébuleuses plus faibles aux listes NGC.",
       "observationWeights": {
         "visual": 0.55,
         "astrophoto": 0.95,
-        "research": 0.7
+        "research": 0.8
       }
     },
     {
       "id": "sharpless",
       "name": "Sharpless",
       "abbreviation": "Sh2",
-      "type": "nébuleuses en émission",
-      "description": "312 régions HII cataloguées par Stewart Sharpless.",
+      "type": "Régions HII",
+      "focus": "Nébuleuses en émission",
+      "coverage": "312 complexes ionisés",
+      "description": "Inventaire de régions HII dressé par Stewart Sharpless à partir des relevés Palomar. Parfait pour la bande étroite et les filtres Hα.",
       "observationWeights": {
-        "visual": 0.35,
-        "astrophoto": 0.9,
-        "research": 0.8
+        "visual": 0.4,
+        "astrophoto": 1.1,
+        "research": 0.85
       }
     },
     {
       "id": "ldn",
       "name": "Lynds Dark Nebulae",
       "abbreviation": "LDN",
-      "type": "nébuleuses obscures",
-      "description": "Catalogue des nébuleuses obscures publié par Beverly T. Lynds.",
+      "type": "Nébuleuses obscures",
+      "focus": "Poussières interstellaires",
+      "coverage": "1 802 nuages d’absorption",
+      "description": "Catalogue de Beverly T. Lynds décrivant les principales nébuleuses obscures visibles sur les plaques photographiques du Palomar Sky Survey.",
       "observationWeights": {
-        "visual": 0.2,
-        "astrophoto": 0.85,
+        "visual": 0.25,
+        "astrophoto": 0.9,
         "research": 0.7
       }
     },
@@ -77,60 +89,70 @@
       "id": "vdb",
       "name": "van den Bergh",
       "abbreviation": "vdB",
-      "type": "nébuleuses par réflexion",
-      "description": "Catalogue de 158 nébuleuses par réflexion compilé par Sidney van den Bergh.",
+      "type": "Nébuleuses par réflexion",
+      "focus": "Réflexion stellaire",
+      "coverage": "158 nébuleuses bleutées",
+      "description": "Répertoire de Sidney van den Bergh dédié aux nébuleuses par réflexion brillantes, parfaites pour la photographie grand champ.",
       "observationWeights": {
-        "visual": 0.4,
-        "astrophoto": 0.9,
-        "research": 0.7
+        "visual": 0.45,
+        "astrophoto": 0.95,
+        "research": 0.75
       }
     },
     {
       "id": "gaia",
       "name": "Gaia",
       "abbreviation": "Gaia",
-      "type": "catalogue spatial",
-      "description": "Catalogue astrométrique de l'ESA contenant des milliards d'objets.",
+      "type": "Catalogue stellaire",
+      "focus": "Astrométrie de précision",
+      "coverage": "Sous-ensemble d’étoiles brillantes DR3",
+      "description": "Sélection d’étoiles brillantes issues de la mission Gaia DR3, utile pour le cadrage, la photométrie et les études de position.",
       "observationWeights": {
-        "visual": 0.1,
+        "visual": 0.15,
         "astrophoto": 0.5,
-        "research": 1
+        "research": 1.2
       }
     },
     {
       "id": "ugc",
       "name": "Uppsala General Catalogue",
       "abbreviation": "UGC",
-      "type": "galaxies",
-      "description": "Catalogue de 12 921 galaxies mesurées sur les plaques du Palomar Sky Survey.",
+      "type": "Galaxies",
+      "focus": "Galaxies de l’hémisphère nord",
+      "coverage": "12 921 galaxies du relevé Palomar",
+      "description": "Catalogue photographique suédois référençant les principales galaxies observables au nord de -02° de déclinaison.",
       "observationWeights": {
-        "visual": 0.3,
-        "astrophoto": 0.7,
-        "research": 0.95
+        "visual": 0.35,
+        "astrophoto": 0.8,
+        "research": 1.1
       }
     },
     {
       "id": "arp",
       "name": "Atlas of Peculiar Galaxies",
       "abbreviation": "Arp",
-      "type": "galaxies particulières",
-      "description": "Atlas photographique de 338 galaxies aux morphologies atypiques.",
+      "type": "Galaxies particulières",
+      "focus": "Interactions et morphologies atypiques",
+      "coverage": "338 galaxies sélectionnées",
+      "description": "Atlas photographique d’Halton Arp mettant en avant des galaxies en interaction ou de morphologie rare, idéal pour l’imagerie détaillée.",
       "observationWeights": {
-        "visual": 0.25,
-        "astrophoto": 0.65,
-        "research": 0.95
+        "visual": 0.3,
+        "astrophoto": 0.75,
+        "research": 1.15
       }
     },
     {
       "id": "pgc",
       "name": "Principal Galaxies Catalogue",
       "abbreviation": "PGC",
-      "type": "galaxies",
-      "description": "Catalogue croisé de plus de 70 000 galaxies.",
+      "type": "Catalogue de galaxies",
+      "focus": "Référence croisée",
+      "coverage": "Plus de 73 000 galaxies",
+      "description": "Compilation issue du projet Lyon-Meudon reliant de multiples relevés galactiques. Idéale pour identifier une cible dans plusieurs catalogues.",
       "observationWeights": {
-        "visual": 0.2,
-        "astrophoto": 0.6,
-        "research": 0.95
+        "visual": 0.25,
+        "astrophoto": 0.65,
+        "research": 1.2
       }
     }
   ],
@@ -139,8 +161,9 @@
       "catalogueId": "caldwell",
       "url": "./data/caldwell-catalogue.json",
       "format": "openngc-subset",
-      "description": "Catalogue Caldwell intégré (sélection complète)",
-      "license": "Domaine public"
+      "description": "OpenNGC — Catalogue Caldwell nettoyé (sélection complète)",
+      "license": "Domaine public",
+      "notes": "Jeu embarqué pour éviter les téléchargements distants."
     },
     {
       "catalogueId": "ngc",
@@ -160,21 +183,21 @@
       "catalogueId": "sharpless",
       "url": "https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/sharpless.json",
       "format": "openngc-subset",
-      "description": "OpenNGC — Sharpless nebulae (Mattia Verga)",
+      "description": "OpenNGC — Catalogue Sharpless (régions HII)",
       "license": "CC BY-SA 4.0"
     },
     {
       "catalogueId": "ldn",
       "url": "https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/ldn.json",
       "format": "openngc-subset",
-      "description": "OpenNGC — Lynds dark nebulae (Mattia Verga)",
+      "description": "OpenNGC — Lynds Dark Nebulae",
       "license": "CC BY-SA 4.0"
     },
     {
       "catalogueId": "vdb",
       "url": "https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/vdb.json",
       "format": "openngc-subset",
-      "description": "OpenNGC — van den Bergh reflection nebulae (Mattia Verga)",
+      "description": "OpenNGC — van den Bergh reflection nebulae",
       "license": "CC BY-SA 4.0"
     },
     {
@@ -182,28 +205,28 @@
       "url": "https://cdn.jsdelivr.net/gh/astronexus/stellarium-catalogs@master/catalog-gaia-bright.json",
       "format": "gaia-bright",
       "limit": 400,
-      "description": "Gaia DR3 bright stars (Astronexus curated subset)",
+      "description": "Gaia DR3 — Étoiles brillantes (sélection Astronexus)",
       "license": "ESA Gaia DR3, CC BY-SA 4.0"
     },
     {
       "catalogueId": "ugc",
       "url": "https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/openngc.json",
       "format": "openngc",
-      "description": "OpenNGC — Uppsala General Catalogue (Mattia Verga)",
+      "description": "OpenNGC — Uppsala General Catalogue",
       "license": "CC BY-SA 4.0"
     },
     {
       "catalogueId": "arp",
       "url": "https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/openngc.json",
       "format": "openngc",
-      "description": "OpenNGC — Atlas of Peculiar Galaxies (Mattia Verga)",
+      "description": "OpenNGC — Atlas of Peculiar Galaxies",
       "license": "CC BY-SA 4.0"
     },
     {
       "catalogueId": "pgc",
       "url": "https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/openngc.json",
       "format": "openngc",
-      "description": "OpenNGC — Principal Galaxies Catalogue (Mattia Verga)",
+      "description": "OpenNGC — Principal Galaxies Catalogue",
       "license": "CC BY-SA 4.0"
     }
   ],

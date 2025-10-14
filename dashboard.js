@@ -543,7 +543,7 @@ function renderTopTargets(entries) {
     metrics.innerHTML = `
       <div><dt>Début</dt><dd>${formatAltitude(entry.startAltitude)} • ${startDirection}</dd></div>
       <div><dt>Fin</dt><dd>${formatAltitude(entry.endAltitude)} • ${endDirection}</dd></div>
-      <div><dt>Temps &gt; 15°</dt><dd>${coveragePercent}</dd></div>
+      <div><dt>Temps &gt; 30°</dt><dd>${coveragePercent}</dd></div>
     `;
     card.appendChild(metrics);
 
