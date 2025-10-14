@@ -5,15 +5,10 @@ import {
   buildWeatherSummary,
   computeMoonPhase,
   describeAzimuth,
-  describeAerosolLoad,
-  describeDewRisk,
-  describeSeeingQuality,
-  describeTransparencyQuality,
   enrichCatalogueData,
   evaluateTargets,
   formatAltitude,
   formatCoordinate,
-  formatArcseconds,
   formatIllumination,
   formatLocalDateTime,
   formatLocalTime
@@ -1141,11 +1136,6 @@ function classifyScore(score) {
   return SCORE_CLASSES.low;
 }
 
-function formatFactor(value) {
-  if (!Number.isFinite(value)) return '—';
-  return `${Math.round(value * 100)}%`;
-}
-
 function buildCard(object, metrics) {
   const score = metrics?.score ?? 0;
   const detailParams = new URLSearchParams();
@@ -1211,16 +1201,6 @@ function buildCard(object, metrics) {
     coveragePercent === null ? '—' : `${coveragePercent}%${visibleSamples !== null ? ` (${visibleSamples} ${sampleLabel})` : ''}`;
   const drift = Number.isFinite(metrics?.altitudeDrift) ? metrics.altitudeDrift : null;
   const driftText = drift === null ? '—' : `${drift >= 0 ? '+' : ''}${drift.toFixed(0)}°`;
-  const seeingQuality = metrics?.seeingText ?? describeSeeingQuality(metrics?.seeingFactor ?? metrics?.seeingIndex);
-  const seeingPercent = formatFactor(metrics?.seeingFactor ?? metrics?.seeingIndex ?? 1);
-  const seeingArcsec = formatArcseconds(metrics?.seeingArcsec);
-  const transparencyQuality =
-    metrics?.transparencyText ?? describeTransparencyQuality(metrics?.transparencyFactor ?? metrics?.transparencyIndex);
-  const transparencyPercent = formatFactor(metrics?.transparencyFactor ?? metrics?.transparencyIndex ?? 1);
-  const aerosolQuality = metrics?.aerosolText ?? describeAerosolLoad();
-  const aerosolPercent = formatFactor(metrics?.aerosolFactor ?? metrics?.transparencyFactor ?? 1);
-  const dewQuality = metrics?.dewRiskText ?? describeDewRisk();
-  const dewPercent = formatFactor(metrics?.dewFactor ?? metrics?.dewIndex ?? 1);
   text.innerHTML = `
     <header class="catalogue-card__header">
       <div>
@@ -1270,15 +1250,6 @@ function buildCard(object, metrics) {
     <li>Fin de session : <strong>${endAltitudeText} • ${endDirection}</strong></li>
     <li>Altitude moyenne : <strong>${averageAltitudeText} (min ${minAltitudeText})</strong></li>
     <li>Variation sur la fenêtre : <strong>${driftText}</strong></li>
-    <li>Temps au-dessus de 30° : <strong>${coverageText}</strong></li>
-    <li>Saison : <strong>${formatFactor(metrics?.monthFactor)}</strong></li>
-    <li>Pollution lumineuse : <strong>${formatFactor(metrics?.bortleFactor)}</strong></li>
-    <li>Influence lunaire : <strong>${formatFactor(metrics?.moonFactor)}</strong></li>
-    <li>Météo : <strong>${formatFactor(metrics?.weatherFactor)}</strong></li>
-    <li>Seeing : <strong>${seeingQuality} (${seeingPercent} • ${seeingArcsec})</strong></li>
-    <li>Transparence : <strong>${transparencyQuality} (${transparencyPercent})</strong></li>
-    <li>Aérosols : <strong>${aerosolQuality} (${aerosolPercent})</strong></li>
-    <li>Sécurité anti-buée : <strong>${dewQuality} (${dewPercent})</strong></li>
   `;
   text.appendChild(factors);
 

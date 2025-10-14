@@ -3,14 +3,9 @@ import {
   applyWeather,
   computeMoonPhase,
   describeAzimuth,
-  describeAerosolLoad,
-  describeDewRisk,
-  describeSeeingQuality,
-  describeTransparencyQuality,
   enrichCatalogueData,
   evaluateTargets,
   formatAltitude,
-  formatArcseconds,
   formatCoordinate,
   formatIllumination,
   formatLocalDateTime,
@@ -367,11 +362,6 @@ function findMetrics(snapshot, object) {
   return null;
 }
 
-function formatFactor(value) {
-  if (!Number.isFinite(value)) return '—';
-  return `${Math.round(value * 100)}%`;
-}
-
 function renderMedia(object) {
   mediaContainer.innerHTML = '';
   const preview = createObservationPreview(object);
@@ -387,7 +377,10 @@ function renderFacts(object, dossier) {
   const angularSizeText = formatAngularSize(dossier?.angularSize, object.angularSizeArcmin ?? object.angularSize);
   const raText = formatRightAscension(object.raHours);
   const decText = formatDeclination(object.decDeg);
-  const bortleText = Number.isFinite(object.minBortle) ? `Bortle ${object.minBortle}` : '—';
+  const recommendedBortle = Number.isFinite(object.recommendedBortle)
+    ? object.recommendedBortle
+    : object.minBortle;
+  const bortleText = Number.isFinite(recommendedBortle) ? `Bortle ${recommendedBortle}` : '—';
   const monthsText = formatMonths(object.bestMonths);
   const surfaceBrightnessText = Number.isFinite(object.surfaceBrightness)
     ? `${object.surfaceBrightness.toFixed(1)} mag/arcsec²`
@@ -411,7 +404,7 @@ function renderFacts(object, dossier) {
     ['Distance', distanceText],
     ['Taille apparente', angularSizeText],
     ['Fenêtre idéale', monthsText],
-    ['Indice Bortle conseillé', bortleText]
+    ['Indice Bortle recommandé', bortleText]
   ].forEach(([term, detail]) => {
     facts.appendChild(createFact(term, detail));
   });
@@ -500,19 +493,6 @@ function renderSessionMetrics(metrics) {
       : `${coveragePercent}%${visibleSamples !== null ? ` (${visibleSamples} point${visibleSamples > 1 ? 's' : ''})` : ''}`;
   const drift = Number.isFinite(metrics.altitudeDrift) ? metrics.altitudeDrift : null;
   const driftText = drift === null ? '—' : `${drift >= 0 ? '+' : ''}${drift.toFixed(0)}°`;
-  const seeingLabel = metrics.seeingText || describeSeeingQuality(metrics.seeingFactor ?? metrics.seeingIndex);
-  const seeingPercent = formatFactor(metrics.seeingFactor ?? metrics.seeingIndex);
-  const seeingArcsec = formatArcseconds(metrics.seeingArcsec);
-  const transparencyLabel =
-    metrics.transparencyText || describeTransparencyQuality(metrics.transparencyFactor ?? metrics.transparencyIndex);
-  const transparencyPercent = formatFactor(metrics.transparencyFactor ?? metrics.transparencyIndex);
-  const aerosolLabel = metrics.aerosolText || describeAerosolLoad();
-  const aerosolPercent = formatFactor(metrics.aerosolFactor ?? metrics.transparencyFactor);
-  const dewLabel = metrics.dewRiskText || describeDewRisk();
-  const dewPercent = formatFactor(metrics.dewFactor ?? metrics.dewIndex);
-  const moonFactor = formatFactor(metrics.moonFactor);
-  const bortleFactor = formatFactor(metrics.bortleFactor);
-
   [
     ['Score de visibilité', `${scoreValue}/100`],
     ['Moment idéal', bestTime],
@@ -521,14 +501,7 @@ function renderSessionMetrics(metrics) {
     ['Altitude moyenne', averageAltitude],
     ['Début de session', `${startAltitude} • ${describeAzimuth(metrics.startAzimuth)}`],
     ['Fin de session', `${endAltitude} • ${describeAzimuth(metrics.endAzimuth)}`],
-    ['Variation sur la fenêtre', driftText],
-    ['Temps au-dessus de 30°', coverageText],
-    ['Seeing', `${seeingLabel} (${seeingPercent} • ${seeingArcsec})`],
-    ['Transparence', `${transparencyLabel} (${transparencyPercent})`],
-    ['Aérosols', `${aerosolLabel} (${aerosolPercent})`],
-    ['Risque de buée', `${dewLabel} (${dewPercent})`],
-    ['Influence lunaire', moonFactor],
-    ['Pollution lumineuse', bortleFactor]
+    ['Variation sur la fenêtre', driftText]
   ].forEach(([term, detail]) => {
     sessionFacts.appendChild(createFact(term, detail));
   });

@@ -1060,14 +1060,89 @@ function normaliseTypeLabel(type = '') {
   return 'Autres objets';
 }
 
+function clampBortle(value) {
+  if (!Number.isFinite(value)) {
+    return null;
+  }
+  return Math.min(9, Math.max(1, Math.round(value)));
+}
+
+function estimateBortleFromSurfaceBrightness(surfaceBrightness) {
+  if (!Number.isFinite(surfaceBrightness)) {
+    return null;
+  }
+  if (surfaceBrightness <= 12.5) return 9;
+  if (surfaceBrightness <= 13.5) return 8;
+  if (surfaceBrightness <= 14.5) return 7;
+  if (surfaceBrightness <= 15.5) return 6;
+  if (surfaceBrightness <= 16.5) return 5;
+  if (surfaceBrightness <= 18) return 4;
+  if (surfaceBrightness <= 19.5) return 3;
+  return 2;
+}
+
+function estimateBortleFromMagnitude(magnitude) {
+  if (!Number.isFinite(magnitude)) {
+    return null;
+  }
+  if (magnitude <= 4.5) return 9;
+  if (magnitude <= 5.5) return 8;
+  if (magnitude <= 6.5) return 7;
+  if (magnitude <= 8) return 6;
+  if (magnitude <= 9.5) return 5;
+  if (magnitude <= 11) return 4;
+  if (magnitude <= 12.5) return 3;
+  return 2;
+}
+
+export function computeBortleRecommendation(object = {}) {
+  const surfaceBrightness = Number(object.surfaceBrightness ?? object.surfaceBrightnessMagArcsec2);
+  const magnitude = Number(object.magnitude);
+  const angularSize = Number(object.angularSizeArcmin ?? object.angularSize);
+  const rawCategory = object.category || object.type || '';
+  const category = typeof rawCategory === 'string' ? rawCategory.toLowerCase() : '';
+
+  let recommendation = estimateBortleFromSurfaceBrightness(surfaceBrightness);
+  if (recommendation === null) {
+    recommendation = estimateBortleFromMagnitude(magnitude);
+  }
+  if (recommendation === null) {
+    recommendation = Number.isFinite(object.minBortle) ? object.minBortle : 5;
+  }
+
+  if (category.includes('galaxie') || category.includes('nébuleuse obscure')) {
+    recommendation -= 2;
+  } else if (category.includes('nébuleuse')) {
+    recommendation -= 1;
+  } else if (category.includes('amas globulaire') || category.includes('amas ouverts')) {
+    recommendation += 1;
+  } else if (category.includes('étoile') || category.includes('planète')) {
+    recommendation += 2;
+  }
+
+  if (Number.isFinite(angularSize)) {
+    if (angularSize >= 60) {
+      recommendation -= 1;
+    } else if (angularSize <= 5) {
+      recommendation += 1;
+    }
+  }
+
+  return clampBortle(recommendation);
+}
+
 export function enrichCatalogueData(objects = []) {
   return objects.map((object) => {
     const number = Number(object.number);
     const distanceLy = getObjectDistanceLy(number);
+    const category = normaliseTypeLabel(object.type || '');
+    const recommendedBortle = computeBortleRecommendation({ ...object, category });
     return {
       ...object,
-      category: normaliseTypeLabel(object.type || ''),
-      distanceLy
+      category,
+      distanceLy,
+      minBortle: Number.isFinite(recommendedBortle) ? recommendedBortle : object.minBortle,
+      recommendedBortle: Number.isFinite(recommendedBortle) ? recommendedBortle : null
     };
   });
 }

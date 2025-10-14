@@ -1502,20 +1502,6 @@ function renderTargets(targets, stats = {}) {
     card.className = 'target-card';
     card.setAttribute('role', 'listitem');
     const scoreValue = Math.round((entry.score ?? 0) * 100);
-    const moonValue = Math.round((entry.moonFactor ?? 0) * 100);
-    const weatherValue = Math.round((entry.weatherFactor ?? 0) * 100);
-    const seeingValue = Math.round((entry.seeingFactor ?? entry.seeingIndex ?? 1) * 100);
-    const transparencyValue = Math.round((entry.transparencyFactor ?? entry.transparencyIndex ?? 1) * 100);
-    const dewValue = Math.round((entry.dewFactor ?? entry.dewIndex ?? 1) * 100);
-    const aerosolValue = Math.round((entry.aerosolFactor ?? cachedWeather?.aerosolFactor ?? 1) * 100);
-    const seeingQuality = entry.seeingText ?? describeSeeingQuality(entry.seeingFactor);
-    const transparencyQuality = entry.transparencyText ?? describeTransparencyQuality(entry.transparencyFactor);
-    const aerosolQuality =
-      entry.aerosolText ?? (cachedWeather ? describeAerosolLoad(cachedWeather.pm10, cachedWeather.pm25) : 'charge particulaire inconnue');
-    const dewRiskQuality = entry.dewRiskText ?? describeDewRisk(cachedWeather?.dewPointSpread);
-    const seeingArcsecText = formatArcseconds(entry.seeingArcsec);
-    const monthValue = Math.round((entry.monthFactor ?? 0) * 100);
-    const bortleValuePct = Math.round((entry.bortleFactor ?? 0) * 100);
     const bestMoment = formatLocalTime(entry.bestTime);
     const direction = describeAzimuth(entry.azimuth);
     const startDirection = describeAzimuth(entry.startAzimuth);
@@ -1569,15 +1555,6 @@ function renderTargets(targets, stats = {}) {
           <li>Fin de session : ${endAltitudeText} • ${endDirection}</li>
           <li>Altitude moyenne : ${averageAltitudeText} (min ${minAltitudeText})</li>
           <li>Variation sur la fenêtre : ${driftText}</li>
-          <li>Temps au-dessus de 30° : ${coverageText}</li>
-          <li>Saison : ${monthValue}%</li>
-          <li>Pollution lumineuse : ${bortleValuePct}%</li>
-          <li>Influence lunaire : ${moonValue}%</li>
-          <li>Météo : ${weatherValue}%</li>
-          <li>Seeing : ${seeingQuality} (${Math.max(0, Math.min(100, seeingValue))}%, ${seeingArcsecText})</li>
-          <li>Transparence : ${transparencyQuality} (${Math.max(0, Math.min(100, transparencyValue))}%)</li>
-          <li>Aérosols : ${aerosolQuality} (${Math.max(0, Math.min(100, aerosolValue))}%)</li>
-          <li>Sécurité anti-buée : ${dewRiskQuality} (${Math.max(0, Math.min(100, dewValue))}%)</li>
         </ul>
       </details>
     `;
