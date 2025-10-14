@@ -1875,6 +1875,12 @@ p.help-text {
   stroke: #ff8c8c;
 }
 
+.visibility-chart__now-dot {
+  fill: var(--accent-strong);
+  stroke: var(--bg-panel);
+  stroke-width: 1.6;
+}
+
 .visibility-chart__label {
   fill: var(--text-soft);
   font-size: 0.65rem;

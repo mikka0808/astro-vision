@@ -119,6 +119,44 @@ export function renderAltitudeSparkline(container, trackSource, options = {}) {
     nowLine.setAttribute('y2', margin.top + chartHeight);
     nowLine.setAttribute('class', 'visibility-chart__now-line');
     svg.appendChild(nowLine);
+
+    let nowAltitude = null;
+    if (track.length === 1) {
+      nowAltitude = track[0].altitude;
+    } else {
+      for (let i = 0; i < track.length - 1; i += 1) {
+        const current = track[i];
+        const next = track[i + 1];
+        const start = current.date.getTime();
+        const end = next.date.getTime();
+        if (now >= start && now <= end) {
+          if (end === start) {
+            nowAltitude = next.altitude;
+            break;
+          }
+          const ratio = (now - start) / (end - start);
+          nowAltitude = current.altitude + (next.altitude - current.altitude) * ratio;
+          break;
+        }
+      }
+    }
+
+    if (nowAltitude === null) {
+      if (now <= minTime) {
+        nowAltitude = track[0].altitude;
+      } else if (now >= maxTime) {
+        nowAltitude = track[track.length - 1].altitude;
+      }
+    }
+
+    if (Number.isFinite(nowAltitude)) {
+      const nowDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      nowDot.setAttribute('cx', x);
+      nowDot.setAttribute('cy', scaleY(nowAltitude));
+      nowDot.setAttribute('r', 4.2);
+      nowDot.setAttribute('class', 'visibility-chart__now-dot');
+      svg.appendChild(nowDot);
+    }
   }
 
   track.forEach((point, index) => {
