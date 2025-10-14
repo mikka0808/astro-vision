@@ -1199,8 +1199,6 @@ function buildCard(object, metrics) {
   const sampleLabel = visibleSamples === 1 ? 'point' : 'points';
   const coverageText =
     coveragePercent === null ? '—' : `${coveragePercent}%${visibleSamples !== null ? ` (${visibleSamples} ${sampleLabel})` : ''}`;
-  const drift = Number.isFinite(metrics?.altitudeDrift) ? metrics.altitudeDrift : null;
-  const driftText = drift === null ? '—' : `${drift >= 0 ? '+' : ''}${drift.toFixed(0)}°`;
   text.innerHTML = `
     <header class="catalogue-card__header">
       <div>
@@ -1249,7 +1247,6 @@ function buildCard(object, metrics) {
     <li>Début de session : <strong>${formatAltitude(metrics?.startAltitude)} • ${startDirection}</strong></li>
     <li>Fin de session : <strong>${endAltitudeText} • ${endDirection}</strong></li>
     <li>Altitude moyenne : <strong>${averageAltitudeText} (min ${minAltitudeText})</strong></li>
-    <li>Variation sur la fenêtre : <strong>${driftText}</strong></li>
   `;
   text.appendChild(factors);
 

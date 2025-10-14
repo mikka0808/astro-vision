@@ -1516,8 +1516,6 @@ function renderTargets(targets, stats = {}) {
     const sampleLabel = visibleSamples === 1 ? 'point' : 'points';
     const coverageText =
       coveragePercent === null ? '—' : `${coveragePercent}%${visibleSamples !== null ? ` (${visibleSamples} ${sampleLabel})` : ''}`;
-    const drift = Number.isFinite(entry.altitudeDrift) ? entry.altitudeDrift : null;
-    const driftText = drift === null ? '—' : `${drift >= 0 ? '+' : ''}${drift.toFixed(0)}°`;
     const weightFactor = Number.isFinite(entry.weightFactor) ? entry.weightFactor : 1;
     const weightPercent = Math.round(Math.max(0, weightFactor) * 100);
     const weightedCatalogues =
@@ -1554,7 +1552,6 @@ function renderTargets(targets, stats = {}) {
           <li>Début de session : ${formatAltitude(entry.startAltitude)} • ${startDirection}</li>
           <li>Fin de session : ${endAltitudeText} • ${endDirection}</li>
           <li>Altitude moyenne : ${averageAltitudeText} (min ${minAltitudeText})</li>
-          <li>Variation sur la fenêtre : ${driftText}</li>
         </ul>
       </details>
     `;

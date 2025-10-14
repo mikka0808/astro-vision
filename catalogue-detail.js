@@ -491,8 +491,6 @@ function renderSessionMetrics(metrics) {
     coveragePercent === null
       ? '—'
       : `${coveragePercent}%${visibleSamples !== null ? ` (${visibleSamples} point${visibleSamples > 1 ? 's' : ''})` : ''}`;
-  const drift = Number.isFinite(metrics.altitudeDrift) ? metrics.altitudeDrift : null;
-  const driftText = drift === null ? '—' : `${drift >= 0 ? '+' : ''}${drift.toFixed(0)}°`;
   [
     ['Score de visibilité', `${scoreValue}/100`],
     ['Moment idéal', bestTime],
@@ -500,8 +498,7 @@ function renderSessionMetrics(metrics) {
     ['Azimut optimal', azimuth],
     ['Altitude moyenne', averageAltitude],
     ['Début de session', `${startAltitude} • ${describeAzimuth(metrics.startAzimuth)}`],
-    ['Fin de session', `${endAltitude} • ${describeAzimuth(metrics.endAzimuth)}`],
-    ['Variation sur la fenêtre', driftText]
+    ['Fin de session', `${endAltitude} • ${describeAzimuth(metrics.endAzimuth)}`]
   ].forEach(([term, detail]) => {
     sessionFacts.appendChild(createFact(term, detail));
   });
