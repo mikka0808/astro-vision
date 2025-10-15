@@ -38,6 +38,14 @@
         <p id="catalogueHint">Chargement des catalogues...</p>
       </div>
       <div class="catalogue-controls">
+        <label class="sr-only" for="catalogueSearch">Rechercher un objet du catalogue</label>
+        <input
+          type="search"
+          id="catalogueSearch"
+          class="catalogue-search"
+          placeholder="Rechercher (nom, désignation, constellation...)"
+          autocomplete="off"
+        />
         <label for="catalogueSort">Trier par</label>
         <select id="catalogueSort" aria-label="Trier les objets du catalogue">
           <option value="score" selected>Score décroissant</option>
@@ -64,6 +72,12 @@
           <summary>Filtrer par période</summary>
           <div id="catalogueSeasonOptions" class="filter-options"></div>
         </details>
+        <div class="filter-summary">
+          <div id="catalogueActiveFilters" class="filter-chips" aria-live="polite"></div>
+          <button type="button" id="resetAllFilters" class="link-button link-button--accent" disabled>
+            Réinitialiser tous les filtres
+          </button>
+        </div>
       </div>
       <p class="help-text" id="catalogueSelectionSummary">Sélection en cours de préparation…</p>
       <p class="help-text" id="catalogueFilterSummary">Aucun filtre actif pour l’instant.</p>
