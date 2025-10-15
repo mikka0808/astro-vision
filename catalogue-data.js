@@ -1,3 +1,5 @@
+import { normaliseCatalogueId } from './catalogue-utils.js';
+
 const SIMBAD_IC_QUERY = `
 SELECT i.id AS designation,
        b.main_id AS main_id,
@@ -98,6 +100,8 @@ const DEFAULT_CATALOGUE_SOURCES = {
 
 const payloadCache = new Map();
 const objectsCache = new Map();
+const embeddedCatalogueObjects = new Map();
+const embeddedCatalogueSlugIndex = new Map();
 
 function slugify(value) {
   return String(value || '')
@@ -148,6 +152,16 @@ function clampWeight(value, fallback = 1) {
   return Math.max(0, Math.min(1.5, value));
 }
 
+function cloneObjectEntry(entry = {}) {
+  const clone = { ...entry };
+  Object.keys(clone).forEach((key) => {
+    if (Array.isArray(clone[key])) {
+      clone[key] = [...clone[key]];
+    }
+  });
+  return clone;
+}
+
 export function normalizeCatalogueEntry(entry = {}) {
   const weights = entry.observationWeights || {};
   return {
@@ -192,6 +206,49 @@ function parseCatalogueSourceOverrides(overrides = []) {
   return map;
 }
 
+function registerEmbeddedCatalogueObjects(objects = []) {
+  embeddedCatalogueObjects.clear();
+  embeddedCatalogueSlugIndex.clear();
+  if (!Array.isArray(objects) || objects.length === 0) {
+    return;
+  }
+  objects.forEach((entry) => {
+    if (!entry || !entry.slug) return;
+    const refs = Array.isArray(entry.catalogueRefs) ? [...entry.catalogueRefs] : [];
+    if (refs.length === 0 && entry.primaryCatalogueId) {
+      refs.push(entry.primaryCatalogueId);
+    }
+    refs
+      .map((ref) => normaliseCatalogueId(ref))
+      .filter(Boolean)
+      .forEach((id) => {
+        if (!embeddedCatalogueObjects.has(id)) {
+          embeddedCatalogueObjects.set(id, []);
+          embeddedCatalogueSlugIndex.set(id, new Set());
+        }
+        const slugSet = embeddedCatalogueSlugIndex.get(id);
+        if (slugSet.has(entry.slug)) {
+          return;
+        }
+        const list = embeddedCatalogueObjects.get(id);
+        list.push(cloneObjectEntry(entry));
+        slugSet.add(entry.slug);
+      });
+  });
+}
+
+function getEmbeddedCatalogueObjects(catalogueId) {
+  const id = normaliseCatalogueId(catalogueId);
+  if (!id || !embeddedCatalogueObjects.has(id)) {
+    return [];
+  }
+  const list = embeddedCatalogueObjects.get(id);
+  if (!Array.isArray(list) || list.length === 0) {
+    return [];
+  }
+  return list.map((entry) => cloneObjectEntry(entry));
+}
+
 export function parseCataloguePayload(payload) {
   let catalogues = [];
   let objects = [];
@@ -224,6 +281,7 @@ export function parseCataloguePayload(payload) {
   overrideMap.forEach((value, key) => {
     mergedSources.set(key, value);
   });
+  registerEmbeddedCatalogueObjects(objects);
   return { catalogues, objects, sources: mergedSources };
 }
 
@@ -979,9 +1037,9 @@ export async function fetchCatalogueObjectsFromSource(catalogueId, sources = new
     const cached = objectsCache.get(cacheKey);
     if (cached instanceof Promise) {
       const resolved = await cached;
-      return resolved.map((item) => ({ ...item }));
+      return resolved.map((item) => cloneObjectEntry(item));
     }
-    return cached.map((item) => ({ ...item }));
+    return cached.map((item) => cloneObjectEntry(item));
   }
   const promise = (async () => {
     if (config.format === 'simbad-ic') {
@@ -1014,9 +1072,14 @@ export async function fetchCatalogueObjectsFromSource(catalogueId, sources = new
   try {
     const resolved = await promise;
     objectsCache.set(cacheKey, resolved);
-    return resolved.map((item) => ({ ...item }));
+    return resolved.map((item) => cloneObjectEntry(item));
   } catch (error) {
     objectsCache.delete(cacheKey);
+    const fallback = getEmbeddedCatalogueObjects(catalogueId);
+    if (fallback.length > 0) {
+      objectsCache.set(cacheKey, fallback);
+      return fallback.map((item) => cloneObjectEntry(item));
+    }
     throw error;
   }
 }

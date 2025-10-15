@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseCataloguePayload } from '../catalogue-data.js';
+import { fetchCatalogueObjectsFromSource, parseCataloguePayload } from '../catalogue-data.js';
 import {
   normaliseCatalogueId,
   normaliseCatalogueIdList,
@@ -46,5 +46,28 @@ test('filterObjectsByCatalogue honours catalogue references for every catalogue'
       `Expected ${id} filter to return ${counts.get(id) || 0} objects`
     );
   });
+});
+
+test('fetchCatalogueObjectsFromSource falls back to embedded datasets when remote fetch fails', async () => {
+  const { objects } = await datasetPromise;
+  const fallbackTargets = objects.filter((object) => {
+    return Array.isArray(object.catalogueRefs)
+      ? object.catalogueRefs.some((ref) => normaliseCatalogueId(ref) === 'ngc')
+      : false;
+  });
+  assert.ok(fallbackTargets.length > 0, 'Expected embedded dataset to include NGC objects for fallback');
+  const originalFetch = global.fetch;
+  let fetchCalls = 0;
+  global.fetch = async () => {
+    fetchCalls += 1;
+    return { ok: false, status: 503 };
+  };
+  try {
+    const objectsFromSource = await fetchCatalogueObjectsFromSource('ngc');
+    assert.equal(objectsFromSource.length, fallbackTargets.length);
+    assert.equal(fetchCalls, 1);
+  } finally {
+    global.fetch = originalFetch;
+  }
 });
 
