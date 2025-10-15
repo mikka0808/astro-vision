@@ -3030,6 +3030,303 @@
       "angularSizeArcmin": 2.1,
       "surfaceBrightness": 14.9,
       "distanceLy": 400000000
+    },
+    {
+      "designation": "NGC 7000",
+      "name": "NGC 7000 - Nébuleuse de l'Amérique du Nord",
+      "type": "Nébuleuse en émission",
+      "constellation": "Cygne",
+      "raHours": 20.95,
+      "decDeg": 44.3,
+      "magnitude": 4,
+      "bestMonths": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "minBortle": 4,
+      "description": "Immense région HII facilement capturée en grand champ, contrastée avec la Nébuleuse du Pélican voisine.",
+      "primaryCatalogueId": "ngc",
+      "catalogueRefs": [
+        "ngc",
+        "sharpless"
+      ],
+      "angularSizeArcmin": 120,
+      "surfaceBrightness": 15.4,
+      "distanceLy": 2600
+    },
+    {
+      "designation": "NGC 5128",
+      "name": "NGC 5128 - Centaurus A",
+      "type": "Galaxie lenticulaire",
+      "constellation": "Centaure",
+      "raHours": 13.43,
+      "decDeg": -43.02,
+      "magnitude": 6.8,
+      "bestMonths": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "minBortle": 4,
+      "description": "Galaxie radio active caractérisée par sa large bande poussiéreuse et son jet lumineux.",
+      "primaryCatalogueId": "ngc",
+      "catalogueRefs": [
+        "ngc"
+      ],
+      "angularSizeArcmin": 25,
+      "surfaceBrightness": 12.8,
+      "distanceLy": 13000000
+    },
+    {
+      "designation": "NGC 4565",
+      "name": "NGC 4565 - Galaxie de l'Aiguille",
+      "type": "Galaxie spirale",
+      "constellation": "Chevelure de Bérénice",
+      "raHours": 12.61,
+      "decDeg": 25.99,
+      "magnitude": 10.4,
+      "bestMonths": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "minBortle": 4,
+      "description": "Galaxie vue par la tranche révélant une fine bande de poussière, excellente cible pour les astrophotographes.",
+      "primaryCatalogueId": "ngc",
+      "catalogueRefs": [
+        "ngc",
+        "ugc"
+      ],
+      "angularSizeArcmin": 16,
+      "surfaceBrightness": 13.6,
+      "distanceLy": 41000000
+    },
+    {
+      "designation": "NGC 6960",
+      "name": "NGC 6960 - Voile de la Baguette",
+      "type": "Restes de supernova",
+      "constellation": "Cygne",
+      "raHours": 20.77,
+      "decDeg": 30.73,
+      "magnitude": 7,
+      "bestMonths": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "minBortle": 5,
+      "description": "Filaments brillants du rémanent du Cygne, spectaculaires avec filtres OIII et Ha.",
+      "primaryCatalogueId": "ngc",
+      "catalogueRefs": [
+        "ngc",
+        "ic"
+      ],
+      "angularSizeArcmin": 70,
+      "surfaceBrightness": 15.6,
+      "distanceLy": 2400
+    },
+    {
+      "designation": "IC 405",
+      "name": "IC 405 - Nébuleuse de l'Étoile Flamboyante",
+      "type": "Nébuleuse en émission",
+      "constellation": "Cocher",
+      "raHours": 5.17,
+      "decDeg": 34.28,
+      "magnitude": 6,
+      "bestMonths": [
+        11,
+        12,
+        1,
+        2
+      ],
+      "minBortle": 5,
+      "description": "Nébuleuse mixte réflexion/émission entourant l'étoile AE Aurigae, riche en couleurs sur pose longue.",
+      "primaryCatalogueId": "ic",
+      "catalogueRefs": [
+        "ic"
+      ],
+      "angularSizeArcmin": 30,
+      "surfaceBrightness": 15.3,
+      "distanceLy": 1500
+    },
+    {
+      "designation": "IC 2177",
+      "name": "IC 2177 - Nébuleuse de la Mouette",
+      "type": "Nébuleuse en émission",
+      "constellation": "Grand Chien",
+      "raHours": 7.33,
+      "decDeg": -10.75,
+      "magnitude": 7,
+      "bestMonths": [
+        12,
+        1,
+        2,
+        3
+      ],
+      "minBortle": 5,
+      "description": "Grande région HII aux ailes lumineuses s'étendant vers la constellation de la Colombe.",
+      "primaryCatalogueId": "ic",
+      "catalogueRefs": [
+        "ic",
+        "sharpless"
+      ],
+      "angularSizeArcmin": 120,
+      "surfaceBrightness": 15.7,
+      "distanceLy": 3650
+    },
+    {
+      "designation": "Sh2-132",
+      "name": "Sh2-132 - Nébuleuse du Lion",
+      "type": "Nébuleuse en émission",
+      "constellation": "Céphée",
+      "raHours": 22.19,
+      "decDeg": 56.6,
+      "magnitude": 9,
+      "bestMonths": [
+        7,
+        8,
+        9,
+        10
+      ],
+      "minBortle": 4,
+      "description": "Grande bulle ionisée aux structures complexes de poussière, superbe en palette SHO.",
+      "primaryCatalogueId": "sharpless",
+      "catalogueRefs": [
+        "sharpless",
+        "ic"
+      ],
+      "angularSizeArcmin": 40,
+      "surfaceBrightness": 15.4,
+      "distanceLy": 10000
+    },
+    {
+      "designation": "LDN 1622",
+      "name": "LDN 1622 - Nébuleuse du Fantôme de la Sorcière",
+      "type": "Nébuleuse obscure",
+      "constellation": "Orion",
+      "raHours": 5.47,
+      "decDeg": -2.9,
+      "magnitude": null,
+      "bestMonths": [
+        11,
+        12,
+        1,
+        2
+      ],
+      "minBortle": 3,
+      "description": "Nuage de poussière sombre se détachant sur la lueur des régions HII d'Orion.",
+      "primaryCatalogueId": "ldn",
+      "catalogueRefs": [
+        "ldn",
+        "ic"
+      ],
+      "angularSizeArcmin": 25,
+      "surfaceBrightness": null,
+      "distanceLy": 500
+    },
+    {
+      "designation": "vdB 152",
+      "name": "vdB 152 - Nébuleuse de Cederblad 201",
+      "type": "Nébuleuse par réflexion",
+      "constellation": "Céphée",
+      "raHours": 22.29,
+      "decDeg": 62.7,
+      "magnitude": 10.5,
+      "bestMonths": [
+        7,
+        8,
+        9,
+        10
+      ],
+      "minBortle": 3,
+      "description": "Nuage poussiéreux éclairé par une étoile isolée, entouré de faibles structures moléculaires.",
+      "primaryCatalogueId": "vdb",
+      "catalogueRefs": [
+        "vdb",
+        "ldn"
+      ],
+      "angularSizeArcmin": 10,
+      "surfaceBrightness": 15.2,
+      "distanceLy": 1400
+    },
+    {
+      "designation": "Gaia DR3 2947058893790944",
+      "name": "Sirius A — Gaia DR3 2947058893790944",
+      "type": "Étoile",
+      "constellation": "Grand Chien",
+      "raHours": 6.75,
+      "decDeg": -16.72,
+      "magnitude": -1.46,
+      "bestMonths": [
+        11,
+        12,
+        1,
+        2
+      ],
+      "minBortle": 9,
+      "description": "Étoile la plus brillante du ciel nocturne, utilisée comme repère dans le catalogue Gaia DR3.",
+      "primaryCatalogueId": "gaia",
+      "catalogueRefs": [
+        "gaia"
+      ],
+      "angularSizeArcmin": null,
+      "surfaceBrightness": null,
+      "distanceLy": 8.6
+    },
+    {
+      "designation": "UGC 10214",
+      "name": "UGC 10214 - Galaxie du Têtard",
+      "type": "Galaxie spirale",
+      "constellation": "Dragon",
+      "raHours": 16.11,
+      "decDeg": 55.01,
+      "magnitude": 14,
+      "bestMonths": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "minBortle": 2,
+      "description": "Galaxie déformée par une interaction, célèbre pour son aspect de têtard en imagerie profonde.",
+      "primaryCatalogueId": "ugc",
+      "catalogueRefs": [
+        "ugc",
+        "arp"
+      ],
+      "angularSizeArcmin": 3.5,
+      "surfaceBrightness": 15.6,
+      "distanceLy": 420000000
+    },
+    {
+      "designation": "Arp 220",
+      "name": "Arp 220 - Galaxie ultralumineuse infrarouge",
+      "type": "Galaxies en interaction",
+      "constellation": "Serpent",
+      "raHours": 15.82,
+      "decDeg": 23.5,
+      "magnitude": 13.9,
+      "bestMonths": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "minBortle": 2,
+      "description": "Fusion de galaxies déclenchant un sursaut de formation stellaire et d'émissions infrarouges intenses.",
+      "primaryCatalogueId": "arp",
+      "catalogueRefs": [
+        "arp",
+        "pgc"
+      ],
+      "angularSizeArcmin": 1.5,
+      "surfaceBrightness": 15.8,
+      "distanceLy": 250000000
     }
   ]
 }

@@ -1,3 +1,5 @@
+import { normaliseCatalogueId } from './catalogue-utils.js';
+
 const SIMBAD_IC_QUERY = `
 SELECT i.id AS designation,
        b.main_id AS main_id,
@@ -29,6 +31,10 @@ const DEFAULT_CATALOGUE_SOURCES = {
     url: 'https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/openngc.json',
     format: 'openngc',
     cacheKey: 'openngc-master',
+    mirrors: [
+      'https://raw.githubusercontent.com/mattiaverga/OpenNGC/master/data/openngc.json',
+      'https://raw.fastgit.org/mattiaverga/OpenNGC/master/data/openngc.json'
+    ],
     description: 'OpenNGC — Master catalogue (Mattia Verga)',
     license: 'CC BY-SA 4.0'
   },
@@ -46,6 +52,9 @@ const DEFAULT_CATALOGUE_SOURCES = {
     catalogueId: 'sharpless',
     url: 'https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/sharpless.json',
     format: 'openngc-subset',
+    mirrors: [
+      'https://raw.githubusercontent.com/mattiaverga/OpenNGC/master/data/sharpless.json'
+    ],
     description: 'OpenNGC — Sharpless HII regions',
     license: 'CC BY-SA 4.0'
   },
@@ -53,6 +62,9 @@ const DEFAULT_CATALOGUE_SOURCES = {
     catalogueId: 'ldn',
     url: 'https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/ldn.json',
     format: 'openngc-subset',
+    mirrors: [
+      'https://raw.githubusercontent.com/mattiaverga/OpenNGC/master/data/ldn.json'
+    ],
     description: 'OpenNGC — Lynds Dark Nebulae',
     license: 'CC BY-SA 4.0'
   },
@@ -60,6 +72,9 @@ const DEFAULT_CATALOGUE_SOURCES = {
     catalogueId: 'vdb',
     url: 'https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/vdb.json',
     format: 'openngc-subset',
+    mirrors: [
+      'https://raw.githubusercontent.com/mattiaverga/OpenNGC/master/data/vdb.json'
+    ],
     description: 'OpenNGC — van den Bergh reflection nebulae',
     license: 'CC BY-SA 4.0'
   },
@@ -67,6 +82,9 @@ const DEFAULT_CATALOGUE_SOURCES = {
     catalogueId: 'gaia',
     url: 'https://cdn.jsdelivr.net/gh/astronexus/stellarium-catalogs@master/catalog-gaia-bright.json',
     format: 'gaia-bright',
+    mirrors: [
+      'https://raw.githubusercontent.com/astronexus/stellarium-catalogs/master/catalog-gaia-bright.json'
+    ],
     description: 'Gaia DR3 bright stars (Astronexus curated subset)',
     license: 'ESA Gaia DR3, CC BY-SA 4.0'
   },
@@ -75,6 +93,10 @@ const DEFAULT_CATALOGUE_SOURCES = {
     url: 'https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/openngc.json',
     format: 'openngc',
     cacheKey: 'openngc-master',
+    mirrors: [
+      'https://raw.githubusercontent.com/mattiaverga/OpenNGC/master/data/openngc.json',
+      'https://raw.fastgit.org/mattiaverga/OpenNGC/master/data/openngc.json'
+    ],
     description: 'OpenNGC — Master catalogue (Mattia Verga)',
     license: 'CC BY-SA 4.0'
   },
@@ -83,6 +105,10 @@ const DEFAULT_CATALOGUE_SOURCES = {
     url: 'https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/openngc.json',
     format: 'openngc',
     cacheKey: 'openngc-master',
+    mirrors: [
+      'https://raw.githubusercontent.com/mattiaverga/OpenNGC/master/data/openngc.json',
+      'https://raw.fastgit.org/mattiaverga/OpenNGC/master/data/openngc.json'
+    ],
     description: 'OpenNGC — Master catalogue (Mattia Verga)',
     license: 'CC BY-SA 4.0'
   },
@@ -91,6 +117,10 @@ const DEFAULT_CATALOGUE_SOURCES = {
     url: 'https://cdn.jsdelivr.net/gh/mattiaverga/OpenNGC@master/data/openngc.json',
     format: 'openngc',
     cacheKey: 'openngc-master',
+    mirrors: [
+      'https://raw.githubusercontent.com/mattiaverga/OpenNGC/master/data/openngc.json',
+      'https://raw.fastgit.org/mattiaverga/OpenNGC/master/data/openngc.json'
+    ],
     description: 'OpenNGC — Master catalogue (Mattia Verga)',
     license: 'CC BY-SA 4.0'
   }
@@ -98,6 +128,8 @@ const DEFAULT_CATALOGUE_SOURCES = {
 
 const payloadCache = new Map();
 const objectsCache = new Map();
+const embeddedCatalogueObjects = new Map();
+const embeddedCatalogueSlugIndex = new Map();
 
 function slugify(value) {
   return String(value || '')
@@ -148,6 +180,16 @@ function clampWeight(value, fallback = 1) {
   return Math.max(0, Math.min(1.5, value));
 }
 
+function cloneObjectEntry(entry = {}) {
+  const clone = { ...entry };
+  Object.keys(clone).forEach((key) => {
+    if (Array.isArray(clone[key])) {
+      clone[key] = [...clone[key]];
+    }
+  });
+  return clone;
+}
+
 export function normalizeCatalogueEntry(entry = {}) {
   const weights = entry.observationWeights || {};
   return {
@@ -192,6 +234,49 @@ function parseCatalogueSourceOverrides(overrides = []) {
   return map;
 }
 
+function registerEmbeddedCatalogueObjects(objects = []) {
+  embeddedCatalogueObjects.clear();
+  embeddedCatalogueSlugIndex.clear();
+  if (!Array.isArray(objects) || objects.length === 0) {
+    return;
+  }
+  objects.forEach((entry) => {
+    if (!entry || !entry.slug) return;
+    const refs = Array.isArray(entry.catalogueRefs) ? [...entry.catalogueRefs] : [];
+    if (refs.length === 0 && entry.primaryCatalogueId) {
+      refs.push(entry.primaryCatalogueId);
+    }
+    refs
+      .map((ref) => normaliseCatalogueId(ref))
+      .filter(Boolean)
+      .forEach((id) => {
+        if (!embeddedCatalogueObjects.has(id)) {
+          embeddedCatalogueObjects.set(id, []);
+          embeddedCatalogueSlugIndex.set(id, new Set());
+        }
+        const slugSet = embeddedCatalogueSlugIndex.get(id);
+        if (slugSet.has(entry.slug)) {
+          return;
+        }
+        const list = embeddedCatalogueObjects.get(id);
+        list.push(cloneObjectEntry(entry));
+        slugSet.add(entry.slug);
+      });
+  });
+}
+
+function getEmbeddedCatalogueObjects(catalogueId) {
+  const id = normaliseCatalogueId(catalogueId);
+  if (!id || !embeddedCatalogueObjects.has(id)) {
+    return [];
+  }
+  const list = embeddedCatalogueObjects.get(id);
+  if (!Array.isArray(list) || list.length === 0) {
+    return [];
+  }
+  return list.map((entry) => cloneObjectEntry(entry));
+}
+
 export function parseCataloguePayload(payload) {
   let catalogues = [];
   let objects = [];
@@ -224,6 +309,7 @@ export function parseCataloguePayload(payload) {
   overrideMap.forEach((value, key) => {
     mergedSources.set(key, value);
   });
+  registerEmbeddedCatalogueObjects(objects);
   return { catalogues, objects, sources: mergedSources };
 }
 
@@ -923,8 +1009,27 @@ async function fetchSimbadIcCatalogue(config = {}) {
   return entries;
 }
 
+function buildSourceUrlList(config = {}) {
+  const urls = [];
+  if (config.url) {
+    urls.push(config.url);
+  }
+  if (Array.isArray(config.mirrors)) {
+    config.mirrors.filter(Boolean).forEach((url) => {
+      if (!urls.includes(url)) {
+        urls.push(url);
+      }
+    });
+  }
+  return urls;
+}
+
 async function fetchSourcePayload(config) {
-  const key = config.cacheKey || config.url;
+  const urls = buildSourceUrlList(config);
+  if (urls.length === 0) {
+    return [];
+  }
+  const key = config.cacheKey || urls[0];
   if (payloadCache.has(key)) {
     const cached = payloadCache.get(key);
     if (cached instanceof Promise) {
@@ -933,15 +1038,25 @@ async function fetchSourcePayload(config) {
     return cached;
   }
   const request = (async () => {
-    const response = await fetch(config.url);
-    if (!response.ok) {
-      throw new Error(`Impossible de télécharger le catalogue ${config.catalogueId || ''} (${config.url}).`);
+    let lastError;
+    for (const url of urls) {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(
+            `Impossible de télécharger le catalogue ${config.catalogueId || ''} (${url}).`
+          );
+        }
+        if (config.responseType === 'text' || config.format === 'csv') {
+          const text = await response.text();
+          return text;
+        }
+        return response.json();
+      } catch (error) {
+        lastError = error;
+      }
     }
-    if (config.responseType === 'text' || config.format === 'csv') {
-      const text = await response.text();
-      return text;
-    }
-    return response.json();
+    throw lastError || new Error('Impossible de télécharger le catalogue (aucune URL valide).');
   })();
   payloadCache.set(key, request);
   try {
@@ -979,9 +1094,9 @@ export async function fetchCatalogueObjectsFromSource(catalogueId, sources = new
     const cached = objectsCache.get(cacheKey);
     if (cached instanceof Promise) {
       const resolved = await cached;
-      return resolved.map((item) => ({ ...item }));
+      return resolved.map((item) => cloneObjectEntry(item));
     }
-    return cached.map((item) => ({ ...item }));
+    return cached.map((item) => cloneObjectEntry(item));
   }
   const promise = (async () => {
     if (config.format === 'simbad-ic') {
@@ -1014,9 +1129,14 @@ export async function fetchCatalogueObjectsFromSource(catalogueId, sources = new
   try {
     const resolved = await promise;
     objectsCache.set(cacheKey, resolved);
-    return resolved.map((item) => ({ ...item }));
+    return resolved.map((item) => cloneObjectEntry(item));
   } catch (error) {
     objectsCache.delete(cacheKey);
+    const fallback = getEmbeddedCatalogueObjects(catalogueId);
+    if (fallback.length > 0) {
+      objectsCache.set(cacheKey, fallback);
+      return fallback.map((item) => cloneObjectEntry(item));
+    }
     throw error;
   }
 }

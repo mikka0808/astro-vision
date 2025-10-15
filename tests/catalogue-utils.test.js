@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseCataloguePayload } from '../catalogue-data.js';
+import {
+  fetchCatalogueObjectsFromSource,
+  listDefaultCatalogueSources,
+  parseCataloguePayload
+} from '../catalogue-data.js';
 import {
   normaliseCatalogueId,
   normaliseCatalogueIdList,
@@ -46,5 +50,76 @@ test('filterObjectsByCatalogue honours catalogue references for every catalogue'
       `Expected ${id} filter to return ${counts.get(id) || 0} objects`
     );
   });
+});
+
+test('fetchCatalogueObjectsFromSource falls back to embedded datasets when remote fetch fails', async () => {
+  const { objects } = await datasetPromise;
+  const fallbackTargets = objects.filter((object) => {
+    return Array.isArray(object.catalogueRefs)
+      ? object.catalogueRefs.some((ref) => normaliseCatalogueId(ref) === 'ngc')
+      : false;
+  });
+  assert.ok(fallbackTargets.length > 0, 'Expected embedded dataset to include NGC objects for fallback');
+  const originalFetch = global.fetch;
+  let fetchCalls = 0;
+  global.fetch = async () => {
+    fetchCalls += 1;
+    return { ok: false, status: 503 };
+  };
+  try {
+    const objectsFromSource = await fetchCatalogueObjectsFromSource('ngc');
+    assert.equal(objectsFromSource.length, fallbackTargets.length);
+    const defaultSources = listDefaultCatalogueSources();
+    const ngcSource = defaultSources.find((entry) => entry.catalogueId === 'ngc');
+    const expectedAttempts = 1 + (Array.isArray(ngcSource?.mirrors) ? ngcSource.mirrors.length : 0);
+    assert.equal(fetchCalls, expectedAttempts);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('fetchCatalogueObjectsFromSource retries mirror URLs before failing', async () => {
+  const sources = new Map([
+    [
+      'mirror-test',
+      {
+        catalogueId: 'mirror-test',
+        url: 'https://primary.invalid/catalogue.json',
+        mirrors: ['https://mirror.invalid/catalogue.json'],
+        format: 'openngc'
+      }
+    ]
+  ]);
+  const sampleEntry = {
+    name: 'NGC 1234',
+    type: 'Gx',
+    const: 'And',
+    ra: 25.4,
+    dec: -12.3,
+    mag: 10.5
+  };
+  const originalFetch = global.fetch;
+  let callIndex = 0;
+  global.fetch = async (url) => {
+    callIndex += 1;
+    if (callIndex === 1) {
+      return { ok: false, status: 503, url };
+    }
+    assert.equal(url, 'https://mirror.invalid/catalogue.json');
+    return {
+      ok: true,
+      async json() {
+        return [sampleEntry];
+      }
+    };
+  };
+  try {
+    const objectsFromSource = await fetchCatalogueObjectsFromSource('mirror-test', sources);
+    assert.equal(callIndex, 2, 'Expected fetch to try the primary URL then the mirror');
+    assert.equal(objectsFromSource.length, 1);
+    assert.equal(objectsFromSource[0].primaryCatalogueId, 'mirror-test');
+  } finally {
+    global.fetch = originalFetch;
+  }
 });
 
