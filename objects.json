@@ -2762,6 +2762,266 @@
       "surfaceBrightness": null
     },
     {
+      "number": 1,
+      "designation": "C1",
+      "name": "C1 - NGC 188",
+      "type": "Amas ouvert",
+      "constellation": "Céphée",
+      "raHours": 0.791,
+      "decDeg": 85.255,
+      "magnitude": 8.1,
+      "bestMonths": [
+        9,
+        10,
+        11,
+        12
+      ],
+      "minBortle": 6,
+      "description": "Vieil amas ouvert très riche en géantes rouges, idéal pour surveiller le suivi près du pôle nord céleste.",
+      "primaryCatalogueId": "caldwell",
+      "catalogueRefs": [
+        "caldwell",
+        "ngc"
+      ],
+      "angularSizeArcmin": 14,
+      "surfaceBrightness": 14.8,
+      "distanceLy": 5300
+    },
+    {
+      "number": 2,
+      "designation": "C2",
+      "name": "C2 - NGC 40",
+      "type": "Nébuleuse planétaire",
+      "constellation": "Céphée",
+      "raHours": 0.217,
+      "decDeg": 72.522,
+      "magnitude": 10.6,
+      "bestMonths": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "minBortle": 5,
+      "description": "Nébuleuse planétaire brillante à double enveloppe dont le cœur turquoise répond bien aux filtres OIII.",
+      "primaryCatalogueId": "caldwell",
+      "catalogueRefs": [
+        "caldwell",
+        "ngc"
+      ],
+      "angularSizeArcmin": 0.7,
+      "surfaceBrightness": 12.6,
+      "distanceLy": 3500
+    },
+    {
+      "number": 3,
+      "designation": "C3",
+      "name": "C3 - NGC 4236",
+      "type": "Galaxie spirale",
+      "constellation": "Dragon",
+      "raHours": 12.278,
+      "decDeg": 69.463,
+      "magnitude": 9.6,
+      "bestMonths": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "minBortle": 4,
+      "description": "Galaxie spirale barrée vue de profil, aux bras faibles mais riches en régions HII détectables en photo.",
+      "primaryCatalogueId": "caldwell",
+      "catalogueRefs": [
+        "caldwell",
+        "ngc"
+      ],
+      "angularSizeArcmin": 21,
+      "surfaceBrightness": 15.5,
+      "distanceLy": 11000000
+    },
+    {
+      "number": 4,
+      "designation": "C4",
+      "name": "C4 - NGC 7023 (Nébuleuse de l'Iris)",
+      "type": "Nébuleuse par réflexion",
+      "constellation": "Céphée",
+      "raHours": 21.027,
+      "decDeg": 68.167,
+      "magnitude": 6.8,
+      "bestMonths": [
+        7,
+        8,
+        9,
+        10
+      ],
+      "minBortle": 4,
+      "description": "Nébuleuse par réflexion bleutée entourée de poussières sombres, superbe en poses longues grand champ.",
+      "primaryCatalogueId": "caldwell",
+      "catalogueRefs": [
+        "caldwell",
+        "ngc"
+      ],
+      "angularSizeArcmin": 18,
+      "surfaceBrightness": 14.6,
+      "distanceLy": 1300
+    },
+    {
+      "number": 5,
+      "designation": "C5",
+      "name": "C5 - IC 342",
+      "type": "Galaxie spirale",
+      "constellation": "Girafe",
+      "raHours": 3.78,
+      "decDeg": 68.096,
+      "magnitude": 8.4,
+      "bestMonths": [
+        10,
+        11,
+        12,
+        1
+      ],
+      "minBortle": 5,
+      "description": "Galaxie spirale étendue cachée par la poussière galactique, révélant de nombreux bras lumineux en photo.",
+      "primaryCatalogueId": "caldwell",
+      "catalogueRefs": [
+        "caldwell",
+        "ic"
+      ],
+      "angularSizeArcmin": 21,
+      "surfaceBrightness": 14.2,
+      "distanceLy": 11000000
+    },
+    {
+      "number": 6,
+      "designation": "C6",
+      "name": "C6 - NGC 6543 (Nébuleuse de l'Œil du Chat)",
+      "type": "Nébuleuse planétaire",
+      "constellation": "Dragon",
+      "raHours": 17.976,
+      "decDeg": 66.633,
+      "magnitude": 8.8,
+      "bestMonths": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "minBortle": 5,
+      "description": "Nébuleuse planétaire compacte aux multiples coquilles, idéale pour tester la haute résolution planétaire.",
+      "primaryCatalogueId": "caldwell",
+      "catalogueRefs": [
+        "caldwell",
+        "ngc"
+      ],
+      "angularSizeArcmin": 0.4,
+      "surfaceBrightness": 11.8,
+      "distanceLy": 3300
+    },
+    {
+      "number": 7,
+      "designation": "C7",
+      "name": "C7 - NGC 2403",
+      "type": "Galaxie spirale",
+      "constellation": "Girafe",
+      "raHours": 7.614,
+      "decDeg": 65.602,
+      "magnitude": 8.4,
+      "bestMonths": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "minBortle": 5,
+      "description": "Spirale riche en régions HII et en amas, facilement captée même depuis un ciel suburbain sombre.",
+      "primaryCatalogueId": "caldwell",
+      "catalogueRefs": [
+        "caldwell",
+        "ngc"
+      ],
+      "angularSizeArcmin": 21,
+      "surfaceBrightness": 14.5,
+      "distanceLy": 8400000
+    },
+    {
+      "number": 8,
+      "designation": "C8",
+      "name": "C8 - NGC 559",
+      "type": "Amas ouvert",
+      "constellation": "Cassiopée",
+      "raHours": 1.492,
+      "decDeg": 63.304,
+      "magnitude": 9.5,
+      "bestMonths": [
+        9,
+        10,
+        11,
+        12
+      ],
+      "minBortle": 6,
+      "description": "Petit amas triangulaire piqueté d'étoiles dorées, parfait pour compléter une séance sur Cassiopée.",
+      "primaryCatalogueId": "caldwell",
+      "catalogueRefs": [
+        "caldwell",
+        "ngc"
+      ],
+      "angularSizeArcmin": 5,
+      "surfaceBrightness": 13.5,
+      "distanceLy": 7900
+    },
+    {
+      "number": 9,
+      "designation": "C9",
+      "name": "C9 - NGC 3190",
+      "type": "Galaxie spirale",
+      "constellation": "Hydre femelle",
+      "raHours": 10.302,
+      "decDeg": 21.832,
+      "magnitude": 11.1,
+      "bestMonths": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "minBortle": 4,
+      "description": "Galaxie spirale inclinée du groupe Hickson 44, exhibant une bande de poussière fine en imagerie longue pose.",
+      "primaryCatalogueId": "caldwell",
+      "catalogueRefs": [
+        "caldwell",
+        "ngc"
+      ],
+      "angularSizeArcmin": 4.4,
+      "surfaceBrightness": 13.8,
+      "distanceLy": 80000000
+    },
+    {
+      "number": 10,
+      "designation": "C10",
+      "name": "C10 - NGC 663",
+      "type": "Amas ouvert",
+      "constellation": "Cassiopée",
+      "raHours": 1.767,
+      "decDeg": 61.25,
+      "magnitude": 7.1,
+      "bestMonths": [
+        9,
+        10,
+        11,
+        12
+      ],
+      "minBortle": 6,
+      "description": "Grand amas scintillant accompagnant le double amas de Persée, remarquable aux jumelles et en photo grand champ.",
+      "primaryCatalogueId": "caldwell",
+      "catalogueRefs": [
+        "caldwell",
+        "ngc"
+      ],
+      "angularSizeArcmin": 16,
+      "surfaceBrightness": 13.2,
+      "distanceLy": 7200
+    },
+    {
       "designation": "NGC 253",
       "name": "NGC 253 - Galaxie du Sculpteur",
       "type": "Galaxie spirale",
@@ -2809,6 +3069,226 @@
       "angularSizeArcmin": 13,
       "surfaceBrightness": 13.5,
       "distanceLy": 32000000
+    },
+    {
+      "designation": "NGC 1000",
+      "name": "NGC 1000 - Galaxie lenticulaire d’Andromède",
+      "type": "Galaxie lenticulaire",
+      "constellation": "Andromède",
+      "raHours": 2.652,
+      "decDeg": 31.354,
+      "magnitude": 14.4,
+      "bestMonths": [
+        9,
+        10,
+        11,
+        12,
+        1
+      ],
+      "minBortle": 3,
+      "description": "Galaxie très discrète découverte par Lewis Swift, nécessitant des poses longues pour faire ressortir son bulbe doux et son halo lenticulaire.",
+      "primaryCatalogueId": "ngc",
+      "catalogueRefs": [
+        "ngc"
+      ],
+      "angularSizeArcmin": 1.3,
+      "surfaceBrightness": 14.8,
+      "distanceLy": 160000000
+    },
+    {
+      "designation": "NGC 7000",
+      "name": "NGC 7000 - Nébuleuse de l’Amérique du Nord",
+      "type": "Nébuleuse en émission",
+      "constellation": "Cygne",
+      "raHours": 20.967,
+      "decDeg": 44.333,
+      "magnitude": 4,
+      "bestMonths": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "minBortle": 4,
+      "description": "Immense région HII dont la silhouette rappelle l’Amérique du Nord, idéale pour l’imagerie grand champ en SHO.",
+      "primaryCatalogueId": "ngc",
+      "catalogueRefs": [
+        "ngc",
+        "sharpless"
+      ],
+      "angularSizeArcmin": 120,
+      "surfaceBrightness": 16.2,
+      "distanceLy": 2600
+    },
+    {
+      "designation": "NGC 1365",
+      "name": "NGC 1365 - Grande galaxie spirale barrée",
+      "type": "Galaxie spirale",
+      "constellation": "Fourneau",
+      "raHours": 3.566,
+      "decDeg": -36.14,
+      "magnitude": 9.6,
+      "bestMonths": [
+        10,
+        11,
+        12,
+        1
+      ],
+      "minBortle": 4,
+      "description": "Spectaculaire spirale barrée du groupe du Fourneau, montrant des bras torsadés et un noyau actif.",
+      "primaryCatalogueId": "ngc",
+      "catalogueRefs": [
+        "ngc"
+      ],
+      "angularSizeArcmin": 11,
+      "surfaceBrightness": 13.9,
+      "distanceLy": 56000000
+    },
+    {
+      "designation": "NGC 5128",
+      "name": "NGC 5128 - Centaurus A",
+      "type": "Galaxie lenticulaire active",
+      "constellation": "Centaure",
+      "raHours": 13.425,
+      "decDeg": -43.02,
+      "magnitude": 6.8,
+      "bestMonths": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "minBortle": 4,
+      "description": "Galaxie active célèbre pour sa large bande de poussière et son jet radio, splendide dans le ciel austral.",
+      "primaryCatalogueId": "ngc",
+      "catalogueRefs": [
+        "ngc"
+      ],
+      "angularSizeArcmin": 25,
+      "surfaceBrightness": 12.7,
+      "distanceLy": 12000000
+    },
+    {
+      "designation": "NGC 4631",
+      "name": "NGC 4631 - Galaxie de la Baleine",
+      "type": "Galaxie spirale",
+      "constellation": "Chiens de chasse",
+      "raHours": 12.617,
+      "decDeg": 32.54,
+      "magnitude": 9.3,
+      "bestMonths": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "minBortle": 5,
+      "description": "Spirale vue par la tranche présentant des nodosités HII et une compagne naine déformée.",
+      "primaryCatalogueId": "ngc",
+      "catalogueRefs": [
+        "ngc"
+      ],
+      "angularSizeArcmin": 15,
+      "surfaceBrightness": 14.2,
+      "distanceLy": 30000000
+    },
+    {
+      "designation": "NGC 2024",
+      "name": "NGC 2024 - Nébuleuse de la Flamme",
+      "type": "Nébuleuse en émission",
+      "constellation": "Orion",
+      "raHours": 5.667,
+      "decDeg": -1.983,
+      "magnitude": 10,
+      "bestMonths": [
+        11,
+        12,
+        1,
+        2
+      ],
+      "minBortle": 4,
+      "description": "Rideau de gaz baigné par l’étoile Alnitak, aux bandes de poussière très contrastées en bande étroite.",
+      "primaryCatalogueId": "ngc",
+      "catalogueRefs": [
+        "ngc",
+        "ic"
+      ],
+      "angularSizeArcmin": 30,
+      "surfaceBrightness": 15,
+      "distanceLy": 1350
+    },
+    {
+      "designation": "NGC 6744",
+      "name": "NGC 6744 - Spirale intermédiaire",
+      "type": "Galaxie spirale",
+      "constellation": "Pavon",
+      "raHours": 19.111,
+      "decDeg": -63.857,
+      "magnitude": 8.3,
+      "bestMonths": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "minBortle": 4,
+      "description": "Grande spirale semblable à la Voie lactée avec de vastes bras floconneux, brillante sous le ciel austral.",
+      "primaryCatalogueId": "ngc",
+      "catalogueRefs": [
+        "ngc"
+      ],
+      "angularSizeArcmin": 20,
+      "surfaceBrightness": 14.6,
+      "distanceLy": 30000000
+    },
+    {
+      "designation": "NGC 2841",
+      "name": "NGC 2841 - Spirale de la Grande Ourse",
+      "type": "Galaxie spirale",
+      "constellation": "Grande Ourse",
+      "raHours": 9.351,
+      "decDeg": 50.98,
+      "magnitude": 9.2,
+      "bestMonths": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "minBortle": 5,
+      "description": "Spirale massive aux bras serrés et au bulbe doré, intéressante pour l’imagerie haute résolution.",
+      "primaryCatalogueId": "ngc",
+      "catalogueRefs": [
+        "ngc"
+      ],
+      "angularSizeArcmin": 8.1,
+      "surfaceBrightness": 13.6,
+      "distanceLy": 46000000
+    },
+    {
+      "designation": "NGC 2359",
+      "name": "NGC 2359 - Casque de Thor",
+      "type": "Nébuleuse en émission",
+      "constellation": "Grand Chien",
+      "raHours": 7.35,
+      "decDeg": -13.22,
+      "magnitude": 11.4,
+      "bestMonths": [
+        12,
+        1,
+        2,
+        3
+      ],
+      "minBortle": 4,
+      "description": "Bulles soufflées par une étoile Wolf-Rayet, révélant des filaments turquoise dans les filtres OIII et Hβ.",
+      "primaryCatalogueId": "ngc",
+      "catalogueRefs": [
+        "ngc",
+        "sharpless"
+      ],
+      "angularSizeArcmin": 8,
+      "surfaceBrightness": 15.4,
+      "distanceLy": 15000
     },
     {
       "designation": "IC 434",
@@ -2861,6 +3341,231 @@
       "distanceLy": 3000
     },
     {
+      "designation": "IC 59",
+      "name": "IC 59 - Lueur de Cassiopée",
+      "type": "Nébuleuse par réflexion",
+      "constellation": "Cassiopée",
+      "raHours": 0.95,
+      "decDeg": 61.17,
+      "magnitude": 10,
+      "bestMonths": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "minBortle": 4,
+      "description": "Voile bleuté éclairé par Gamma Cassiopeiae, situé à l’extrémité de la grande boucle IC 59/63.",
+      "primaryCatalogueId": "ic",
+      "catalogueRefs": [
+        "ic",
+        "sharpless"
+      ],
+      "angularSizeArcmin": 10,
+      "surfaceBrightness": 15.6,
+      "distanceLy": 600
+    },
+    {
+      "designation": "IC 63",
+      "name": "IC 63 - Fantôme de Cassiopée",
+      "type": "Nébuleuse par réflexion",
+      "constellation": "Cassiopée",
+      "raHours": 1.03,
+      "decDeg": 60.85,
+      "magnitude": 10,
+      "bestMonths": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "minBortle": 4,
+      "description": "Nébuleuse mêlant réflexion et émission, prenant la forme d’un spectre face à l’étoile Gamma Cassiopeiae.",
+      "primaryCatalogueId": "ic",
+      "catalogueRefs": [
+        "ic",
+        "sharpless"
+      ],
+      "angularSizeArcmin": 10,
+      "surfaceBrightness": 15.7,
+      "distanceLy": 600
+    },
+    {
+      "designation": "IC 405",
+      "name": "IC 405 - Nébuleuse de l’Étoile Flamboyante",
+      "type": "Nébuleuse en émission",
+      "constellation": "Cocher",
+      "raHours": 5.272,
+      "decDeg": 34.27,
+      "magnitude": 6,
+      "bestMonths": [
+        11,
+        12,
+        1,
+        2
+      ],
+      "minBortle": 4,
+      "description": "Nuages rouges et bleutés autour d’AE Aurigae, parfaits pour jouer avec les filtres Hα et RVB.",
+      "primaryCatalogueId": "ic",
+      "catalogueRefs": [
+        "ic",
+        "sharpless"
+      ],
+      "angularSizeArcmin": 30,
+      "surfaceBrightness": 15.1,
+      "distanceLy": 1500
+    },
+    {
+      "designation": "IC 410",
+      "name": "IC 410 - Nébuleuse des Têtards",
+      "type": "Nébuleuse en émission",
+      "constellation": "Cocher",
+      "raHours": 5.367,
+      "decDeg": 33.43,
+      "magnitude": 11,
+      "bestMonths": [
+        11,
+        12,
+        1,
+        2
+      ],
+      "minBortle": 4,
+      "description": "Région HII nourrie par l’amas NGC 1893, avec deux piliers sombres surnommés les têtards.",
+      "primaryCatalogueId": "ic",
+      "catalogueRefs": [
+        "ic",
+        "sharpless"
+      ],
+      "angularSizeArcmin": 40,
+      "surfaceBrightness": 15.8,
+      "distanceLy": 12000
+    },
+    {
+      "designation": "IC 443",
+      "name": "IC 443 - Nébuleuse de la Méduse",
+      "type": "Reste de supernova",
+      "constellation": "Gémeaux",
+      "raHours": 6.45,
+      "decDeg": 22.5,
+      "magnitude": 10,
+      "bestMonths": [
+        12,
+        1,
+        2,
+        3
+      ],
+      "minBortle": 4,
+      "description": "Reste de supernova filamentaire avec de splendides contrastes Hα/OIII révélant une forme de méduse.",
+      "primaryCatalogueId": "ic",
+      "catalogueRefs": [
+        "ic",
+        "ngc"
+      ],
+      "angularSizeArcmin": 50,
+      "surfaceBrightness": 16,
+      "distanceLy": 5000
+    },
+    {
+      "designation": "IC 1805",
+      "name": "IC 1805 - Nébuleuse du Cœur",
+      "type": "Nébuleuse en émission",
+      "constellation": "Cassiopée",
+      "raHours": 2.55,
+      "decDeg": 61.3,
+      "magnitude": 6.5,
+      "bestMonths": [
+        9,
+        10,
+        11,
+        12
+      ],
+      "minBortle": 4,
+      "description": "Vaste région HII sculptée par l’amas Melotte 15, emblématique des compositions SHO.",
+      "primaryCatalogueId": "ic",
+      "catalogueRefs": [
+        "ic",
+        "sharpless"
+      ],
+      "angularSizeArcmin": 60,
+      "surfaceBrightness": 15.4,
+      "distanceLy": 7500
+    },
+    {
+      "designation": "IC 1848",
+      "name": "IC 1848 - Nébuleuse de l’Âme",
+      "type": "Nébuleuse en émission",
+      "constellation": "Cassiopée",
+      "raHours": 2.8,
+      "decDeg": 60.4,
+      "magnitude": 6.5,
+      "bestMonths": [
+        9,
+        10,
+        11,
+        12
+      ],
+      "minBortle": 4,
+      "description": "Jumelle de la nébuleuse du Cœur, parcourue de piliers et de globules proplydes dans Cassiopée.",
+      "primaryCatalogueId": "ic",
+      "catalogueRefs": [
+        "ic",
+        "sharpless"
+      ],
+      "angularSizeArcmin": 70,
+      "surfaceBrightness": 15.6,
+      "distanceLy": 7500
+    },
+    {
+      "designation": "IC 2177",
+      "name": "IC 2177 - Nébuleuse de la Mouette",
+      "type": "Nébuleuse en émission",
+      "constellation": "Grand Chien",
+      "raHours": 7.08,
+      "decDeg": -10.8,
+      "magnitude": 7,
+      "bestMonths": [
+        12,
+        1,
+        2,
+        3
+      ],
+      "minBortle": 5,
+      "description": "Large nébuleuse aux ailes déployées reliant le Grand Chien à la Licorne, se prêtant bien aux mosaïques.",
+      "primaryCatalogueId": "ic",
+      "catalogueRefs": [
+        "ic",
+        "sharpless"
+      ],
+      "angularSizeArcmin": 120,
+      "surfaceBrightness": 16,
+      "distanceLy": 3800
+    },
+    {
+      "designation": "IC 5146",
+      "name": "IC 5146 - Nébuleuse du Cocon",
+      "type": "Nébuleuse en émission",
+      "constellation": "Cygne",
+      "raHours": 21.89,
+      "decDeg": 47.27,
+      "magnitude": 7.2,
+      "bestMonths": [
+        7,
+        8,
+        9,
+        10
+      ],
+      "minBortle": 4,
+      "description": "Cocon lumineux à l’extrémité d’une nébuleuse obscure surnommée la Grange de Barnard.",
+      "primaryCatalogueId": "ic",
+      "catalogueRefs": [
+        "ic",
+        "ldn"
+      ],
+      "angularSizeArcmin": 12,
+      "surfaceBrightness": 14.9,
+      "distanceLy": 3300
+    },
+    {
       "designation": "Sh2-101",
       "name": "Sh2-101 - Nébuleuse de la Tulipe",
       "type": "Nébuleuse en émission",
@@ -2886,6 +3591,224 @@
       "distanceLy": 6000
     },
     {
+      "designation": "Sh2-129",
+      "name": "Sh2-129 - Chauve-souris volante",
+      "type": "Nébuleuse en émission",
+      "constellation": "Céphée",
+      "raHours": 21.266,
+      "decDeg": 60.13,
+      "magnitude": 8.5,
+      "bestMonths": [
+        7,
+        8,
+        9,
+        10
+      ],
+      "minBortle": 4,
+      "description": "Nébuleuse en forme d’ailes entourant l’objet OIII Ou4, spectaculaire en bande étroite.",
+      "primaryCatalogueId": "sharpless",
+      "catalogueRefs": [
+        "sharpless"
+      ],
+      "angularSizeArcmin": 80,
+      "surfaceBrightness": 16,
+      "distanceLy": 4000
+    },
+    {
+      "designation": "Sh2-132",
+      "name": "Sh2-132 - Nébuleuse du Lion",
+      "type": "Nébuleuse en émission",
+      "constellation": "Céphée",
+      "raHours": 22.283,
+      "decDeg": 56.6,
+      "magnitude": 9,
+      "bestMonths": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "minBortle": 4,
+      "description": "Région HII tachetée de globules sombres et de structures en forme de lion cosmique.",
+      "primaryCatalogueId": "sharpless",
+      "catalogueRefs": [
+        "sharpless"
+      ],
+      "angularSizeArcmin": 60,
+      "surfaceBrightness": 15.9,
+      "distanceLy": 10000
+    },
+    {
+      "designation": "Sh2-171",
+      "name": "Sh2-171 - Complexe de NGC 7822",
+      "type": "Nébuleuse en émission",
+      "constellation": "Céphée",
+      "raHours": 0.85,
+      "decDeg": 67.2,
+      "magnitude": 7,
+      "bestMonths": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "minBortle": 4,
+      "description": "Grande bulle ionisée hébergeant des piliers et proto-étoiles, voisine de l’amas Berkeley 59.",
+      "primaryCatalogueId": "sharpless",
+      "catalogueRefs": [
+        "sharpless",
+        "ngc"
+      ],
+      "angularSizeArcmin": 90,
+      "surfaceBrightness": 15.2,
+      "distanceLy": 3000
+    },
+    {
+      "designation": "Sh2-240",
+      "name": "Sh2-240 - Simeis 147",
+      "type": "Reste de supernova",
+      "constellation": "Taureau",
+      "raHours": 5.55,
+      "decDeg": 27.8,
+      "magnitude": 12,
+      "bestMonths": [
+        10,
+        11,
+        12,
+        1
+      ],
+      "minBortle": 3,
+      "description": "Vestige extrêmement étendu de supernova, formant un entrelacs filamentaire difficile mais gratifiant.",
+      "primaryCatalogueId": "sharpless",
+      "catalogueRefs": [
+        "sharpless"
+      ],
+      "angularSizeArcmin": 180,
+      "surfaceBrightness": 17,
+      "distanceLy": 3000
+    },
+    {
+      "designation": "Sh2-261",
+      "name": "Sh2-261 - Nébuleuse de Lower",
+      "type": "Nébuleuse en émission",
+      "constellation": "Orion",
+      "raHours": 5.6,
+      "decDeg": 1,
+      "magnitude": 9,
+      "bestMonths": [
+        11,
+        12,
+        1,
+        2
+      ],
+      "minBortle": 4,
+      "description": "Lueur rougeâtre à proximité de la boucle de Barnard, mettant en évidence des fronts d’ionisation.",
+      "primaryCatalogueId": "sharpless",
+      "catalogueRefs": [
+        "sharpless"
+      ],
+      "angularSizeArcmin": 30,
+      "surfaceBrightness": 15.5,
+      "distanceLy": 3900
+    },
+    {
+      "designation": "Sh2-274",
+      "name": "Sh2-274 - Nébuleuse de la Méduse",
+      "type": "Reste de supernova",
+      "constellation": "Gémeaux",
+      "raHours": 7.39,
+      "decDeg": 13.9,
+      "magnitude": 12,
+      "bestMonths": [
+        12,
+        1,
+        2,
+        3
+      ],
+      "minBortle": 3,
+      "description": "Arc filamentaire complexe partagé avec IC 443, mis en valeur par les filtres OIII.",
+      "primaryCatalogueId": "sharpless",
+      "catalogueRefs": [
+        "sharpless",
+        "ic"
+      ],
+      "angularSizeArcmin": 110,
+      "surfaceBrightness": 16.8,
+      "distanceLy": 1500
+    },
+    {
+      "designation": "Sh2-86",
+      "name": "Sh2-86 - Gamma Cygni",
+      "type": "Nébuleuse en émission",
+      "constellation": "Cygne",
+      "raHours": 20.9,
+      "decDeg": 38.2,
+      "magnitude": 8,
+      "bestMonths": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "minBortle": 4,
+      "description": "Segment lumineux du complexe Gamma Cygni, riche en piliers et structures en émission.",
+      "primaryCatalogueId": "sharpless",
+      "catalogueRefs": [
+        "sharpless"
+      ],
+      "angularSizeArcmin": 40,
+      "surfaceBrightness": 15.4,
+      "distanceLy": 5000
+    },
+    {
+      "designation": "Sh2-221",
+      "name": "Sh2-221 - Bulle d’Auriga",
+      "type": "Nébuleuse en émission",
+      "constellation": "Cocher",
+      "raHours": 4.95,
+      "decDeg": 53.5,
+      "magnitude": 9,
+      "bestMonths": [
+        10,
+        11,
+        12,
+        1
+      ],
+      "minBortle": 3,
+      "description": "Bulle quasi circulaire occupant un vaste champ, héritage d’une ancienne supernova dans le Cocher.",
+      "primaryCatalogueId": "sharpless",
+      "catalogueRefs": [
+        "sharpless"
+      ],
+      "angularSizeArcmin": 120,
+      "surfaceBrightness": 16.2,
+      "distanceLy": 2600
+    },
+    {
+      "designation": "Sh2-126",
+      "name": "Sh2-126 - Nébuleuse de la Lacerta",
+      "type": "Nébuleuse en émission",
+      "constellation": "Lézard",
+      "raHours": 22.72,
+      "decDeg": 63.6,
+      "magnitude": 9.5,
+      "bestMonths": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "minBortle": 4,
+      "description": "Voile rougeâtre diffus contrastant avec les nuages obscurs LBN et LDN environnants.",
+      "primaryCatalogueId": "sharpless",
+      "catalogueRefs": [
+        "sharpless"
+      ],
+      "angularSizeArcmin": 200,
+      "surfaceBrightness": 17,
+      "distanceLy": 1200
+    },
+    {
       "designation": "LDN 1235",
       "name": "LDN 1235 - Nébuleuse du Requin",
       "type": "Nébuleuse obscure",
@@ -2907,6 +3830,224 @@
       "angularSizeArcmin": 120,
       "surfaceBrightness": null,
       "distanceLy": 650
+    },
+    {
+      "designation": "LDN 1622",
+      "name": "LDN 1622 - Nébuleuse du Fantôme de la tête de cheval",
+      "type": "Nébuleuse obscure",
+      "constellation": "Orion",
+      "raHours": 5.903,
+      "decDeg": 1.833,
+      "magnitude": null,
+      "bestMonths": [
+        11,
+        12,
+        1,
+        2
+      ],
+      "minBortle": 3,
+      "description": "Nuage sombre contrastant avec la boucle de Barnard, dévoilant une silhouette fantomatique en photo longue pose.",
+      "primaryCatalogueId": "ldn",
+      "catalogueRefs": [
+        "ldn"
+      ],
+      "angularSizeArcmin": 20,
+      "surfaceBrightness": null,
+      "distanceLy": 1500
+    },
+    {
+      "designation": "LDN 1621",
+      "name": "LDN 1621 - Filament obscur de la Licorne",
+      "type": "Nébuleuse obscure",
+      "constellation": "Orion",
+      "raHours": 5.883,
+      "decDeg": 2.3,
+      "magnitude": null,
+      "bestMonths": [
+        11,
+        12,
+        1,
+        2
+      ],
+      "minBortle": 3,
+      "description": "Filament voisin de LDN 1622, parfait pour souligner les contrastes avec IC 2177.",
+      "primaryCatalogueId": "ldn",
+      "catalogueRefs": [
+        "ldn"
+      ],
+      "angularSizeArcmin": 18,
+      "surfaceBrightness": null,
+      "distanceLy": 1500
+    },
+    {
+      "designation": "LDN 673",
+      "name": "LDN 673 - Complexe sombre du Dauphin",
+      "type": "Nébuleuse obscure",
+      "constellation": "Aigle",
+      "raHours": 19.35,
+      "decDeg": 11.3,
+      "magnitude": null,
+      "bestMonths": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "minBortle": 2,
+      "description": "Complexe de poussière dense révélant des nodosités et proto-étoiles en infrarouge.",
+      "primaryCatalogueId": "ldn",
+      "catalogueRefs": [
+        "ldn"
+      ],
+      "angularSizeArcmin": 25,
+      "surfaceBrightness": null,
+      "distanceLy": 300
+    },
+    {
+      "designation": "LDN 483",
+      "name": "LDN 483 - Cocon sombre du Serpentaire",
+      "type": "Nébuleuse obscure",
+      "constellation": "Serpentaire",
+      "raHours": 19.05,
+      "decDeg": -4.8,
+      "magnitude": null,
+      "bestMonths": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "minBortle": 3,
+      "description": "Zone de formation stellaire dissimulée, étudiée pour ses jets protostellaires.",
+      "primaryCatalogueId": "ldn",
+      "catalogueRefs": [
+        "ldn"
+      ],
+      "angularSizeArcmin": 15,
+      "surfaceBrightness": null,
+      "distanceLy": 650
+    },
+    {
+      "designation": "LDN 134",
+      "name": "LDN 134 - Nuage obscur du Serpent",
+      "type": "Nébuleuse obscure",
+      "constellation": "Serpent",
+      "raHours": 15.9,
+      "decDeg": -3.3,
+      "magnitude": null,
+      "bestMonths": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "minBortle": 3,
+      "description": "Nébuleuse obscurant le fond galactique, proche de la fameuse nébuleuse du Tube.",
+      "primaryCatalogueId": "ldn",
+      "catalogueRefs": [
+        "ldn"
+      ],
+      "angularSizeArcmin": 25,
+      "surfaceBrightness": null,
+      "distanceLy": 600
+    },
+    {
+      "designation": "LDN 1773",
+      "name": "LDN 1773 - Nuage devant la Tête de cheval",
+      "type": "Nébuleuse obscure",
+      "constellation": "Orion",
+      "raHours": 5.65,
+      "decDeg": -2.45,
+      "magnitude": null,
+      "bestMonths": [
+        11,
+        12,
+        1,
+        2
+      ],
+      "minBortle": 3,
+      "description": "Bande poussiéreuse se projetant devant IC 434, essentielle pour former la silhouette de la Tête de cheval.",
+      "primaryCatalogueId": "ldn",
+      "catalogueRefs": [
+        "ldn",
+        "ic"
+      ],
+      "angularSizeArcmin": 6,
+      "surfaceBrightness": null,
+      "distanceLy": 1350
+    },
+    {
+      "designation": "LDN 1251",
+      "name": "LDN 1251 - Fantôme de Céphée",
+      "type": "Nébuleuse obscure",
+      "constellation": "Céphée",
+      "raHours": 22.9,
+      "decDeg": 75.2,
+      "magnitude": null,
+      "bestMonths": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "minBortle": 3,
+      "description": "Nuage sombre tortueux avec des jets Herbig-Haro photogéniques dans Céphée.",
+      "primaryCatalogueId": "ldn",
+      "catalogueRefs": [
+        "ldn"
+      ],
+      "angularSizeArcmin": 60,
+      "surfaceBrightness": null,
+      "distanceLy": 1000
+    },
+    {
+      "designation": "LDN 935",
+      "name": "LDN 935 - Bande sombre de l’Amérique du Nord",
+      "type": "Nébuleuse obscure",
+      "constellation": "Cygne",
+      "raHours": 20.97,
+      "decDeg": 44.3,
+      "magnitude": null,
+      "bestMonths": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "minBortle": 3,
+      "description": "Couloir obscur séparant la nébuleuse de l’Amérique du Nord de Pelican, très contrasté en photo.",
+      "primaryCatalogueId": "ldn",
+      "catalogueRefs": [
+        "ldn",
+        "ngc"
+      ],
+      "angularSizeArcmin": 90,
+      "surfaceBrightness": null,
+      "distanceLy": 2600
+    },
+    {
+      "designation": "LDN 1557",
+      "name": "LDN 1557 - Nuage sombre du Taureau",
+      "type": "Nébuleuse obscure",
+      "constellation": "Taureau",
+      "raHours": 5.3,
+      "decDeg": 20.6,
+      "magnitude": null,
+      "bestMonths": [
+        10,
+        11,
+        12,
+        1
+      ],
+      "minBortle": 3,
+      "description": "Filament sombre serpentant près des Pléiades, accentuant les reflets bleus environnants.",
+      "primaryCatalogueId": "ldn",
+      "catalogueRefs": [
+        "ldn"
+      ],
+      "angularSizeArcmin": 15,
+      "surfaceBrightness": null,
+      "distanceLy": 450
     },
     {
       "designation": "vdB 142",
@@ -2934,6 +4075,225 @@
       "distanceLy": 2400
     },
     {
+      "designation": "vdB 1",
+      "name": "vdB 1 - Lueur polaire",
+      "type": "Nébuleuse par réflexion",
+      "constellation": "Céphée",
+      "raHours": 0.055,
+      "decDeg": 68.3,
+      "magnitude": 10,
+      "bestMonths": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "minBortle": 4,
+      "description": "Petit nuage bleuté dans l’extrémité nord de la Voie lactée, rarement photographié.",
+      "primaryCatalogueId": "vdb",
+      "catalogueRefs": [
+        "vdb"
+      ],
+      "angularSizeArcmin": 5,
+      "surfaceBrightness": 16,
+      "distanceLy": 1200
+    },
+    {
+      "designation": "vdB 14",
+      "name": "vdB 14 - Poussières de la Girafe",
+      "type": "Nébuleuse par réflexion",
+      "constellation": "Girafe",
+      "raHours": 0.667,
+      "decDeg": 61,
+      "magnitude": 7.6,
+      "bestMonths": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "minBortle": 4,
+      "description": "Nuage réfléchissant éclairé par l’étoile orange HD 21291, offrant un contraste subtil.",
+      "primaryCatalogueId": "vdb",
+      "catalogueRefs": [
+        "vdb"
+      ],
+      "angularSizeArcmin": 6,
+      "surfaceBrightness": 15.2,
+      "distanceLy": 1200
+    },
+    {
+      "designation": "vdB 15",
+      "name": "vdB 15 - Reflet voisin de vdB 14",
+      "type": "Nébuleuse par réflexion",
+      "constellation": "Girafe",
+      "raHours": 0.75,
+      "decDeg": 62.2,
+      "magnitude": 8,
+      "bestMonths": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "minBortle": 4,
+      "description": "Nuage doux à proximité de vdB 14, partageant la même zone poussiéreuse de Camelopardalis.",
+      "primaryCatalogueId": "vdb",
+      "catalogueRefs": [
+        "vdb"
+      ],
+      "angularSizeArcmin": 7,
+      "surfaceBrightness": 15.5,
+      "distanceLy": 1200
+    },
+    {
+      "designation": "vdB 31",
+      "name": "vdB 31 - Nébuleuse M78",
+      "type": "Nébuleuse par réflexion",
+      "constellation": "Orion",
+      "raHours": 5.78,
+      "decDeg": 0.05,
+      "magnitude": 8.3,
+      "bestMonths": [
+        11,
+        12,
+        1,
+        2
+      ],
+      "minBortle": 4,
+      "description": "Réflexion brillante entourée de poussières sombres, facilement visible dans Orion.",
+      "primaryCatalogueId": "vdb",
+      "catalogueRefs": [
+        "vdb",
+        "ngc"
+      ],
+      "angularSizeArcmin": 8,
+      "surfaceBrightness": 14.5,
+      "distanceLy": 1600
+    },
+    {
+      "designation": "vdB 52",
+      "name": "vdB 52 - Arc de la Licorne",
+      "type": "Nébuleuse par réflexion",
+      "constellation": "Licorne",
+      "raHours": 7.3,
+      "decDeg": -10.5,
+      "magnitude": 9.5,
+      "bestMonths": [
+        12,
+        1,
+        2,
+        3
+      ],
+      "minBortle": 4,
+      "description": "Arc bleuté baignant la région de la nébuleuse de la Mouette.",
+      "primaryCatalogueId": "vdb",
+      "catalogueRefs": [
+        "vdb",
+        "ic"
+      ],
+      "angularSizeArcmin": 12,
+      "surfaceBrightness": 15.6,
+      "distanceLy": 3800
+    },
+    {
+      "designation": "vdB 101",
+      "name": "vdB 101 - Reflet du Cygne",
+      "type": "Nébuleuse par réflexion",
+      "constellation": "Cygne",
+      "raHours": 20.7,
+      "decDeg": 39.4,
+      "magnitude": 9.8,
+      "bestMonths": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "minBortle": 4,
+      "description": "Nuage bleu associé à un champ étoilé dense, complétant les nébuleuses d’émission voisines.",
+      "primaryCatalogueId": "vdb",
+      "catalogueRefs": [
+        "vdb"
+      ],
+      "angularSizeArcmin": 6,
+      "surfaceBrightness": 15.9,
+      "distanceLy": 2500
+    },
+    {
+      "designation": "vdB 123",
+      "name": "vdB 123 - Nébuleuse de la Trèfle",
+      "type": "Nébuleuse par réflexion",
+      "constellation": "Serpentaire",
+      "raHours": 18.75,
+      "decDeg": -0.3,
+      "magnitude": 10,
+      "bestMonths": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "minBortle": 4,
+      "description": "Reflet pâle sur fond de poussières sombres dans le Serpentaire.",
+      "primaryCatalogueId": "vdb",
+      "catalogueRefs": [
+        "vdb"
+      ],
+      "angularSizeArcmin": 5,
+      "surfaceBrightness": 16.2,
+      "distanceLy": 2000
+    },
+    {
+      "designation": "vdB 141",
+      "name": "vdB 141 - Nébuleuse Fantôme",
+      "type": "Nébuleuse par réflexion",
+      "constellation": "Céphée",
+      "raHours": 21.75,
+      "decDeg": 67.2,
+      "magnitude": 10.5,
+      "bestMonths": [
+        7,
+        8,
+        9,
+        10
+      ],
+      "minBortle": 4,
+      "description": "Structure évoquant un spectre, célèbre pour ses colonnes torsadées éclairées par une étoile intégrée.",
+      "primaryCatalogueId": "vdb",
+      "catalogueRefs": [
+        "vdb"
+      ],
+      "angularSizeArcmin": 6,
+      "surfaceBrightness": 16.5,
+      "distanceLy": 1400
+    },
+    {
+      "designation": "vdB 152",
+      "name": "vdB 152 - Flamme sombre de Céphée",
+      "type": "Nébuleuse par réflexion",
+      "constellation": "Céphée",
+      "raHours": 22.38,
+      "decDeg": 62.3,
+      "magnitude": 10,
+      "bestMonths": [
+        7,
+        8,
+        9,
+        10
+      ],
+      "minBortle": 4,
+      "description": "Piliers poussiéreux éclairés par une étoile isolée, souvent photographiés avec les nuages obscurs voisins.",
+      "primaryCatalogueId": "vdb",
+      "catalogueRefs": [
+        "vdb",
+        "ldn"
+      ],
+      "angularSizeArcmin": 8,
+      "surfaceBrightness": 16.3,
+      "distanceLy": 1400
+    },
+    {
       "designation": "Gaia 1",
       "name": "Gaia 1 - Amas ouvert",
       "type": "Amas ouvert",
@@ -2958,6 +4318,246 @@
       "distanceLy": 15000
     },
     {
+      "designation": "Vega",
+      "name": "Vega (Alpha Lyrae)",
+      "type": "Étoile",
+      "constellation": "Lyre",
+      "raHours": 18.615,
+      "decDeg": 38.783,
+      "magnitude": 0.03,
+      "bestMonths": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "minBortle": 9,
+      "description": "Étoile de référence des magnitudes visuelles, servant souvent à calibrer les poses et l’autoguidage.",
+      "primaryCatalogueId": "gaia",
+      "catalogueRefs": [
+        "gaia"
+      ],
+      "angularSizeArcmin": null,
+      "surfaceBrightness": null,
+      "distanceLy": 25
+    },
+    {
+      "designation": "Deneb",
+      "name": "Deneb (Alpha Cygni)",
+      "type": "Étoile",
+      "constellation": "Cygne",
+      "raHours": 20.691,
+      "decDeg": 45.28,
+      "magnitude": 1.25,
+      "bestMonths": [
+        7,
+        8,
+        9,
+        10
+      ],
+      "minBortle": 8,
+      "description": "Supergéante bleue marquant le sommet du Triangle d’été, idéale comme étoile repère.",
+      "primaryCatalogueId": "gaia",
+      "catalogueRefs": [
+        "gaia"
+      ],
+      "angularSizeArcmin": null,
+      "surfaceBrightness": null,
+      "distanceLy": 2600
+    },
+    {
+      "designation": "Altair",
+      "name": "Altair (Alpha Aquilae)",
+      "type": "Étoile",
+      "constellation": "Aigle",
+      "raHours": 19.846,
+      "decDeg": 8.868,
+      "magnitude": 0.77,
+      "bestMonths": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "minBortle": 9,
+      "description": "Rapide rotatrice formant avec Vega et Deneb le célèbre triangle d’été.",
+      "primaryCatalogueId": "gaia",
+      "catalogueRefs": [
+        "gaia"
+      ],
+      "angularSizeArcmin": null,
+      "surfaceBrightness": null,
+      "distanceLy": 17
+    },
+    {
+      "designation": "Capella",
+      "name": "Capella (Alpha Aurigae)",
+      "type": "Étoile",
+      "constellation": "Cocher",
+      "raHours": 5.278,
+      "decDeg": 46,
+      "magnitude": 0.08,
+      "bestMonths": [
+        10,
+        11,
+        12,
+        1
+      ],
+      "minBortle": 9,
+      "description": "Système binaire jaune brillant qui domine le ciel hivernal boréal.",
+      "primaryCatalogueId": "gaia",
+      "catalogueRefs": [
+        "gaia"
+      ],
+      "angularSizeArcmin": null,
+      "surfaceBrightness": null,
+      "distanceLy": 42
+    },
+    {
+      "designation": "Betelgeuse",
+      "name": "Betelgeuse (Alpha Orionis)",
+      "type": "Étoile",
+      "constellation": "Orion",
+      "raHours": 5.919,
+      "decDeg": 7.407,
+      "magnitude": 0.5,
+      "bestMonths": [
+        11,
+        12,
+        1,
+        2
+      ],
+      "minBortle": 9,
+      "description": "Supergéante rouge variable, excellente balise pour la mise au point et l’équilibrage des filtres.",
+      "primaryCatalogueId": "gaia",
+      "catalogueRefs": [
+        "gaia"
+      ],
+      "angularSizeArcmin": null,
+      "surfaceBrightness": null,
+      "distanceLy": 550
+    },
+    {
+      "designation": "Rigel",
+      "name": "Rigel (Beta Orionis)",
+      "type": "Étoile",
+      "constellation": "Orion",
+      "raHours": 5.243,
+      "decDeg": -8.202,
+      "magnitude": 0.18,
+      "bestMonths": [
+        11,
+        12,
+        1,
+        2
+      ],
+      "minBortle": 9,
+      "description": "Supergéante bleue marquant le pied d’Orion, utile pour régler le cadrage des nébuleuses hivernales.",
+      "primaryCatalogueId": "gaia",
+      "catalogueRefs": [
+        "gaia"
+      ],
+      "angularSizeArcmin": null,
+      "surfaceBrightness": null,
+      "distanceLy": 860
+    },
+    {
+      "designation": "Aldébaran",
+      "name": "Aldébaran (Alpha Tauri)",
+      "type": "Étoile",
+      "constellation": "Taureau",
+      "raHours": 4.6,
+      "decDeg": 16.509,
+      "magnitude": 0.85,
+      "bestMonths": [
+        9,
+        10,
+        11,
+        12
+      ],
+      "minBortle": 9,
+      "description": "Géante orange située devant l’amas des Hyades, très pratique pour aligner un télescope.",
+      "primaryCatalogueId": "gaia",
+      "catalogueRefs": [
+        "gaia"
+      ],
+      "angularSizeArcmin": null,
+      "surfaceBrightness": null,
+      "distanceLy": 65
+    },
+    {
+      "designation": "Antares",
+      "name": "Antares (Alpha Scorpii)",
+      "type": "Étoile",
+      "constellation": "Scorpion",
+      "raHours": 16.49,
+      "decDeg": -26.43,
+      "magnitude": 0.96,
+      "bestMonths": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "minBortle": 8,
+      "description": "Supergéante rouge flamboyante accompagnée d’une compagne bleue, idéale pour les tests HDR.",
+      "primaryCatalogueId": "gaia",
+      "catalogueRefs": [
+        "gaia"
+      ],
+      "angularSizeArcmin": null,
+      "surfaceBrightness": null,
+      "distanceLy": 550
+    },
+    {
+      "designation": "Fomalhaut",
+      "name": "Fomalhaut (Alpha Piscis Austrini)",
+      "type": "Étoile",
+      "constellation": "Poisson Austral",
+      "raHours": 22.96,
+      "decDeg": -29.62,
+      "magnitude": 1.16,
+      "bestMonths": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "minBortle": 9,
+      "description": "Étoile isolée du ciel austral, point de départ d’alignements automnaux.",
+      "primaryCatalogueId": "gaia",
+      "catalogueRefs": [
+        "gaia"
+      ],
+      "angularSizeArcmin": null,
+      "surfaceBrightness": null,
+      "distanceLy": 25
+    },
+    {
+      "designation": "Achernar",
+      "name": "Achernar (Alpha Eridani)",
+      "type": "Étoile",
+      "constellation": "Éridan",
+      "raHours": 1.63,
+      "decDeg": -57.24,
+      "magnitude": 0.46,
+      "bestMonths": [
+        9,
+        10,
+        11,
+        12
+      ],
+      "minBortle": 8,
+      "description": "Étoile oblate très rapide, repère brillant pour les observateurs de l’hémisphère sud.",
+      "primaryCatalogueId": "gaia",
+      "catalogueRefs": [
+        "gaia"
+      ],
+      "angularSizeArcmin": null,
+      "surfaceBrightness": null,
+      "distanceLy": 139
+    },
+    {
       "designation": "UGC 2885",
       "name": "UGC 2885 - Galaxie de Rubin",
       "type": "Galaxie spirale",
@@ -2980,6 +4580,224 @@
       "angularSizeArcmin": 6,
       "surfaceBrightness": 14.5,
       "distanceLy": 232000000
+    },
+    {
+      "designation": "UGC 1810",
+      "name": "UGC 1810 - Spirale déformée de Arp 273",
+      "type": "Galaxie en interaction",
+      "constellation": "Andromède",
+      "raHours": 11.32,
+      "decDeg": 54.4,
+      "magnitude": 13.7,
+      "bestMonths": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "minBortle": 3,
+      "description": "Galaxie spirale étirée par sa compagne UGC 1813, formant l’ensemble photogénique Arp 273.",
+      "primaryCatalogueId": "ugc",
+      "catalogueRefs": [
+        "ugc",
+        "arp"
+      ],
+      "angularSizeArcmin": 2.2,
+      "surfaceBrightness": 15.8,
+      "distanceLy": 300000000
+    },
+    {
+      "designation": "UGC 7252",
+      "name": "UGC 7252 - Galaxie Atomes pour la Paix",
+      "type": "Galaxie en interaction",
+      "constellation": "Poisson Austral",
+      "raHours": 22.36,
+      "decDeg": -24.67,
+      "magnitude": 12.7,
+      "bestMonths": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "minBortle": 3,
+      "description": "Résultat tourbillonnant de la fusion de deux galaxies, exhibant de larges queues marbrées.",
+      "primaryCatalogueId": "ugc",
+      "catalogueRefs": [
+        "ugc"
+      ],
+      "angularSizeArcmin": 1.6,
+      "surfaceBrightness": 14.9,
+      "distanceLy": 220000000
+    },
+    {
+      "designation": "UGC 10214",
+      "name": "UGC 10214 - Galaxie du Têtard",
+      "type": "Galaxie en interaction",
+      "constellation": "Dragon",
+      "raHours": 16.101,
+      "decDeg": 55.43,
+      "magnitude": 14.4,
+      "bestMonths": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "minBortle": 3,
+      "description": "Longue queue d’étoiles et de gaz arrachée par une interaction, surnommée la galaxie du Têtard.",
+      "primaryCatalogueId": "ugc",
+      "catalogueRefs": [
+        "ugc"
+      ],
+      "angularSizeArcmin": 1.5,
+      "surfaceBrightness": 16,
+      "distanceLy": 420000000
+    },
+    {
+      "designation": "UGC 9618",
+      "name": "UGC 9618 - Système double VV 254",
+      "type": "Galaxie en interaction",
+      "constellation": "Bouvier",
+      "raHours": 14.994,
+      "decDeg": 24.88,
+      "magnitude": 14,
+      "bestMonths": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "minBortle": 3,
+      "description": "Couple de galaxies en collision produisant des ponts de matière et des flambées de formation stellaire.",
+      "primaryCatalogueId": "ugc",
+      "catalogueRefs": [
+        "ugc"
+      ],
+      "angularSizeArcmin": 1.2,
+      "surfaceBrightness": 16.2,
+      "distanceLy": 500000000
+    },
+    {
+      "designation": "UGC 5101",
+      "name": "UGC 5101 - Noyau ultra-lumineux infrarouge",
+      "type": "Galaxie active",
+      "constellation": "Grande Ourse",
+      "raHours": 9.357,
+      "decDeg": 61.21,
+      "magnitude": 13.4,
+      "bestMonths": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "minBortle": 3,
+      "description": "Galaxie poussiéreuse alimentant un noyau actif puissant, brillante en infrarouge.",
+      "primaryCatalogueId": "ugc",
+      "catalogueRefs": [
+        "ugc"
+      ],
+      "angularSizeArcmin": 1.1,
+      "surfaceBrightness": 15.7,
+      "distanceLy": 550000000
+    },
+    {
+      "designation": "UGC 8335",
+      "name": "UGC 8335 - Galaxies siamoises Arp 238",
+      "type": "Galaxies en interaction",
+      "constellation": "Dragon",
+      "raHours": 13.917,
+      "decDeg": 62.26,
+      "magnitude": 13.8,
+      "bestMonths": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "minBortle": 3,
+      "description": "Duo de spirales entrelacées présentant deux noyaux actifs et de longues queues marquées.",
+      "primaryCatalogueId": "ugc",
+      "catalogueRefs": [
+        "ugc",
+        "arp"
+      ],
+      "angularSizeArcmin": 1.4,
+      "surfaceBrightness": 15.9,
+      "distanceLy": 400000000
+    },
+    {
+      "designation": "UGC 12591",
+      "name": "UGC 12591 - Galaxie ultra-rapide",
+      "type": "Galaxie lenticulaire",
+      "constellation": "Pégase",
+      "raHours": 23.365,
+      "decDeg": 13.4,
+      "magnitude": 13,
+      "bestMonths": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "minBortle": 3,
+      "description": "Lenticulaire massive réputée pour sa vitesse de rotation record.",
+      "primaryCatalogueId": "ugc",
+      "catalogueRefs": [
+        "ugc"
+      ],
+      "angularSizeArcmin": 0.9,
+      "surfaceBrightness": 15.4,
+      "distanceLy": 400000000
+    },
+    {
+      "designation": "UGC 4459",
+      "name": "UGC 4459 - Galaxie naine bleue",
+      "type": "Galaxie naine",
+      "constellation": "Grande Ourse",
+      "raHours": 8.42,
+      "decDeg": 66.05,
+      "magnitude": 13.6,
+      "bestMonths": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "minBortle": 4,
+      "description": "Petite galaxie irrégulière riche en jeunes étoiles bleues dans le voisinage local.",
+      "primaryCatalogueId": "ugc",
+      "catalogueRefs": [
+        "ugc"
+      ],
+      "angularSizeArcmin": 3,
+      "surfaceBrightness": 15.5,
+      "distanceLy": 7500000
+    },
+    {
+      "designation": "UGC 6090",
+      "name": "UGC 6090 - Interaction à double noyau",
+      "type": "Galaxie en interaction",
+      "constellation": "Lion",
+      "raHours": 10.168,
+      "decDeg": 23.05,
+      "magnitude": 13.9,
+      "bestMonths": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "minBortle": 3,
+      "description": "Galaxie en fusion montrant deux noyaux lumineux et des ponts de matière distordus.",
+      "primaryCatalogueId": "ugc",
+      "catalogueRefs": [
+        "ugc"
+      ],
+      "angularSizeArcmin": 1.6,
+      "surfaceBrightness": 15.8,
+      "distanceLy": 400000000
     },
     {
       "designation": "Arp 273",
@@ -3007,6 +4825,230 @@
       "distanceLy": 300000000
     },
     {
+      "designation": "Arp 220",
+      "name": "Arp 220 - Ultra-lumineuse infrarouge",
+      "type": "Galaxies en interaction",
+      "constellation": "Bouvier",
+      "raHours": 15.55,
+      "decDeg": 23.49,
+      "magnitude": 13.9,
+      "bestMonths": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "minBortle": 3,
+      "description": "Galaxie de type ULIRG, résidu d’une fusion compacte riche en poussière.",
+      "primaryCatalogueId": "arp",
+      "catalogueRefs": [
+        "arp",
+        "ugc"
+      ],
+      "angularSizeArcmin": 1.2,
+      "surfaceBrightness": 16,
+      "distanceLy": 250000000
+    },
+    {
+      "designation": "Arp 299",
+      "name": "Arp 299 - NGC 3690 et IC 694",
+      "type": "Galaxies en interaction",
+      "constellation": "Grande Ourse",
+      "raHours": 11.47,
+      "decDeg": 58.56,
+      "magnitude": 12.9,
+      "bestMonths": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "minBortle": 3,
+      "description": "Collision de deux galaxies flamboyantes, théâtre de sursauts de formation stellaire.",
+      "primaryCatalogueId": "arp",
+      "catalogueRefs": [
+        "arp",
+        "ngc"
+      ],
+      "angularSizeArcmin": 1.5,
+      "surfaceBrightness": 15.4,
+      "distanceLy": 150000000
+    },
+    {
+      "designation": "Arp 147",
+      "name": "Arp 147 - Anneau en expansion",
+      "type": "Galaxie annulaire",
+      "constellation": "Baleine",
+      "raHours": 3.269,
+      "decDeg": -19.17,
+      "magnitude": 13.5,
+      "bestMonths": [
+        10,
+        11,
+        12,
+        1
+      ],
+      "minBortle": 3,
+      "description": "Structure annulaire bleutée résultant d’une collision quasi frontale.",
+      "primaryCatalogueId": "arp",
+      "catalogueRefs": [
+        "arp"
+      ],
+      "angularSizeArcmin": 0.5,
+      "surfaceBrightness": 15.6,
+      "distanceLy": 430000000
+    },
+    {
+      "designation": "Arp 104",
+      "name": "Arp 104 - Galaxie de Keenan",
+      "type": "Galaxies en interaction",
+      "constellation": "Bouvier",
+      "raHours": 12.45,
+      "decDeg": 28.54,
+      "magnitude": 13.5,
+      "bestMonths": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "minBortle": 3,
+      "description": "Couple de galaxies relié par un pont tidal, rappelant une harpe cosmique.",
+      "primaryCatalogueId": "arp",
+      "catalogueRefs": [
+        "arp"
+      ],
+      "angularSizeArcmin": 1,
+      "surfaceBrightness": 15.8,
+      "distanceLy": 320000000
+    },
+    {
+      "designation": "Arp 244",
+      "name": "Arp 244 - Galaxies des Antennes",
+      "type": "Galaxies en interaction",
+      "constellation": "Corbeau",
+      "raHours": 12,
+      "decDeg": -18.87,
+      "magnitude": 10.7,
+      "bestMonths": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "minBortle": 3,
+      "description": "Célèbre paire NGC 4038/4039 dont les longues antennes témoignent d’une fusion spectaculaire.",
+      "primaryCatalogueId": "arp",
+      "catalogueRefs": [
+        "arp",
+        "ngc"
+      ],
+      "angularSizeArcmin": 2.5,
+      "surfaceBrightness": 14.5,
+      "distanceLy": 65000000
+    },
+    {
+      "designation": "Arp 85",
+      "name": "Arp 85 - Galaxie du Tourbillon (M51)",
+      "type": "Galaxies en interaction",
+      "constellation": "Chiens de chasse",
+      "raHours": 13.497,
+      "decDeg": 47.195,
+      "magnitude": 8.4,
+      "bestMonths": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "minBortle": 4,
+      "description": "Spirale grand design M51 et sa compagne NGC 5195, référence en astrophotographie de galaxies.",
+      "primaryCatalogueId": "arp",
+      "catalogueRefs": [
+        "arp",
+        "messier",
+        "ngc"
+      ],
+      "angularSizeArcmin": 11,
+      "surfaceBrightness": 13.3,
+      "distanceLy": 23000000
+    },
+    {
+      "designation": "Arp 242",
+      "name": "Arp 242 - Galaxies des Souris",
+      "type": "Galaxies en interaction",
+      "constellation": "Chevelure de Bérénice",
+      "raHours": 12.602,
+      "decDeg": 30.67,
+      "magnitude": 13.9,
+      "bestMonths": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "minBortle": 3,
+      "description": "Deux spirales étirées en de longues queues fines, surnommées les Souris galactiques.",
+      "primaryCatalogueId": "arp",
+      "catalogueRefs": [
+        "arp",
+        "ngc"
+      ],
+      "angularSizeArcmin": 1.2,
+      "surfaceBrightness": 15.9,
+      "distanceLy": 290000000
+    },
+    {
+      "designation": "Arp 271",
+      "name": "Arp 271 - NGC 5426 et NGC 5427",
+      "type": "Galaxies en interaction",
+      "constellation": "Vierge",
+      "raHours": 14.03,
+      "decDeg": -6.1,
+      "magnitude": 12.7,
+      "bestMonths": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "minBortle": 3,
+      "description": "Paire de spirales entrelacées échangeant du gaz le long d’un pont lumineux.",
+      "primaryCatalogueId": "arp",
+      "catalogueRefs": [
+        "arp",
+        "ngc"
+      ],
+      "angularSizeArcmin": 1.3,
+      "surfaceBrightness": 15.6,
+      "distanceLy": 90000000
+    },
+    {
+      "designation": "Arp 305",
+      "name": "Arp 305 - Pont de matière NGC 4016/4017",
+      "type": "Galaxies en interaction",
+      "constellation": "Grande Ourse",
+      "raHours": 11.98,
+      "decDeg": 30.6,
+      "magnitude": 13.8,
+      "bestMonths": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "minBortle": 3,
+      "description": "Duo relié par un spectaculaire pont de matière, idéal pour tester la profondeur de pose.",
+      "primaryCatalogueId": "arp",
+      "catalogueRefs": [
+        "arp",
+        "ngc"
+      ],
+      "angularSizeArcmin": 2,
+      "surfaceBrightness": 15.7,
+      "distanceLy": 200000000
+    },
+    {
       "designation": "PGC 6240",
       "name": "PGC 6240 - Galaxie en interaction",
       "type": "Galaxie lenticulaire",
@@ -3030,6 +5072,240 @@
       "angularSizeArcmin": 2.1,
       "surfaceBrightness": 14.9,
       "distanceLy": 400000000
+    },
+    {
+      "designation": "PGC 2557",
+      "name": "PGC 2557 - Galaxie d’Andromède (M31)",
+      "type": "Galaxie spirale",
+      "constellation": "Andromède",
+      "raHours": 0.712,
+      "decDeg": 41.27,
+      "magnitude": 3.4,
+      "bestMonths": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "minBortle": 7,
+      "description": "Voisine géante de la Voie lactée, visible à l’œil nu et parfaite pour les grands champs.",
+      "primaryCatalogueId": "pgc",
+      "catalogueRefs": [
+        "pgc",
+        "messier",
+        "ngc"
+      ],
+      "angularSizeArcmin": 190,
+      "surfaceBrightness": 13.5,
+      "distanceLy": 2537000
+    },
+    {
+      "designation": "PGC 2789",
+      "name": "PGC 2789 - Galaxie du Triangle (M33)",
+      "type": "Galaxie spirale",
+      "constellation": "Triangle",
+      "raHours": 1.253,
+      "decDeg": 30.66,
+      "magnitude": 5.7,
+      "bestMonths": [
+        9,
+        10,
+        11,
+        12
+      ],
+      "minBortle": 6,
+      "description": "Spirale à grand disque riche en nébuleuses HII, très appréciée des astrophotographes.",
+      "primaryCatalogueId": "pgc",
+      "catalogueRefs": [
+        "pgc",
+        "messier",
+        "ngc"
+      ],
+      "angularSizeArcmin": 70,
+      "surfaceBrightness": 14.2,
+      "distanceLy": 2700000
+    },
+    {
+      "designation": "PGC 2248",
+      "name": "PGC 2248 - Galaxie elliptique M32",
+      "type": "Galaxie elliptique",
+      "constellation": "Andromède",
+      "raHours": 0.711,
+      "decDeg": 40.87,
+      "magnitude": 8.1,
+      "bestMonths": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "minBortle": 6,
+      "description": "Compagne elliptique compacte de M31, montrant un bulbe brillant.",
+      "primaryCatalogueId": "pgc",
+      "catalogueRefs": [
+        "pgc",
+        "messier",
+        "ngc"
+      ],
+      "angularSizeArcmin": 7,
+      "surfaceBrightness": 12.6,
+      "distanceLy": 2537000
+    },
+    {
+      "designation": "PGC 37617",
+      "name": "PGC 37617 - Galaxie elliptique M87",
+      "type": "Galaxie elliptique",
+      "constellation": "Vierge",
+      "raHours": 12.514,
+      "decDeg": 12.4,
+      "magnitude": 8.6,
+      "bestMonths": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "minBortle": 5,
+      "description": "Géante elliptique contenant un trou noir supermassif à la base du célèbre jet de M87.",
+      "primaryCatalogueId": "pgc",
+      "catalogueRefs": [
+        "pgc",
+        "messier",
+        "ngc"
+      ],
+      "angularSizeArcmin": 7,
+      "surfaceBrightness": 12.9,
+      "distanceLy": 53000000
+    },
+    {
+      "designation": "PGC 40996",
+      "name": "PGC 40996 - Galaxie du Sombrero (M104)",
+      "type": "Galaxie spirale",
+      "constellation": "Vierge",
+      "raHours": 12.59,
+      "decDeg": -11.62,
+      "magnitude": 8,
+      "bestMonths": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "minBortle": 5,
+      "description": "Spirale vue par la tranche soulignée par une bande de poussière sombre très contrastée.",
+      "primaryCatalogueId": "pgc",
+      "catalogueRefs": [
+        "pgc",
+        "messier",
+        "ngc"
+      ],
+      "angularSizeArcmin": 9,
+      "surfaceBrightness": 12.7,
+      "distanceLy": 29000000
+    },
+    {
+      "designation": "PGC 45948",
+      "name": "PGC 45948 - Galaxie du Moulinet austral (M83)",
+      "type": "Galaxie spirale",
+      "constellation": "Hydre femelle",
+      "raHours": 13.62,
+      "decDeg": -29.87,
+      "magnitude": 7.6,
+      "bestMonths": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "minBortle": 4,
+      "description": "Spirale barrée australe riche en régions HII et supernovae récentes.",
+      "primaryCatalogueId": "pgc",
+      "catalogueRefs": [
+        "pgc",
+        "messier",
+        "ngc"
+      ],
+      "angularSizeArcmin": 12.9,
+      "surfaceBrightness": 12.9,
+      "distanceLy": 15000000
+    },
+    {
+      "designation": "PGC 43237",
+      "name": "PGC 43237 - Galaxie de Bode (M81)",
+      "type": "Galaxie spirale",
+      "constellation": "Grande Ourse",
+      "raHours": 9.925,
+      "decDeg": 69.07,
+      "magnitude": 6.9,
+      "bestMonths": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "minBortle": 4,
+      "description": "Spirale lumineuse voisine de M82, offrant un bulbe jaune et des bras délicats.",
+      "primaryCatalogueId": "pgc",
+      "catalogueRefs": [
+        "pgc",
+        "messier",
+        "ngc"
+      ],
+      "angularSizeArcmin": 26,
+      "surfaceBrightness": 13.1,
+      "distanceLy": 12000000
+    },
+    {
+      "designation": "PGC 44182",
+      "name": "PGC 44182 - Galaxie du Cigare (M82)",
+      "type": "Galaxie irrégulière",
+      "constellation": "Grande Ourse",
+      "raHours": 9.942,
+      "decDeg": 69.68,
+      "magnitude": 8.4,
+      "bestMonths": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "minBortle": 4,
+      "description": "Galaxie starburst inclinée présentant des vents galactiques très photogéniques.",
+      "primaryCatalogueId": "pgc",
+      "catalogueRefs": [
+        "pgc",
+        "messier",
+        "ngc"
+      ],
+      "angularSizeArcmin": 11,
+      "surfaceBrightness": 12.8,
+      "distanceLy": 12000000
+    },
+    {
+      "designation": "PGC 5457",
+      "name": "PGC 5457 - Galaxie du Moulinet (M101)",
+      "type": "Galaxie spirale",
+      "constellation": "Grande Ourse",
+      "raHours": 14.037,
+      "decDeg": 54.35,
+      "magnitude": 7.9,
+      "bestMonths": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "minBortle": 4,
+      "description": "Spirale à grand disque avec de vastes bras parsemés de nébuleuses rosées, superbe en poses profondes.",
+      "primaryCatalogueId": "pgc",
+      "catalogueRefs": [
+        "pgc",
+        "messier",
+        "ngc"
+      ],
+      "angularSizeArcmin": 28,
+      "surfaceBrightness": 13.6,
+      "distanceLy": 21000000
     }
   ]
 }
