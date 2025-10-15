@@ -48,6 +48,13 @@ const catalogueList = document.getElementById('catalogueList');
 const nightModeToggle = document.getElementById('nightModeToggle');
 const catalogueHeading = document.getElementById('catalogueTitle');
 const catalogueSubheading = document.getElementById('catalogueSubtitle');
+const catalogueSearchInput = document.getElementById('catalogueSearch');
+const resetAllFiltersButton = document.getElementById('resetAllFilters');
+const catalogueActiveFilters = document.getElementById('catalogueActiveFilters');
+const typeFilterDetails = catalogueTypeOptions ? catalogueTypeOptions.closest('details') : null;
+const difficultyFilterDetails = catalogueDifficultyOptions ? catalogueDifficultyOptions.closest('details') : null;
+const seasonFilterDetails = catalogueSeasonOptions ? catalogueSeasonOptions.closest('details') : null;
+const catalogueSelectionDetails = catalogueSelectionOptions ? catalogueSelectionOptions.closest('details') : null;
 
 const SORT_BY = {
   score: 'score',
@@ -113,6 +120,52 @@ function formatObservationModeLabel(mode) {
   return mode;
 }
 
+function normaliseSearchText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function buildSearchCorpus(object) {
+  if (!object) return '';
+  const numericId = Number(object.number);
+  const parts = [
+    object.name,
+    object.designation,
+    Number.isFinite(numericId) ? ` ${numericId}` : '',
+    object.type,
+    object.category,
+    object.constellation,
+    Array.isArray(object.catalogueRefs) ? object.catalogueRefs.join(' ') : ''
+  ];
+  return normaliseSearchText(parts.filter(Boolean).join(' '));
+}
+
+function setActiveSearchValue(value) {
+  activeSearchLabel = String(value || '').trim();
+  activeSearchTerm = normaliseSearchText(value);
+}
+
+function escapeForQuery(value) {
+  if (typeof value !== 'string') return value;
+  if (typeof window !== 'undefined' && window.CSS && typeof window.CSS.escape === 'function') {
+    return window.CSS.escape(value);
+  }
+  return value.replace(/["\\]/g, '\\$&');
+}
+
+function queryFilterInput(container, value) {
+  if (!container) return null;
+  const escaped = escapeForQuery(String(value));
+  try {
+    return container.querySelector(`input[value="${escaped}"]`);
+  } catch (error) {
+    return Array.from(container.querySelectorAll('input')).find((input) => input.value === value) || null;
+  }
+}
+
 function applyNightMode(enabled, { persist = true } = {}) {
   document.body.classList.toggle('night-mode', enabled);
   if (nightModeToggle) {
@@ -148,6 +201,21 @@ if (nightModeToggle) {
   });
 }
 
+if (catalogueSearchInput) {
+  setActiveSearchValue(catalogueSearchInput.value || '');
+  catalogueSearchInput.addEventListener('input', (event) => {
+    setActiveSearchValue(event.target.value || '');
+    updateCatalogue();
+  });
+}
+
+if (resetAllFiltersButton) {
+  resetAllFiltersButton.addEventListener('click', () => {
+    if (resetAllFiltersButton.disabled) return;
+    clearAllFilters();
+  });
+}
+
 const SCORE_CLASSES = {
   high: 'score-good',
   medium: 'score-medium',
@@ -163,6 +231,8 @@ let currentSort = SORT_BY.score;
 let activeTypeFilters = [];
 let activeDifficultyFilters = [];
 let activeSeasonFilters = [];
+let activeSearchTerm = '';
+let activeSearchLabel = '';
 let catalogueSources = new Map();
 const catalogueLoadPromises = new Map();
 const loadedCatalogueIds = new Set();
@@ -699,6 +769,9 @@ function updateCatalogueFilterSummary(count = 0, total = 0) {
     return;
   }
   const activeFilters = [];
+  if (activeSearchLabel) {
+    activeFilters.push(`recherche (« ${activeSearchLabel} »)`);
+  }
   if (activeTypeFilters.length > 0) {
     activeFilters.push(`types (${activeTypeFilters.join(', ')})`);
   }
@@ -725,6 +798,143 @@ function updateCatalogueFilterSummary(count = 0, total = 0) {
 
   const details = activeFilters.length > 0 ? ` selon ${activeFilters.join(' · ')}` : '';
   catalogueFilterSummary.textContent = `${count} objet${count > 1 ? 's' : ''} sur ${total} correspondent aux filtres${details}.`;
+}
+
+function hasCustomCatalogueSelection() {
+  if (!Array.isArray(catalogueDefinitions) || catalogueDefinitions.length === 0) {
+    return false;
+  }
+  if (activeCatalogueIds === null) {
+    return false;
+  }
+  const selected = getSelectionIds(activeCatalogueIds);
+  return selected.length > 0 && selected.length < catalogueDefinitions.length;
+}
+
+function syncFilterDetailState(detailsElement, hasActive) {
+  if (!detailsElement) return;
+  if (hasActive) {
+    detailsElement.dataset.active = 'true';
+    detailsElement.open = true;
+  } else {
+    delete detailsElement.dataset.active;
+  }
+}
+
+function collectActiveFilterDescriptors() {
+  const descriptors = [];
+  if (activeSearchLabel) {
+    descriptors.push({
+      group: 'search',
+      id: 'search',
+      label: `Recherche : « ${activeSearchLabel} »`
+    });
+  }
+  activeTypeFilters.forEach((value) => {
+    descriptors.push({ group: 'type', id: value, label: value });
+  });
+  activeDifficultyFilters.forEach((value) => {
+    descriptors.push({
+      group: 'difficulty',
+      id: value,
+      label: DIFFICULTY_LABELS.get(value) || value
+    });
+  });
+  activeSeasonFilters.forEach((value) => {
+    descriptors.push({
+      group: 'season',
+      id: value,
+      label: SEASON_LABELS.get(value) || value
+    });
+  });
+  return descriptors;
+}
+
+function renderActiveFilterChips() {
+  if (!catalogueActiveFilters) return;
+  catalogueActiveFilters.innerHTML = '';
+  const descriptors = collectActiveFilterDescriptors();
+  if (descriptors.length === 0) {
+    const span = document.createElement('span');
+    span.className = 'help-text--inline';
+    span.textContent = 'Aucun filtre supplémentaire n’est appliqué.';
+    catalogueActiveFilters.appendChild(span);
+    if (resetAllFiltersButton) {
+      resetAllFiltersButton.disabled = true;
+    }
+  } else {
+    descriptors.forEach((descriptor) => {
+      const chip = document.createElement('span');
+      chip.className = 'filter-chip';
+      const label = document.createElement('span');
+      label.className = 'filter-chip__label';
+      label.textContent = descriptor.label;
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'filter-chip__remove';
+      removeBtn.setAttribute('aria-label', `Supprimer le filtre ${descriptor.label}`);
+      removeBtn.textContent = '×';
+      removeBtn.addEventListener('click', () => {
+        if (descriptor.group === 'search') {
+          setActiveSearchValue('');
+          if (catalogueSearchInput) {
+            catalogueSearchInput.value = '';
+            catalogueSearchInput.focus();
+          }
+        } else if (descriptor.group === 'type') {
+          const input = queryFilterInput(catalogueTypeOptions, descriptor.id);
+          if (input) input.checked = false;
+          activeTypeFilters = activeTypeFilters.filter((value) => value !== descriptor.id);
+        } else if (descriptor.group === 'difficulty') {
+          const input = queryFilterInput(catalogueDifficultyOptions, descriptor.id);
+          if (input) input.checked = false;
+          activeDifficultyFilters = activeDifficultyFilters.filter((value) => value !== descriptor.id);
+        } else if (descriptor.group === 'season') {
+          const input = queryFilterInput(catalogueSeasonOptions, descriptor.id);
+          if (input) input.checked = false;
+          activeSeasonFilters = activeSeasonFilters.filter((value) => value !== descriptor.id);
+        }
+        updateCatalogue();
+      });
+      chip.appendChild(label);
+      chip.appendChild(removeBtn);
+      catalogueActiveFilters.appendChild(chip);
+    });
+    if (resetAllFiltersButton) {
+      resetAllFiltersButton.disabled = false;
+    }
+  }
+  syncFilterDetailState(typeFilterDetails, activeTypeFilters.length > 0);
+  syncFilterDetailState(difficultyFilterDetails, activeDifficultyFilters.length > 0);
+  syncFilterDetailState(seasonFilterDetails, activeSeasonFilters.length > 0);
+  syncFilterDetailState(catalogueSelectionDetails, hasCustomCatalogueSelection());
+}
+
+function clearAllFilters() {
+  if (catalogueTypeOptions) {
+    catalogueTypeOptions.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+      input.checked = false;
+    });
+  }
+  if (catalogueDifficultyOptions) {
+    catalogueDifficultyOptions.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+      input.checked = false;
+    });
+  }
+  if (catalogueSeasonOptions) {
+    catalogueSeasonOptions.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+      input.checked = false;
+    });
+  }
+  activeTypeFilters = [];
+  activeDifficultyFilters = [];
+  activeSeasonFilters = [];
+  setActiveSearchValue('');
+  if (catalogueSearchInput) {
+    catalogueSearchInput.value = '';
+    catalogueSearchInput.focus();
+  }
+  updateCatalogue();
 }
 
 const DEFAULT_CATEGORY_LABEL = 'Objet céleste';
@@ -779,6 +989,12 @@ function resolveSeasonTags(object) {
 function applyFilters(entries) {
   if (!Array.isArray(entries)) return [];
   return entries.filter(({ object }) => {
+    if (activeSearchTerm) {
+      const corpus = buildSearchCorpus(object);
+      if (!corpus.includes(activeSearchTerm)) {
+        return false;
+      }
+    }
     const category = resolveObjectCategory(object);
     if (activeTypeFilters.length > 0 && !activeTypeFilters.includes(category)) {
       return false;
@@ -979,6 +1195,7 @@ function updateCatalogue() {
     }
     updateCatalogueSummary(selectionObjects, lastSessionSnapshot);
     updateCatalogueFilterSummary(0, 0);
+    renderActiveFilterChips();
     return;
   }
   const filtered = applyFilters(catalogueEntries);
@@ -986,6 +1203,7 @@ function updateCatalogue() {
   if (!catalogueGrid) {
     updateCatalogueSummary(selectionObjects, lastSessionSnapshot);
     updateCatalogueFilterSummary(filtered.length, catalogueEntries.length);
+    renderActiveFilterChips();
     return;
   }
   if (sorted.length === 0) {
@@ -1000,6 +1218,7 @@ function updateCatalogue() {
   }
   updateCatalogueSummary(selectionObjects, lastSessionSnapshot);
   updateCatalogueFilterSummary(filtered.length, catalogueEntries.length);
+  renderActiveFilterChips();
 }
 
 function readSessionSnapshot() {
@@ -1451,5 +1670,7 @@ if (clearCatalogueSelectionButton) {
     });
   });
 }
+
+renderActiveFilterChips();
 
 bootstrap();
