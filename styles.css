@@ -1833,7 +1833,8 @@ p.help-text {
 .visibility-chart__now-line {
   stroke: var(--text-soft);
   stroke-width: 1.5;
-  stroke-dasharray: 3 4;
+  stroke-linecap: round;
+  stroke-dasharray: 0.8 6;
   opacity: 0.8;
 }
 
@@ -1873,6 +1874,12 @@ p.help-text {
 .night-mode .visibility-chart__dot {
   fill: rgba(255, 235, 235, 0.85);
   stroke: #ff8c8c;
+}
+
+.visibility-chart__now-dot {
+  fill: var(--accent-strong);
+  stroke: var(--bg-panel);
+  stroke-width: 1.6;
 }
 
 .visibility-chart__label {

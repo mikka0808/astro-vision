@@ -1,5 +1,7 @@
 import { formatLocalTime } from './astro-core.js';
 
+const NOW_MARKER_SYMBOL = Symbol('visibilityChartNowMarker');
+
 function normaliseTrack(trackSource = []) {
   if (!Array.isArray(trackSource)) {
     return [];
@@ -19,6 +21,10 @@ function normaliseTrack(trackSource = []) {
 
 export function renderAltitudeSparkline(container, trackSource, options = {}) {
   if (!container) return;
+  const previousMarker = container[NOW_MARKER_SYMBOL];
+  if (previousMarker && typeof previousMarker.stop === 'function') {
+    previousMarker.stop();
+  }
   const {
     objectName = 'la cible',
     width = 280,
@@ -109,16 +115,95 @@ export function renderAltitudeSparkline(container, trackSource, options = {}) {
   linePath.setAttribute('class', 'visibility-chart__line');
   svg.appendChild(linePath);
 
-  const now = Date.now();
-  if (now >= minTime && now <= maxTime) {
-    const nowLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  const altitudeAt = (time) => {
+    if (track.length === 0) return null;
+    if (track.length === 1) return track[0].altitude;
+    if (time <= minTime) return track[0].altitude;
+    if (time >= maxTime) return track[track.length - 1].altitude;
+    for (let i = 0; i < track.length - 1; i += 1) {
+      const current = track[i];
+      const next = track[i + 1];
+      const start = current.date.getTime();
+      const end = next.date.getTime();
+      if (time >= start && time <= end) {
+        if (end === start) {
+          return next.altitude;
+        }
+        const ratio = (time - start) / (end - start);
+        return current.altitude + (next.altitude - current.altitude) * ratio;
+      }
+    }
+    return null;
+  };
+
+  const nowLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  nowLine.setAttribute('y1', margin.top);
+  nowLine.setAttribute('y2', margin.top + chartHeight);
+  nowLine.setAttribute('class', 'visibility-chart__now-line');
+  nowLine.setAttribute('display', 'none');
+
+  const nowDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  nowDot.setAttribute('r', 4.2);
+  nowDot.setAttribute('class', 'visibility-chart__now-dot');
+  nowDot.setAttribute('display', 'none');
+
+  const updateNowMarker = () => {
+    const now = Date.now();
+    if (now < minTime || now > maxTime) {
+      nowLine.setAttribute('display', 'none');
+      nowDot.setAttribute('display', 'none');
+      return;
+    }
+
     const x = scaleX(now);
     nowLine.setAttribute('x1', x);
     nowLine.setAttribute('x2', x);
-    nowLine.setAttribute('y1', margin.top);
-    nowLine.setAttribute('y2', margin.top + chartHeight);
-    nowLine.setAttribute('class', 'visibility-chart__now-line');
-    svg.appendChild(nowLine);
+    nowLine.removeAttribute('display');
+
+    const nowAltitude = altitudeAt(now);
+    if (Number.isFinite(nowAltitude)) {
+      nowDot.setAttribute('cx', x);
+      nowDot.setAttribute('cy', scaleY(nowAltitude));
+      nowDot.removeAttribute('display');
+    } else {
+      nowDot.setAttribute('display', 'none');
+    }
+  };
+
+  const markerState = { stop: null };
+  container[NOW_MARKER_SYMBOL] = markerState;
+
+  const hasRAF = typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function';
+  if (hasRAF) {
+    const raf = window.requestAnimationFrame.bind(window);
+    const caf = typeof window.cancelAnimationFrame === 'function'
+      ? window.cancelAnimationFrame.bind(window)
+      : null;
+    let frameId = null;
+    const step = () => {
+      updateNowMarker();
+      frameId = raf(step);
+    };
+    frameId = raf(step);
+    updateNowMarker();
+    markerState.stop = () => {
+      if (frameId !== null && caf) {
+        caf(frameId);
+        frameId = null;
+      }
+      if (container[NOW_MARKER_SYMBOL] === markerState) {
+        delete container[NOW_MARKER_SYMBOL];
+      }
+    };
+  } else {
+    updateNowMarker();
+    const intervalId = setInterval(updateNowMarker, 60000);
+    markerState.stop = () => {
+      clearInterval(intervalId);
+      if (container[NOW_MARKER_SYMBOL] === markerState) {
+        delete container[NOW_MARKER_SYMBOL];
+      }
+    };
   }
 
   track.forEach((point, index) => {
@@ -129,6 +214,9 @@ export function renderAltitudeSparkline(container, trackSource, options = {}) {
     dot.setAttribute('class', 'visibility-chart__dot');
     svg.appendChild(dot);
   });
+
+  svg.appendChild(nowLine);
+  svg.appendChild(nowDot);
 
   const labelCandidates = [];
   if (thresholdAltitude !== null) {
