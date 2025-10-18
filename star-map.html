@@ -33,6 +33,14 @@
       <div class="panel-body star-map__body">
         <div class="star-map__layout">
           <div class="star-map__canvas" id="starMapCanvasContainer">
+            <div class="star-map__canvas-actions" aria-label="Actions de la carte">
+              <button type="button" id="starMapFullscreen" class="star-map__action-button" aria-pressed="false">
+                ⤢ Plein écran
+              </button>
+              <button type="button" id="starMapAutoRotate" class="star-map__action-button" aria-pressed="false">
+                ⟳ Rotation auto
+              </button>
+            </div>
             <canvas id="starMapCanvas" role="img" aria-label="Carte du ciel interactive"></canvas>
             <div id="starMapTooltip" class="star-map__tooltip" hidden></div>
           </div>
@@ -44,6 +52,10 @@
                 <output id="starMapRotationValue" for="starMapRotation">0,0 h</output>
               </div>
               <button type="button" id="starMapReset" class="link-button">Réinitialiser l’orientation</button>
+              <div class="star-map__control-actions">
+                <button type="button" id="starMapCenterSelection" class="button secondary star-map__control-button">🎯 Centrer Polaris</button>
+              </div>
+              <p class="star-map__control-hint">Double-clique une étoile pour la placer automatiquement au zénith.</p>
             </div>
             <div class="star-map__control">
               <label class="toggle">

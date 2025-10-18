@@ -11,6 +11,9 @@ const constellationsToggle = document.getElementById('starMapConstellations');
 const milkyWayToggle = document.getElementById('starMapMilkyWay');
 const legendList = document.getElementById('constellationLegend');
 const detailsPanel = document.getElementById('starMapDetails');
+const autoRotateButton = document.getElementById('starMapAutoRotate');
+const centerButton = document.getElementById('starMapCenterSelection');
+const fullscreenButton = document.getElementById('starMapFullscreen');
 
 if (!canvas || !canvasContainer || !rotationInput || !rotationValue || !legendList || !detailsPanel) {
   console.warn('Carte du ciel : éléments requis introuvables.');
@@ -798,8 +801,12 @@ const mapState = {
   hoveredStar: null,
   selectedStar: null,
   activeConstellation: null,
+  previewConstellation: null,
   projectedStars: [],
-  projectedPositions: new Map()
+  projectedPositions: new Map(),
+  autoRotate: false,
+  autoRotateFrame: null,
+  lastAutoRotateTime: null
 };
 
 const pointerState = {
@@ -878,6 +885,9 @@ function clamp(value, min, max) {
 }
 
 const MAP_PADDING = 24;
+const MAX_CANVAS_SIZE = 1080;
+const AUTO_ROTATE_SPEED = 0.12;
+const DEFAULT_FOCUS_STAR = 'Polaris';
 
 function projectCoordinates(rightAscension, declination) {
   if (!mapState.radius) {
@@ -1016,10 +1026,17 @@ function drawConstellations() {
   ctx.beginPath();
   ctx.arc(mapState.centerX, mapState.centerY, mapState.radius, 0, TWO_PI);
   ctx.clip();
+  const activeId = mapState.activeConstellation?.id;
+  const previewId = mapState.previewConstellation?.id;
   CONSTELLATIONS.forEach((constellation) => {
-    const highlight = mapState.activeConstellation?.id === constellation.id;
-    ctx.strokeStyle = highlight ? 'rgba(255, 206, 128, 0.95)' : 'rgba(132, 188, 255, 0.4)';
-    ctx.lineWidth = highlight ? 2.4 : 1.1;
+    const highlight = activeId === constellation.id;
+    const preview = !highlight && previewId === constellation.id;
+    ctx.strokeStyle = highlight
+      ? 'rgba(255, 206, 128, 0.95)'
+      : preview
+        ? 'rgba(255, 214, 170, 0.7)'
+        : 'rgba(132, 188, 255, 0.35)';
+    ctx.lineWidth = highlight ? 2.4 : preview ? 1.6 : 1.1;
     constellation.segments.forEach(([fromName, toName]) => {
       const from = mapState.projectedPositions.get(fromName);
       const to = mapState.projectedPositions.get(toName);
@@ -1035,7 +1052,7 @@ function drawConstellations() {
   ctx.restore();
 }
 
-function drawConstellationLabel(constellation) {
+function drawConstellationLabel(constellation, { preview = false } = {}) {
   if (!ctx || !constellation || !constellation.anchor) {
     return;
   }
@@ -1044,11 +1061,18 @@ function drawConstellationLabel(constellation) {
     return;
   }
   ctx.save();
-  ctx.fillStyle = 'rgba(255, 222, 160, 0.95)';
+  const isActive = mapState.activeConstellation?.id === constellation.id;
+  const color = isActive
+    ? 'rgba(255, 222, 160, 0.95)'
+    : preview
+      ? 'rgba(240, 234, 210, 0.92)'
+      : 'rgba(180, 210, 255, 0.85)';
+  ctx.fillStyle = color;
   ctx.font = `${Math.max(13, mapState.radius * 0.07)}px "Inter", system-ui, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(constellation.abbreviation || constellation.name, coords.x, coords.y);
+  const label = constellation.abbreviation || constellation.name;
+  ctx.fillText(label, coords.x, coords.y);
   ctx.restore();
 }
 
@@ -1057,7 +1081,12 @@ function drawStars() {
     return;
   }
   const activeConstellation = mapState.activeConstellation;
+  const previewConstellation = mapState.previewConstellation
+    && (!activeConstellation || mapState.previewConstellation.id !== activeConstellation.id)
+    ? mapState.previewConstellation
+    : null;
   const activeStarNames = new Set();
+  const previewStarNames = new Set();
   if (activeConstellation) {
     activeConstellation.segments.forEach(([fromName, toName]) => {
       activeStarNames.add(fromName);
@@ -1065,6 +1094,15 @@ function drawStars() {
     });
     if (Array.isArray(activeConstellation.notableStars)) {
       activeConstellation.notableStars.forEach((name) => activeStarNames.add(name));
+    }
+  }
+  if (previewConstellation) {
+    previewConstellation.segments.forEach(([fromName, toName]) => {
+      previewStarNames.add(fromName);
+      previewStarNames.add(toName);
+    });
+    if (Array.isArray(previewConstellation.notableStars)) {
+      previewConstellation.notableStars.forEach((name) => previewStarNames.add(name));
     }
   }
 
@@ -1076,17 +1114,28 @@ function drawStars() {
     let size = baseSize;
     const isHovered = mapState.hoveredStar?.name === star.name;
     const isSelected = mapState.selectedStar?.name === star.name;
-    const inConstellation = activeStarNames.has(star.name);
+    const inActiveConstellation = activeStarNames.has(star.name);
+    const inPreviewConstellation = !inActiveConstellation && previewStarNames.has(star.name);
     if (isSelected) {
       size += 1.6;
     } else if (isHovered) {
       size += 1.1;
-    } else if (inConstellation) {
-      size += 0.35;
+    } else {
+      if (inActiveConstellation) {
+        size += 0.75;
+      } else if (inPreviewConstellation) {
+        size += 0.45;
+      }
     }
     ctx.beginPath();
     ctx.fillStyle = getSpectralColor(star.spectralType);
-    const alpha = isSelected || isHovered ? 1 : inConstellation ? 0.95 : 0.75;
+    const alpha = isSelected || isHovered
+      ? 1
+      : inActiveConstellation
+        ? 0.98
+        : inPreviewConstellation
+          ? 0.86
+          : 0.75;
     ctx.globalAlpha = alpha;
     ctx.arc(x, y, size, 0, TWO_PI);
     ctx.fill();
@@ -1149,6 +1198,10 @@ function renderStarMap() {
   if (mapState.activeConstellation) {
     drawConstellationLabel(mapState.activeConstellation);
   }
+  if (mapState.previewConstellation
+    && (!mapState.activeConstellation || mapState.previewConstellation.id !== mapState.activeConstellation.id)) {
+    drawConstellationLabel(mapState.previewConstellation, { preview: true });
+  }
 }
 function ensureContext() {
   if (ctx || !canvas) {
@@ -1167,9 +1220,12 @@ function resizeCanvas() {
   }
   ensureContext();
   const rect = canvasContainer.getBoundingClientRect();
-  const availableWidth = rect.width || 600;
-  const availableHeight = window.innerHeight ? window.innerHeight * 0.6 : availableWidth;
-  const size = Math.max(360, Math.min(availableWidth, availableHeight));
+  const containerWidth = rect.width || 600;
+  const viewportWidth = window.innerWidth || containerWidth;
+  const viewportHeight = window.innerHeight || containerWidth;
+  const fullscreenWidth = document.fullscreenElement === canvasContainer ? viewportWidth : containerWidth;
+  const fullscreenHeight = document.fullscreenElement === canvasContainer ? viewportHeight : viewportHeight * 0.85;
+  const size = Math.max(420, Math.min(fullscreenWidth, fullscreenHeight, MAX_CANVAS_SIZE));
   const devicePixelRatio = window.devicePixelRatio || 1;
   mapState.devicePixelRatio = devicePixelRatio;
   mapState.canvasSize = size;
@@ -1216,6 +1272,18 @@ function buildConstellationLegend() {
     button.addEventListener('click', () => {
       toggleConstellation(constellation);
     });
+    button.addEventListener('mouseenter', () => {
+      previewConstellation(constellation);
+    });
+    button.addEventListener('mouseleave', () => {
+      clearConstellationPreview(constellation);
+    });
+    button.addEventListener('focus', () => {
+      previewConstellation(constellation);
+    });
+    button.addEventListener('blur', () => {
+      clearConstellationPreview(constellation);
+    });
     item.appendChild(button);
     legendList.appendChild(item);
   });
@@ -1255,6 +1323,7 @@ function toggleConstellation(constellation) {
   } else {
     mapState.activeConstellation = constellation;
   }
+  mapState.previewConstellation = null;
   mapState.selectedStar = null;
   updateLegendActive();
   updateDetails();
@@ -1275,6 +1344,7 @@ function selectStar(star) {
       (constellation) => constellation.abbreviation === star.constellation || constellation.name === star.constellation
     ) || mapState.activeConstellation;
   }
+  mapState.previewConstellation = null;
   updateLegendActive();
   updateDetails();
   renderStarMap();
@@ -1283,27 +1353,53 @@ function selectStar(star) {
 function clearSelection() {
   mapState.selectedStar = null;
   mapState.activeConstellation = null;
+  mapState.previewConstellation = null;
   updateLegendActive();
   updateDetails();
   renderStarMap();
 }
+
+function previewConstellation(constellation) {
+  if (!constellation || mapState.activeConstellation?.id === constellation.id) {
+    return;
+  }
+  mapState.previewConstellation = constellation;
+  updateDetails();
+  renderStarMap();
+}
+
+function clearConstellationPreview(constellation, { skipRender = false, skipDetails = false } = {}) {
+  if (!mapState.previewConstellation) {
+    return;
+  }
+  if (constellation && mapState.previewConstellation.id !== constellation.id) {
+    return;
+  }
+  mapState.previewConstellation = null;
+  if (!skipDetails) {
+    updateDetails();
+  }
+  if (!skipRender) {
+    renderStarMap();
+  }
+}
 function updateDetails() {
   if (!detailsPanel) {
+    updateCenterButtonLabel();
     return;
   }
   if (mapState.selectedStar) {
     renderStarDetails(mapState.selectedStar, { locked: true });
-    return;
-  }
-  if (mapState.hoveredStar) {
+  } else if (mapState.hoveredStar) {
     renderStarDetails(mapState.hoveredStar, { locked: false });
-    return;
-  }
-  if (mapState.activeConstellation) {
+  } else if (mapState.activeConstellation) {
     renderConstellationDetails(mapState.activeConstellation);
-    return;
+  } else if (mapState.previewConstellation) {
+    renderConstellationDetails(mapState.previewConstellation);
+  } else {
+    setDefaultDetails();
   }
-  setDefaultDetails();
+  updateCenterButtonLabel();
 }
 
 function setDefaultDetails() {
@@ -1337,6 +1433,22 @@ function renderStarDetails(star, { locked = false } = {}) {
   `;
 }
 
+function updateCenterButtonLabel() {
+  if (!centerButton) {
+    return;
+  }
+  const target = mapState.selectedStar || mapState.hoveredStar;
+  if (target) {
+    centerButton.textContent = `🎯 Centrer ${target.name}`;
+    centerButton.setAttribute('aria-label', `Centrer la carte sur ${target.name}`);
+    centerButton.disabled = false;
+  } else {
+    centerButton.textContent = `🎯 Centrer ${DEFAULT_FOCUS_STAR}`;
+    centerButton.setAttribute('aria-label', `Centrer la carte sur ${DEFAULT_FOCUS_STAR}`);
+    centerButton.disabled = false;
+  }
+}
+
 function renderConstellationDetails(constellation) {
   if (!detailsPanel || !constellation) {
     return;
@@ -1344,9 +1456,12 @@ function renderConstellationDetails(constellation) {
   const notable = Array.isArray(constellation.notableStars) && constellation.notableStars.length > 0
     ? constellation.notableStars.join(', ')
     : '—';
+  const isActive = mapState.activeConstellation?.id === constellation.id;
+  const heading = isActive ? 'Constellation sélectionnée' : 'Constellation à explorer';
+  const abbreviation = (constellation.abbreviation || constellation.id || '').toUpperCase();
   detailsPanel.innerHTML = `
-    <h3 class="star-map__details-title">Constellation mise en avant</h3>
-    <p class="star-map__details-subtitle">${constellation.name} (${constellation.abbreviation.toUpperCase()})</p>
+    <h3 class="star-map__details-title">${heading}</h3>
+    <p class="star-map__details-subtitle">${constellation.name}${abbreviation ? ` (${abbreviation})` : ''}</p>
     <dl class="star-map__facts">
       <div class="star-map__fact"><dt>Saison idéale</dt><dd>${constellation.bestSeason}</dd></div>
       <div class="star-map__fact"><dt>Étoiles repères</dt><dd>${notable}</dd></div>
@@ -1401,10 +1516,160 @@ function findStarAtPosition(x, y) {
   });
   return closest;
 }
+
+function updateAutoRotateButton() {
+  if (!autoRotateButton) {
+    return;
+  }
+  autoRotateButton.setAttribute('aria-pressed', mapState.autoRotate ? 'true' : 'false');
+  autoRotateButton.textContent = mapState.autoRotate ? '⏸️ Pause rotation' : '⟳ Rotation auto';
+  autoRotateButton.setAttribute(
+    'title',
+    mapState.autoRotate ? 'Suspendre la rotation automatique' : 'Lancer la rotation automatique'
+  );
+}
+
+function autoRotateStep(timestamp) {
+  if (!mapState.autoRotate) {
+    mapState.autoRotateFrame = null;
+    mapState.lastAutoRotateTime = null;
+    return;
+  }
+  if (typeof mapState.lastAutoRotateTime === 'number') {
+    const deltaSeconds = (timestamp - mapState.lastAutoRotateTime) / 1000;
+    const deltaHours = deltaSeconds * AUTO_ROTATE_SPEED;
+    if (deltaHours) {
+      setRotation(mapState.rotationHours + deltaHours);
+    }
+  }
+  mapState.lastAutoRotateTime = timestamp;
+  mapState.autoRotateFrame = requestAnimationFrame(autoRotateStep);
+}
+
+function startAutoRotate() {
+  if (mapState.autoRotate) {
+    return;
+  }
+  mapState.autoRotate = true;
+  mapState.lastAutoRotateTime = null;
+  updateAutoRotateButton();
+  mapState.autoRotateFrame = requestAnimationFrame(autoRotateStep);
+}
+
+function stopAutoRotate({ updateButton = true } = {}) {
+  if (mapState.autoRotateFrame) {
+    cancelAnimationFrame(mapState.autoRotateFrame);
+  }
+  mapState.autoRotateFrame = null;
+  mapState.lastAutoRotateTime = null;
+  const wasActive = mapState.autoRotate;
+  mapState.autoRotate = false;
+  if (updateButton || wasActive) {
+    updateAutoRotateButton();
+  }
+}
+
+function toggleAutoRotate() {
+  if (mapState.autoRotate) {
+    stopAutoRotate();
+  } else {
+    startAutoRotate();
+  }
+}
+
+function focusOnStar(star) {
+  if (!star) {
+    return;
+  }
+  stopAutoRotate();
+  mapState.hoveredStar = null;
+  mapState.previewConstellation = null;
+  mapState.selectedStar = star;
+  const constellation = CONSTELLATIONS.find(
+    (item) => item.abbreviation === star.constellation || item.name === star.constellation
+  );
+  if (constellation) {
+    mapState.activeConstellation = constellation;
+  }
+  updateLegendActive();
+  setRotation(star.rightAscension);
+}
+
+function handleCenterSelection() {
+  const target = mapState.selectedStar
+    || mapState.hoveredStar
+    || STAR_CATALOG.find((star) => star.name === DEFAULT_FOCUS_STAR)
+    || mapState.projectedStars[0]?.star;
+  if (target) {
+    focusOnStar(target);
+  }
+}
+
+function handleDoubleClick(event) {
+  if (!canvas) {
+    return;
+  }
+  event.preventDefault();
+  const { x, y } = getRelativePosition(event);
+  const star = findStarAtPosition(x, y);
+  if (star) {
+    focusOnStar(star);
+  }
+}
+
+function isFullscreenActive() {
+  return document.fullscreenElement === canvasContainer;
+}
+
+function updateFullscreenButton() {
+  if (!fullscreenButton) {
+    return;
+  }
+  const fullscreen = isFullscreenActive();
+  fullscreenButton.setAttribute('aria-pressed', fullscreen ? 'true' : 'false');
+  fullscreenButton.textContent = fullscreen ? '⤺ Fermer le plein écran' : '⤢ Plein écran';
+  fullscreenButton.setAttribute(
+    'title',
+    fullscreen ? 'Revenir à la taille normale' : 'Afficher la carte du ciel en plein écran'
+  );
+}
+
+function handleFullscreenToggle() {
+  if (!canvasContainer) {
+    return;
+  }
+  if (isFullscreenActive()) {
+    if (document.exitFullscreen) {
+      const exitResult = document.exitFullscreen();
+      if (exitResult && typeof exitResult.catch === 'function') {
+        exitResult.catch(() => {});
+      }
+    }
+  } else if (canvasContainer.requestFullscreen) {
+    const requestResult = canvasContainer.requestFullscreen();
+    if (requestResult && typeof requestResult.catch === 'function') {
+      requestResult.catch(() => {});
+    }
+  }
+}
+
+function handleFullscreenChange() {
+  updateFullscreenButton();
+  resizeCanvas();
+  renderStarMap();
+}
+
+function handleVisibilityChange() {
+  if (document.hidden) {
+    stopAutoRotate();
+  }
+}
 function handlePointerDown(event) {
   if (!canvas) {
     return;
   }
+  stopAutoRotate();
+  clearConstellationPreview();
   pointerState.active = true;
   pointerState.pointerId = event.pointerId;
   pointerState.moved = false;
@@ -1430,16 +1695,25 @@ function handlePointerMove(event) {
     const deltaHours = (delta / TWO_PI) * 24;
     if (Math.abs(deltaHours) > 0.01) {
       pointerState.moved = true;
+      clearConstellationPreview(undefined, { skipRender: true, skipDetails: true });
       setRotation(pointerState.startRotation + deltaHours);
     }
   } else {
     const { x, y } = getRelativePosition(event);
     const hovered = findStarAtPosition(x, y);
+    let previewCleared = false;
+    if (hovered && mapState.previewConstellation) {
+      clearConstellationPreview(undefined, { skipRender: true });
+      previewCleared = true;
+    }
     if (hovered?.name !== mapState.hoveredStar?.name) {
       mapState.hoveredStar = hovered || null;
       if (!mapState.selectedStar) {
         updateDetails();
       }
+      renderStarMap();
+      previewCleared = false;
+    } else if (previewCleared) {
       renderStarMap();
     }
     updateTooltip(hovered, event);
@@ -1472,10 +1746,12 @@ function handlePointerLeave() {
 }
 function handleRotationInput(event) {
   const value = parseFloat(event.target.value);
+  stopAutoRotate();
   setRotation(Number.isNaN(value) ? 0 : value);
 }
 
 function handleResetOrientation() {
+  stopAutoRotate();
   setRotation(0);
   clearSelection();
 }
@@ -1567,6 +1843,7 @@ function initialiseStarMap() {
   canvas.addEventListener('pointerup', handlePointerUp);
   canvas.addEventListener('pointercancel', handlePointerUp);
   canvas.addEventListener('pointerleave', handlePointerLeave);
+  canvas.addEventListener('dblclick', handleDoubleClick);
 
   if (rotationInput) {
     rotationInput.addEventListener('input', handleRotationInput);
@@ -1581,6 +1858,21 @@ function initialiseStarMap() {
   if (milkyWayToggle) {
     milkyWayToggle.addEventListener('change', handleMilkyWayToggle);
   }
+  if (autoRotateButton) {
+    autoRotateButton.addEventListener('click', toggleAutoRotate);
+    updateAutoRotateButton();
+  }
+  if (centerButton) {
+    centerButton.addEventListener('click', handleCenterSelection);
+    centerButton.setAttribute('title', 'Aligner la carte sur l’étoile suivie');
+    updateCenterButtonLabel();
+  }
+  if (fullscreenButton) {
+    fullscreenButton.addEventListener('click', handleFullscreenToggle);
+    updateFullscreenButton();
+  }
+  document.addEventListener('fullscreenchange', handleFullscreenChange);
+  document.addEventListener('visibilitychange', handleVisibilityChange);
 }
 
 initialiseStarMap();
