@@ -15,6 +15,27 @@ const autoRotateButton = document.getElementById('starMapAutoRotate');
 const centerButton = document.getElementById('starMapCenterSelection');
 const fullscreenButton = document.getElementById('starMapFullscreen');
 
+let pseudoFullscreen = false;
+
+const requestFrame =
+  typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function'
+    ? window.requestAnimationFrame.bind(window)
+    : (callback) =>
+        window.setTimeout(
+          () =>
+            callback(
+              typeof performance !== 'undefined' && typeof performance.now === 'function'
+                ? performance.now()
+                : Date.now()
+            ),
+          16
+        );
+
+const cancelFrame =
+  typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function'
+    ? window.cancelAnimationFrame.bind(window)
+    : (handle) => window.clearTimeout(handle);
+
 if (!canvas || !canvasContainer || !rotationInput || !rotationValue || !legendList || !detailsPanel) {
   console.warn('Carte du ciel : éléments requis introuvables.');
 }
@@ -886,7 +907,7 @@ function clamp(value, min, max) {
 
 const MAP_PADDING = 24;
 const MAX_CANVAS_SIZE = 1080;
-const AUTO_ROTATE_SPEED = 0.12;
+const AUTO_ROTATE_SPEED = 0.25;
 const DEFAULT_FOCUS_STAR = 'Polaris';
 
 function projectCoordinates(rightAscension, declination) {
@@ -1223,9 +1244,11 @@ function resizeCanvas() {
   const containerWidth = rect.width || 600;
   const viewportWidth = window.innerWidth || containerWidth;
   const viewportHeight = window.innerHeight || containerWidth;
-  const fullscreenWidth = document.fullscreenElement === canvasContainer ? viewportWidth : containerWidth;
-  const fullscreenHeight = document.fullscreenElement === canvasContainer ? viewportHeight : viewportHeight * 0.85;
-  const size = Math.max(420, Math.min(fullscreenWidth, fullscreenHeight, MAX_CANVAS_SIZE));
+  const fullscreenActive = document.fullscreenElement === canvasContainer || pseudoFullscreen;
+  const fullscreenWidth = fullscreenActive ? viewportWidth : containerWidth;
+  const fullscreenHeight = fullscreenActive ? viewportHeight : viewportHeight * 0.85;
+  const maxSize = fullscreenActive ? Math.min(fullscreenWidth, fullscreenHeight) : Math.min(fullscreenWidth, fullscreenHeight, MAX_CANVAS_SIZE);
+  const size = Math.max(420, maxSize);
   const devicePixelRatio = window.devicePixelRatio || 1;
   mapState.devicePixelRatio = devicePixelRatio;
   mapState.canvasSize = size;
@@ -1527,6 +1550,7 @@ function updateAutoRotateButton() {
     'title',
     mapState.autoRotate ? 'Suspendre la rotation automatique' : 'Lancer la rotation automatique'
   );
+  autoRotateButton.classList.toggle('is-active', mapState.autoRotate);
 }
 
 function autoRotateStep(timestamp) {
@@ -1543,7 +1567,7 @@ function autoRotateStep(timestamp) {
     }
   }
   mapState.lastAutoRotateTime = timestamp;
-  mapState.autoRotateFrame = requestAnimationFrame(autoRotateStep);
+  mapState.autoRotateFrame = requestFrame(autoRotateStep);
 }
 
 function startAutoRotate() {
@@ -1553,12 +1577,12 @@ function startAutoRotate() {
   mapState.autoRotate = true;
   mapState.lastAutoRotateTime = null;
   updateAutoRotateButton();
-  mapState.autoRotateFrame = requestAnimationFrame(autoRotateStep);
+  mapState.autoRotateFrame = requestFrame(autoRotateStep);
 }
 
 function stopAutoRotate({ updateButton = true } = {}) {
   if (mapState.autoRotateFrame) {
-    cancelAnimationFrame(mapState.autoRotateFrame);
+    cancelFrame(mapState.autoRotateFrame);
   }
   mapState.autoRotateFrame = null;
   mapState.lastAutoRotateTime = null;
@@ -1618,7 +1642,7 @@ function handleDoubleClick(event) {
 }
 
 function isFullscreenActive() {
-  return document.fullscreenElement === canvasContainer;
+  return document.fullscreenElement === canvasContainer || pseudoFullscreen;
 }
 
 function updateFullscreenButton() {
@@ -1632,6 +1656,7 @@ function updateFullscreenButton() {
     'title',
     fullscreen ? 'Revenir à la taille normale' : 'Afficher la carte du ciel en plein écran'
   );
+  fullscreenButton.classList.toggle('is-active', fullscreen);
 }
 
 function handleFullscreenToggle() {
@@ -1639,21 +1664,88 @@ function handleFullscreenToggle() {
     return;
   }
   if (isFullscreenActive()) {
-    if (document.exitFullscreen) {
-      const exitResult = document.exitFullscreen();
-      if (exitResult && typeof exitResult.catch === 'function') {
-        exitResult.catch(() => {});
-      }
-    }
-  } else if (canvasContainer.requestFullscreen) {
-    const requestResult = canvasContainer.requestFullscreen();
-    if (requestResult && typeof requestResult.catch === 'function') {
-      requestResult.catch(() => {});
-    }
+    exitFullscreen();
+  } else {
+    requestFullscreen();
   }
 }
 
 function handleFullscreenChange() {
+  if (document.fullscreenElement === canvasContainer && pseudoFullscreen) {
+    leavePseudoFullscreen();
+  }
+  updateFullscreenButton();
+  resizeCanvas();
+  renderStarMap();
+}
+
+function requestFullscreen() {
+  if (!canvasContainer) {
+    return;
+  }
+  const method =
+    canvasContainer.requestFullscreen ||
+    canvasContainer.webkitRequestFullscreen ||
+    canvasContainer.msRequestFullscreen ||
+    canvasContainer.mozRequestFullScreen;
+  if (method) {
+    try {
+      const result = method.call(canvasContainer);
+      if (result && typeof result.catch === 'function') {
+        result.catch(() => {
+          enterPseudoFullscreen();
+        });
+      }
+    } catch (error) {
+      enterPseudoFullscreen();
+    }
+  } else {
+    enterPseudoFullscreen();
+  }
+}
+
+function exitFullscreen() {
+  const exitMethod =
+    document.exitFullscreen ||
+    document.webkitExitFullscreen ||
+    document.msExitFullscreen ||
+    document.mozCancelFullScreen;
+  if (document.fullscreenElement === canvasContainer && exitMethod) {
+    try {
+      const result = exitMethod.call(document);
+      if (result && typeof result.catch === 'function') {
+        result.catch(() => {
+          leavePseudoFullscreen();
+        });
+      }
+    } catch (error) {
+      leavePseudoFullscreen();
+    }
+  }
+  if (pseudoFullscreen) {
+    leavePseudoFullscreen();
+  }
+}
+
+function enterPseudoFullscreen() {
+  if (!canvasContainer || pseudoFullscreen) {
+    return;
+  }
+  pseudoFullscreen = true;
+  canvasContainer.classList.add('is-pseudo-fullscreen');
+  document.body.classList.add('star-map--pseudo-fullscreen');
+  updateFullscreenButton();
+  resizeCanvas();
+  renderStarMap();
+}
+
+function leavePseudoFullscreen() {
+  if (!pseudoFullscreen) {
+    return;
+  }
+  pseudoFullscreen = false;
+  canvasContainer.classList.remove('is-pseudo-fullscreen');
+  document.body.classList.remove('star-map--pseudo-fullscreen');
   updateFullscreenButton();
   resizeCanvas();
   renderStarMap();
@@ -1834,7 +1926,11 @@ function initialiseStarMap() {
   window.addEventListener('resize', handleResize);
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
-      clearSelection();
+      if (pseudoFullscreen || document.fullscreenElement === canvasContainer) {
+        exitFullscreen();
+      } else {
+        clearSelection();
+      }
     }
   });
 
@@ -1871,7 +1967,16 @@ function initialiseStarMap() {
     fullscreenButton.addEventListener('click', handleFullscreenToggle);
     updateFullscreenButton();
   }
-  document.addEventListener('fullscreenchange', handleFullscreenChange);
+  ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach((eventName) => {
+    document.addEventListener(eventName, handleFullscreenChange);
+  });
+  ['fullscreenerror', 'webkitfullscreenerror', 'mozfullscreenerror', 'MSFullscreenError'].forEach((eventName) => {
+    document.addEventListener(eventName, () => {
+      if (!pseudoFullscreen) {
+        enterPseudoFullscreen();
+      }
+    });
+  });
   document.addEventListener('visibilitychange', handleVisibilityChange);
 }
 
