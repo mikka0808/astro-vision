@@ -35,35 +35,37 @@ const CRITERIA_LABELS = {
   contrast: {
     label: 'Contraste objet/ciel',
     description:
-      'Combine magnitude, pollution lumineuse, éclairement lunaire et transparence afin de refléter le contraste perçu.'
+      'Combine magnitude, pollution lumineuse, éclairement lunaire, transparence et niveau de crépuscule pour refléter le contraste perçu.'
   },
   seasonal: {
     label: 'Saisonnalité',
-    description: 'Pondère selon la période de l’année la plus favorable au suivi de la cible.'
+    description:
+      'Pondère selon la période de l’année, la durée de nuit et la hauteur du Soleil autour de la fenêtre d’observation.'
   },
   lightPollution: {
-    label: 'Adaptation pollution lumineuse',
+    label: 'Compatibilité ciel local',
     description: 'Compare la qualité de ciel disponible (Bortle) aux besoins de la cible pour ajuster sa lisibilité.'
   },
   transparency: {
     label: 'Transparence atmosphérique',
-    description: 'Intègre transparence, humidité et charge particulaire pour estimer la clarté du ciel.'
+    description: 'Évalue brume, humidité et particules fines pour juger la clarté du ciel indépendamment des nuages.'
   },
   seeing: {
     label: 'Turbulence (seeing)',
     description: 'Évalue la stabilité des images pour les détails fins (planètes, étoiles doubles, amas serrés).'
   },
   clouds: {
-    label: 'Fenêtre météo',
-    description: 'Combine couverture nuageuse, précipitations et fenêtres sans nuages durant la session.'
+    label: 'Fenêtre météo (nuages/pluie)',
+    description: 'Mesure la portion exploitable en écartant les créneaux couverts ou pluvieux — complémentaire à la transparence.'
   },
   moon: {
-    label: 'Influence lunaire',
-    description: 'Mesure l’impact de la phase, de la hauteur et de la proximité apparente de la Lune sur la cible.'
+    label: 'Éclairement lunaire & séparation',
+    description: 'Mesure l’impact de la phase, de la hauteur et de la distance angulaire de la Lune vis-à-vis de la cible.'
   },
   planning: {
-    label: 'Alignement session',
-    description: 'Prend en compte localisation, horaire choisi et meilleure fenêtre de passage pour cette cible.'
+    label: 'Optimisation de session',
+    description:
+      'Prend en compte localisation, horaire choisi et synchronisation du créneau avec la meilleure fenêtre de passage.'
   }
 };
 

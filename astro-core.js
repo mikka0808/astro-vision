@@ -45,6 +45,8 @@ export const NIGHT_MODE_STORAGE_KEY = 'astroSoir:nightMode';
 
 const SYNODIC_MONTH = 29.53058867;
 const KNOWN_NEW_MOON = Date.UTC(2000, 0, 6, 18, 14);
+const J2000_EPOCH = Date.UTC(2000, 0, 1, 12, 0, 0);
+const DAY_IN_MS = 86400000;
 
 const MOON_PHASE_BUCKETS = [
   { maxAge: 1.84566, name: 'Nouvelle Lune', emoji: '🌑', description: 'Ciel le plus sombre, idéal pour les objets diffus.' },
@@ -373,9 +375,8 @@ export function formatLocalDateTime(isoString) {
 }
 
 export function computeMoonPhase(date) {
-  const dayMs = 86400000;
   const time = date instanceof Date ? date.getTime() : new Date(date).getTime();
-  const diffDays = (time - KNOWN_NEW_MOON) / dayMs;
+  const diffDays = (time - KNOWN_NEW_MOON) / DAY_IN_MS;
   const age = ((diffDays % SYNODIC_MONTH) + SYNODIC_MONTH) % SYNODIC_MONTH;
   const phaseAngle = (age / SYNODIC_MONTH) * Math.PI * 2;
   const illumination = (1 - Math.cos(phaseAngle)) / 2;
@@ -558,6 +559,94 @@ export function horizontalCoordinates(object, location, observationDate) {
   return { altitude, azimuth };
 }
 
+function normalizeDegrees(value) {
+  let deg = value % 360;
+  if (deg < 0) deg += 360;
+  return deg;
+}
+
+function daysSinceJ2000(date) {
+  return (date.getTime() - J2000_EPOCH) / DAY_IN_MS;
+}
+
+function approximateSunEquatorial(date) {
+  const d = daysSinceJ2000(date);
+  const L = normalizeDegrees(280.460 + 0.9856474 * d);
+  const g = normalizeDegrees(357.528 + 0.9856003 * d);
+  const gRad = toRadians(g);
+  const lambda = normalizeDegrees(L + 1.915 * Math.sin(gRad) + 0.02 * Math.sin(2 * gRad));
+  const epsilon = toRadians(23.439 - 0.0000004 * d);
+  const lambdaRad = toRadians(lambda);
+  let ra = Math.atan2(Math.cos(epsilon) * Math.sin(lambdaRad), Math.cos(lambdaRad));
+  if (ra < 0) {
+    ra += Math.PI * 2;
+  }
+  const dec = Math.asin(Math.sin(epsilon) * Math.sin(lambdaRad));
+  return { raHours: (ra * 12) / Math.PI, decDeg: (dec * 180) / Math.PI };
+}
+
+function approximateMoonEquatorial(date) {
+  const d = daysSinceJ2000(date);
+  const N = toRadians(normalizeDegrees(125.1228 - 0.0529538083 * d));
+  const i = toRadians(5.1454);
+  const w = toRadians(normalizeDegrees(318.0634 + 0.1643573223 * d));
+  const e = 0.0549;
+  const M = toRadians(normalizeDegrees(115.3654 + 13.0649929509 * d));
+  const E = M + e * Math.sin(M) * (1 + e * Math.cos(M));
+  const xv = Math.cos(E) - e;
+  const yv = Math.sqrt(1 - e * e) * Math.sin(E);
+  const v = Math.atan2(yv, xv);
+  const r = Math.sqrt(xv * xv + yv * yv);
+  const sinVW = Math.sin(v + w);
+  const cosVW = Math.cos(v + w);
+  const xh = r * (Math.cos(N) * cosVW - Math.sin(N) * sinVW * Math.cos(i));
+  const yh = r * (Math.sin(N) * cosVW + Math.cos(N) * sinVW * Math.cos(i));
+  const zh = r * sinVW * Math.sin(i);
+  const oblecl = toRadians(23.4393 - 3.563e-7 * d);
+  const xequat = xh;
+  const yequat = yh * Math.cos(oblecl) - zh * Math.sin(oblecl);
+  const zequat = yh * Math.sin(oblecl) + zh * Math.cos(oblecl);
+  let ra = Math.atan2(yequat, xequat);
+  if (ra < 0) {
+    ra += Math.PI * 2;
+  }
+  const dec = Math.atan2(zequat, Math.sqrt(xequat * xequat + yequat * yequat));
+  return { raHours: (ra * 12) / Math.PI, decDeg: (dec * 180) / Math.PI };
+}
+
+function angularSeparation(ra1Deg, dec1Deg, ra2Deg, dec2Deg) {
+  const rad = Math.PI / 180;
+  const ra1 = ra1Deg * rad;
+  const ra2 = ra2Deg * rad;
+  const dec1 = dec1Deg * rad;
+  const dec2 = dec2Deg * rad;
+  const cosSep =
+    Math.sin(dec1) * Math.sin(dec2) +
+    Math.cos(dec1) * Math.cos(dec2) * Math.cos(ra1 - ra2);
+  const clamped = Math.min(1, Math.max(-1, cosSep));
+  return Math.acos(clamped) / rad;
+}
+
+function computeTwilightFactorForDate(date, location) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return 0.85;
+  }
+  if (!location || !Number.isFinite(location.latitude) || !Number.isFinite(location.longitude)) {
+    return 0.85;
+  }
+  const sunCoords = approximateSunEquatorial(date);
+  const sunHorizontal = horizontalCoordinates(sunCoords, location, date);
+  const altitude = Number.isFinite(sunHorizontal.altitude) ? sunHorizontal.altitude : 0;
+  if (altitude <= -18) return 1;
+  if (altitude <= -15) return 0.92;
+  if (altitude <= -12) return 0.78;
+  if (altitude <= -9) return 0.6;
+  if (altitude <= -6) return 0.42;
+  if (altitude <= -3) return 0.25;
+  if (altitude <= 0) return 0.12;
+  return 0.05;
+}
+
 export function altitudeForObject(object, location, observationDate) {
   return horizontalCoordinates(object, location, observationDate).altitude;
 }
@@ -582,14 +671,14 @@ const DEFAULT_SCORE_WEIGHTS = {
   usefulDuration: 0.08,
   trackStability: 0.05,
   brightness: 0.08,
-  contrast: 0.085,
+  contrast: 0.09,
   seasonal: 0.05,
   lightPollution: 0.06,
-  transparency: 0.08,
+  transparency: 0.07,
   seeing: 0.07,
   clouds: 0.05,
   moon: 0.05,
-  planning: 0.035
+  planning: 0.04
 };
 
 let activeScoreWeights = { ...DEFAULT_SCORE_WEIGHTS };
@@ -731,6 +820,24 @@ function computeAirmassScore(averageAltitude = 0, minAltitude = averageAltitude)
   return clamp01(1 - (airmass - 1) / 3, 0.2);
 }
 
+function computeTwilightFactor(entry = {}, context = {}) {
+  const lat = Number(entry.contextLatitude ?? context.latitude ?? context.lat);
+  const lon = Number(entry.contextLongitude ?? context.longitude ?? context.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    return 0.85;
+  }
+  const location = { latitude: lat, longitude: lon };
+  const referenceDate =
+    toDate(entry.bestTime) ||
+    toDate(entry.sessionStart) ||
+    toDate(context.date) ||
+    null;
+  if (!referenceDate) {
+    return 0.85;
+  }
+  return computeTwilightFactorForDate(referenceDate, location);
+}
+
 function computeScoreInputs(entry = {}, { weatherImpact = {}, context = {} } = {}) {
   const altitudeNow = Number(entry.altitude);
   const averageAltitudeValue = Number(entry.averageAltitude ?? entry.altitude);
@@ -773,15 +880,20 @@ function computeScoreInputs(entry = {}, { weatherImpact = {}, context = {} } = {
     0
   );
   const conditionFactor = clamp01(weatherImpact.conditionFactor ?? entry.weatherConditionFactor ?? 1, 0);
-  const clouds = clamp01(weatherWindow * 0.5 + cloudFactor * 0.25 + precipFactor * 0.25, 0);
+  const clouds = clamp01(
+    Math.min(weatherWindow, visibilityFactor) * 0.6 + cloudFactor * 0.25 + precipFactor * 0.15,
+    0
+  );
   const transparency = clamp01(transparencyFactor * 0.6 + aerosolFactor * 0.25 + dewFactor * 0.15, 0);
   const seeing = clamp01(seeingFactor * 0.7 + atmosphereFactor * 0.3, 0);
+  const twilight = computeTwilightFactor(entry, context);
   const contrast = clamp01(
-    brightness * 0.35 +
-      lightPollution * 0.2 +
-      transparency * 0.2 +
-      moon * 0.15 +
-      visibilityFactor * 0.1,
+    brightness * 0.28 +
+      lightPollution * 0.18 +
+      transparency * 0.18 +
+      moon * 0.14 +
+      visibilityFactor * 0.07 +
+      twilight * 0.15,
     0
   );
   const planning = computeContextFactor(entry, contextDuration, context);
@@ -876,12 +988,18 @@ function moonSensitivityForObject(object) {
   return Math.min(0.9, Math.max(0.25, sensitivity));
 }
 
-function moonFactorForObject(object, illumination, altitude) {
+function moonFactorForObject(object, illumination, altitude, separation, moonAltitude) {
   if (!Number.isFinite(illumination)) return 1;
   const sensitivity = moonSensitivityForObject(object);
   const altitudeBonus = altitude >= 45 ? 0.1 : altitude >= 30 ? 0.05 : 0;
-  const factor = 1 - illumination * (sensitivity - altitudeBonus);
-  return Math.min(1, Math.max(0.25, factor));
+  const base = 1 - illumination * (sensitivity - altitudeBonus);
+  const separationFactor = Number.isFinite(separation)
+    ? clamp01(Math.pow(Math.max(separation, 5) / 90, 0.85), 0.25)
+    : 1;
+  const moonElevationPenalty = Number.isFinite(moonAltitude) ? clamp01((moonAltitude - 20) / 50, 0) : 0;
+  const altitudeMitigation = 1 - moonElevationPenalty * 0.6;
+  const factor = base * (0.55 + 0.45 * separationFactor) * altitudeMitigation;
+  return Math.min(1, Math.max(0.2, factor));
 }
 
 export function buildScore(object, context = {}) {
@@ -959,7 +1077,18 @@ export function evaluateTargets(objects, { lat, lon, bortle, date, durationHours
     const altitudeDrift = endPosition.altitude - startPosition.altitude;
     const monthFactor = monthScore(object.bestMonths, month);
     const bortleFactor = bortleScore(bortle, object.minBortle);
-    const moonFactor = moonFactorForObject(object, moonIllumination, altitude);
+    const moonCoords = approximateMoonEquatorial(bestPosition.sampleDate);
+    const moonAltAz = horizontalCoordinates(moonCoords, location, bestPosition.sampleDate);
+    const moonSeparation = Number.isFinite(moonCoords?.raHours)
+      ? angularSeparation(object.raHours * 15, object.decDeg, moonCoords.raHours * 15, moonCoords.decDeg)
+      : null;
+    const moonFactor = moonFactorForObject(
+      object,
+      moonIllumination,
+      altitude,
+      moonSeparation,
+      moonAltAz.altitude
+    );
     const baseScore = buildScore(object, {
       altitude,
       averageAltitude,
@@ -998,6 +1127,8 @@ export function evaluateTargets(objects, { lat, lon, bortle, date, durationHours
       monthFactor,
       bortleFactor,
       moonFactor,
+      moonSeparation,
+      moonAltitude: moonAltAz.altitude,
       baseScore,
       track: visibilityTrack,
       sessionStart: date.toISOString(),
