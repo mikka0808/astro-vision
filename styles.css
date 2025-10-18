@@ -118,6 +118,15 @@ footer {
   padding: clamp(1.5rem, 4vw, 2.75rem);
 }
 
+.hero-heading {
+  display: grid;
+  gap: clamp(0.8rem, 2vw, 1.35rem);
+}
+
+.hero-heading .top-nav {
+  margin-top: clamp(0.25rem, 1.5vw, 0.75rem);
+}
+
 .hero h1 {
   margin: 0;
   font-size: clamp(2.2rem, 7vw, 3.2rem);
