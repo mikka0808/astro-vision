@@ -1602,21 +1602,6 @@ small {
   .catalogue-grid {
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   }
-
-  .catalogue-card {
-    flex-direction: row;
-    align-items: stretch;
-  }
-
-  .catalogue-card .preview-wrapper {
-    margin-inline: 0;
-    flex: 0 0 160px;
-    align-self: flex-start;
-  }
-
-  .catalogue-text {
-    flex: 1 1 auto;
-  }
 }
 
 @media (min-width: 1024px) {
