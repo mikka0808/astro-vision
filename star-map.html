@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Astro Soir — Carte du ciel interactive</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="star-map-page">
+  <header class="hero hero--compact">
+    <div class="hero-content">
+      <div class="hero-heading">
+        <h1>Carte du ciel</h1>
+        <p>Explore une carte circulaire du ciel nocturne, fais tourner la voûte et découvre les constellations emblématiques.</p>
+        <nav class="top-nav" aria-label="Navigation principale">
+          <a class="nav-link" href="index.html">Préparer la session</a>
+          <a class="nav-link" href="dashboard.html">Tableau de bord</a>
+          <a class="nav-link" href="catalogue.html">Catalogue d’observation</a>
+          <a class="nav-link" href="score-settings.html">Réglage du score</a>
+        </nav>
+      </div>
+      <button type="button" id="nightModeToggle" class="night-toggle" aria-pressed="false">🔦 Mode nuit</button>
+    </div>
+  </header>
+  <main>
+    <section class="panel" aria-labelledby="starMapIntroHeading">
+      <div class="panel-header">
+        <div class="panel-heading">
+          <h2 id="starMapIntroHeading">Planisphère interactif</h2>
+          <p class="help-text">Survole les étoiles pour afficher leurs fiches, fais pivoter la sphère céleste et mets en avant une constellation pour mieux la repérer.</p>
+        </div>
+      </div>
+      <div class="panel-body star-map__body">
+        <div class="star-map__layout">
+          <div class="star-map__canvas" id="starMapCanvasContainer">
+            <canvas id="starMapCanvas" role="img" aria-label="Carte du ciel interactive"></canvas>
+            <div id="starMapTooltip" class="star-map__tooltip" hidden></div>
+          </div>
+          <aside class="star-map__sidebar" aria-label="Contrôles de la carte">
+            <div class="star-map__control">
+              <label for="starMapRotation">Orientation sidérale</label>
+              <div class="star-map__slider">
+                <input type="range" id="starMapRotation" min="0" max="24" step="0.25" value="0" aria-describedby="starMapRotationValue">
+                <output id="starMapRotationValue" for="starMapRotation">0,0 h</output>
+              </div>
+              <button type="button" id="starMapReset" class="link-button">Réinitialiser l’orientation</button>
+            </div>
+            <div class="star-map__control">
+              <label class="toggle">
+                <input type="checkbox" id="starMapConstellations" checked>
+                <span>Tracer les constellations</span>
+              </label>
+              <label class="toggle">
+                <input type="checkbox" id="starMapMilkyWay" checked>
+                <span>Afficher la Voie lactée</span>
+              </label>
+            </div>
+            <div class="star-map__legend" aria-live="polite">
+              <h3 class="star-map__legend-title">Constellations à explorer</h3>
+              <ul id="constellationLegend" class="star-map__legend-list"></ul>
+            </div>
+          </aside>
+        </div>
+        <div id="starMapDetails" class="star-map__details" aria-live="polite">
+          <h3 class="star-map__details-title">Fiche rapide</h3>
+          <p>Survole une étoile brillante ou sélectionne une constellation pour obtenir des conseils d’observation.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <nav class="footer-nav" aria-label="Navigation secondaire">
+      <a class="nav-link" href="index.html">Page principale</a>
+      <a class="nav-link" href="catalogue.html">Catalogue</a>
+      <a class="nav-link" href="dashboard.html">Tableau de bord</a>
+    </nav>
+    <small>Planisphère généré à partir d’un ensemble d’étoiles brillantes et de constellations emblématiques.</small>
+  </footer>
+  <script type="module" src="star-map.js"></script>
+</body>
+</html>
