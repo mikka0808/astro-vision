@@ -576,21 +576,77 @@ export function brightnessScore(magnitude) {
 }
 
 const DEFAULT_SCORE_WEIGHTS = {
-  altitude: 0.16,
-  averageAltitude: 0.1,
-  startAltitude: 0.06,
-  stability: 0.06,
-  coverage: 0.12,
-  duration: 0.08,
+  position: 0.15,
+  airmass: 0.07,
+  window: 0.1,
+  usefulDuration: 0.08,
+  trackStability: 0.05,
   brightness: 0.08,
-  seasonal: 0.08,
-  bortle: 0.06,
-  weather: 0.12,
-  moon: 0.06,
-  context: 0.02
+  contrast: 0.085,
+  seasonal: 0.05,
+  lightPollution: 0.06,
+  transparency: 0.08,
+  seeing: 0.07,
+  clouds: 0.05,
+  moon: 0.05,
+  planning: 0.035
 };
 
 let activeScoreWeights = { ...DEFAULT_SCORE_WEIGHTS };
+
+const SCORE_TYPE_PROFILES = [
+  {
+    keywords: ['galaxie'],
+    multipliers: { contrast: 1.25, transparency: 1.15, lightPollution: 1.15, moon: 1.1, seeing: 0.9 }
+  },
+  {
+    keywords: ['nébuleuse planétaire'],
+    multipliers: { seeing: 1.15, contrast: 1.1, position: 1.05 }
+  },
+  {
+    keywords: ['nébuleuse'],
+    multipliers: { contrast: 1.2, transparency: 1.1, moon: 1.15 }
+  },
+  {
+    keywords: ['amas globulaire'],
+    multipliers: { brightness: 1.1, airmass: 1.05, position: 1.05, contrast: 1.05 }
+  },
+  {
+    keywords: ['amas ouvert'],
+    multipliers: { window: 1.05, usefulDuration: 1.05, brightness: 1.05 }
+  },
+  {
+    keywords: ['planète'],
+    multipliers: { seeing: 1.35, airmass: 1.2, position: 1.1, contrast: 0.9, moon: 0.85 }
+  },
+  {
+    keywords: ['étoile double', 'étoile variable', 'étoile'],
+    multipliers: { seeing: 1.2, brightness: 1.1, contrast: 0.95 }
+  },
+  {
+    keywords: ['comète'],
+    multipliers: { brightness: 1.2, contrast: 1.1, moon: 1.15, clouds: 1.05 }
+  }
+];
+
+function resolveTypeWeightProfile(object = {}) {
+  const type = (object.type || '').toLowerCase();
+  if (!type) {
+    return {};
+  }
+  const multipliers = {};
+  SCORE_TYPE_PROFILES.forEach(({ keywords, multipliers: profileMultipliers }) => {
+    if (keywords.some((keyword) => type.includes(keyword))) {
+      Object.entries(profileMultipliers).forEach(([key, factor]) => {
+        if (!Number.isFinite(factor) || factor <= 0) {
+          return;
+        }
+        multipliers[key] = (multipliers[key] ?? 1) * factor;
+      });
+    }
+  });
+  return multipliers;
+}
 
 export function getDefaultScoreWeights() {
   return { ...DEFAULT_SCORE_WEIGHTS };
@@ -666,13 +722,29 @@ function computeContextFactor(entry = {}, durationHours, context = {}) {
   return clamp01(timeAlignment * 0.6 + locationConfidence * 0.4, hasLocation ? 0.7 : 0.5);
 }
 
+function computeAirmassScore(averageAltitude = 0, minAltitude = averageAltitude) {
+  const avg = Number.isFinite(averageAltitude) ? averageAltitude : 0;
+  const floorMin = Number.isFinite(minAltitude) ? minAltitude : avg;
+  const weightedAltitude = Math.max(5, Math.min(90, avg * 0.7 + floorMin * 0.3));
+  const rad = toRadians(weightedAltitude);
+  const airmass = 1 / Math.max(Math.sin(rad), 0.1);
+  return clamp01(1 - (airmass - 1) / 3, 0.2);
+}
+
 function computeScoreInputs(entry = {}, { weatherImpact = {}, context = {} } = {}) {
-  const altitude = clamp01(((Number(entry.altitude) || 0) - 10) / 70, 0);
-  const averageAltitude = clamp01(((Number(entry.averageAltitude ?? entry.altitude) || 0) - 15) / 60, 0);
-  const startAltitude = clamp01(((Number(entry.startAltitude ?? entry.altitude) || 0) - 10) / 60, 0);
+  const altitudeNow = Number(entry.altitude);
+  const averageAltitudeValue = Number(entry.averageAltitude ?? entry.altitude);
+  const startAltitudeValue = Number(entry.startAltitude ?? entry.altitude);
+  const minAltitudeValue = Number(entry.minAltitude ?? startAltitudeValue ?? altitudeNow);
+  const altitude = clamp01(((altitudeNow || 0) - 10) / 70, 0);
+  const averageAltitude = clamp01(((averageAltitudeValue || 0) - 15) / 60, 0);
+  const startAltitude = clamp01(((startAltitudeValue || 0) - 10) / 60, 0);
+  const minAltitude = clamp01(((minAltitudeValue || 0) - 5) / 55, 0);
+  const position = clamp01(altitude * 0.5 + averageAltitude * 0.35 + minAltitude * 0.15, 0);
+  const airmass = computeAirmassScore(averageAltitudeValue || altitudeNow || 0, minAltitudeValue || altitudeNow || 0);
   const drift = Number(entry.altitudeDrift);
-  const stability = clamp01(1 - Math.min(1, Math.abs(Number.isFinite(drift) ? drift : 0) / 45), 0.4);
-  const coverage = clamp01(entry.visibilityRatio ?? 0, 0);
+  const trackStability = clamp01(1 - Math.min(1, Math.abs(Number.isFinite(drift) ? drift : 0) / 45), 0.4);
+  const window = clamp01(entry.visibilityRatio ?? 0, 0);
   const contextDuration = Number.isFinite(entry.sessionDurationHours)
     ? Number(entry.sessionDurationHours)
     : Number.isFinite(context.durationHours)
@@ -680,32 +752,54 @@ function computeScoreInputs(entry = {}, { weatherImpact = {}, context = {} } = {
     : Number.isFinite(context.duration)
     ? Number(context.duration)
     : 2;
-  const visibleHours = Math.max(0, coverage * Math.max(contextDuration, 0));
+  const visibleHours = Math.max(0, window * Math.max(contextDuration, 0));
   const durationReference = Math.max(1.5, Math.min(6, contextDuration || 2));
-  const duration = clamp01(visibleHours / durationReference, 0);
+  const usefulDuration = clamp01(visibleHours / durationReference, 0);
   const brightness = clamp01(brightnessScore(entry.object?.magnitude ?? entry.magnitude ?? 10), 0.3);
   const seasonal = clamp01(entry.monthFactor ?? 0.5, 0);
-  const bortle = clamp01(entry.bortleFactor ?? 0.5, 0);
+  const lightPollution = clamp01(entry.bortleFactor ?? entry.lightPollutionFactor ?? 0.5, 0);
   const moon = clamp01(entry.moonFactor ?? 1, 0.25);
   const weatherFactor = clamp01(weatherImpact.weatherFactor ?? entry.weatherFactor ?? 1, 0);
-  const seeing = clamp01(weatherImpact.seeingFactor ?? entry.seeingFactor ?? 1, 0);
-  const transparency = clamp01(weatherImpact.transparencyFactor ?? entry.transparencyFactor ?? 1, 0);
-  const dew = clamp01(weatherImpact.dewFactor ?? entry.dewFactor ?? 1, 0);
-  const weatherComposite = clamp01(weatherFactor * 0.6 + seeing * 0.15 + transparency * 0.15 + dew * 0.1, 0);
-  const contextQuality = computeContextFactor(entry, contextDuration, context);
+  const seeingFactor = clamp01(weatherImpact.seeingFactor ?? entry.seeingFactor ?? 1, 0);
+  const transparencyFactor = clamp01(weatherImpact.transparencyFactor ?? entry.transparencyFactor ?? 1, 0);
+  const dewFactor = clamp01(weatherImpact.dewFactor ?? entry.dewFactor ?? 1, 0);
+  const aerosolFactor = clamp01(weatherImpact.aerosolFactor ?? entry.aerosolFactor ?? transparencyFactor ?? 1, 0);
+  const cloudFactor = clamp01(weatherImpact.cloudFactor ?? entry.cloudFactor ?? weatherFactor, 0);
+  const precipFactor = clamp01(weatherImpact.precipFactor ?? entry.precipFactor ?? weatherFactor, 0);
+  const visibilityFactor = clamp01(weatherImpact.visibilityFactor ?? entry.visibilityFactor ?? weatherFactor, 0);
+  const weatherWindow = clamp01(weatherImpact.skyWindow ?? entry.weatherWindow ?? visibilityFactor, 0);
+  const atmosphereFactor = clamp01(
+    weatherImpact.atmosphere ?? entry.atmosphereFactor ?? (transparencyFactor + seeingFactor + dewFactor + aerosolFactor) / 4,
+    0
+  );
+  const conditionFactor = clamp01(weatherImpact.conditionFactor ?? entry.weatherConditionFactor ?? 1, 0);
+  const clouds = clamp01(weatherWindow * 0.5 + cloudFactor * 0.25 + precipFactor * 0.25, 0);
+  const transparency = clamp01(transparencyFactor * 0.6 + aerosolFactor * 0.25 + dewFactor * 0.15, 0);
+  const seeing = clamp01(seeingFactor * 0.7 + atmosphereFactor * 0.3, 0);
+  const contrast = clamp01(
+    brightness * 0.35 +
+      lightPollution * 0.2 +
+      transparency * 0.2 +
+      moon * 0.15 +
+      visibilityFactor * 0.1,
+    0
+  );
+  const planning = computeContextFactor(entry, contextDuration, context);
   return {
-    altitude,
-    averageAltitude,
-    startAltitude,
-    stability,
-    coverage,
-    duration,
+    position,
+    airmass,
+    window,
+    usefulDuration,
+    trackStability,
     brightness,
+    contrast,
     seasonal,
-    bortle,
-    weather: weatherComposite,
+    lightPollution,
+    transparency,
+    seeing,
+    clouds: clamp01(clouds * conditionFactor, 0),
     moon,
-    context: contextQuality
+    planning
   };
 }
 
@@ -714,9 +808,14 @@ export function computeUnifiedVisibilityScore(entry = {}, options = {}) {
   const breakdown = {};
   let score = 0;
   const weights = getScoreWeights();
+  const typeMultipliers = resolveTypeWeightProfile(entry.object);
   const normalizedEntries = Object.entries(weights).map(([key, weight]) => {
     const numeric = Number(weight);
-    return [key, Number.isFinite(numeric) && numeric > 0 ? numeric : 0];
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+      return [key, 0];
+    }
+    const multiplier = Number.isFinite(typeMultipliers[key]) && typeMultipliers[key] > 0 ? typeMultipliers[key] : 1;
+    return [key, numeric * multiplier];
   });
   const totalWeight = normalizedEntries.reduce((sum, [, weight]) => sum + weight, 0) || 1;
   normalizedEntries.forEach(([key, rawWeight]) => {

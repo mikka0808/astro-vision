@@ -6,53 +6,64 @@ import {
 } from './score-preferences.js';
 
 const CRITERIA_LABELS = {
-  altitude: {
-    label: 'Altitude instantanée',
-    description: "Hauteur de l'objet au moment optimal d'observation."
+  position: {
+    label: 'Position angulaire',
+    description:
+      "Synthèse de l'altitude instantanée, moyenne et minimale pour juger la hauteur générale de l'objet durant la session."
   },
-  averageAltitude: {
-    label: 'Altitude moyenne',
-    description: 'Évalue la hauteur sur l’ensemble de la plage de visibilité.'
+  airmass: {
+    label: "Masse d'air",
+    description:
+      "Réduit la note lorsque l'objet reste proche de l'horizon et traverse une grande épaisseur d'atmosphère."
   },
-  startAltitude: {
-    label: 'Altitude au début',
-    description: 'Prend en compte la hauteur lors du démarrage de la session.'
-  },
-  stability: {
-    label: 'Stabilité de l’altitude',
-    description: 'Récompense les trajectoires qui dérivent peu pendant la séance.'
-  },
-  coverage: {
+  window: {
     label: 'Fenêtre de visibilité',
-    description: 'Mesure la proportion de la séance où l’objet reste observable.'
+    description: "Part de la session durant laquelle l'objet dépasse le seuil d'altitude utile."
   },
-  duration: {
+  usefulDuration: {
     label: 'Durée utile',
-    description: "Valorise les objets visibles longtemps pendant la session."
+    description: "Heures cumulées réellement exploitables au-dessus du seuil de visibilité pendant la session."
+  },
+  trackStability: {
+    label: 'Stabilité de trajectoire',
+    description: 'Mesure la variation d’altitude au fil du temps pour privilégier les passages réguliers.'
   },
   brightness: {
-    label: 'Luminosité perçue',
-    description: 'Favorise les cibles brillantes adaptées au matériel indiqué.'
+    label: 'Luminosité apparente',
+    description: 'Privilégie les cibles brillantes ou à magnitude accessible pour le matériel indiqué.'
+  },
+  contrast: {
+    label: 'Contraste objet/ciel',
+    description:
+      'Combine magnitude, pollution lumineuse, éclairement lunaire et transparence afin de refléter le contraste perçu.'
   },
   seasonal: {
     label: 'Saisonnalité',
-    description: 'Pondère selon la période idéale de l’année.'
+    description: 'Pondère selon la période de l’année la plus favorable au suivi de la cible.'
   },
-  bortle: {
-    label: 'Adaptation à la pollution lumineuse',
-    description: 'Ajuste le score aux conditions de ciel selon la classe de Bortle.'
+  lightPollution: {
+    label: 'Adaptation pollution lumineuse',
+    description: 'Compare la qualité de ciel disponible (Bortle) aux besoins de la cible pour ajuster sa lisibilité.'
   },
-  weather: {
-    label: 'Conditions météo',
-    description: 'Combine la transparence, le seeing et l’absence de nuages.'
+  transparency: {
+    label: 'Transparence atmosphérique',
+    description: 'Intègre transparence, humidité et charge particulaire pour estimer la clarté du ciel.'
+  },
+  seeing: {
+    label: 'Turbulence (seeing)',
+    description: 'Évalue la stabilité des images pour les détails fins (planètes, étoiles doubles, amas serrés).'
+  },
+  clouds: {
+    label: 'Fenêtre météo',
+    description: 'Combine couverture nuageuse, précipitations et fenêtres sans nuages durant la session.'
   },
   moon: {
-    label: 'Impact de la Lune',
-    description: 'Corrige la note selon la phase et la hauteur de la Lune.'
+    label: 'Influence lunaire',
+    description: 'Mesure l’impact de la phase, de la hauteur et de la proximité apparente de la Lune sur la cible.'
   },
-  context: {
-    label: 'Contexte session',
-    description: 'Prend en compte les données de localisation et d’alignement horaire.'
+  planning: {
+    label: 'Alignement session',
+    description: 'Prend en compte localisation, horaire choisi et meilleure fenêtre de passage pour cette cible.'
   }
 };
 
