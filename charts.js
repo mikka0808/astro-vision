@@ -31,6 +31,9 @@ export function renderAltitudeSparkline(container, trackSource, options = {}) {
   const track = normaliseTrack(trackSource);
   container.innerHTML = '';
   container.classList.remove('visibility-chart--empty');
+  Array.from(container.classList)
+    .filter((className) => className.startsWith('visibility-chart--') && className !== 'visibility-chart--empty')
+    .forEach((className) => container.classList.remove(className));
   if (palette) {
     container.classList.add(`visibility-chart--${palette}`);
   }
@@ -57,17 +60,81 @@ export function renderAltitudeSparkline(container, trackSource, options = {}) {
   const scaleX = (time) => margin.left + ((time - minTime) / span) * chartWidth;
   const scaleY = (altitude) => margin.top + chartHeight - (clampAltitude(altitude) / 90) * chartHeight;
 
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  const svgNamespace = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNamespace, 'svg');
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   svg.setAttribute('aria-hidden', 'true');
 
-  const desc = document.createElementNS('http://www.w3.org/2000/svg', 'desc');
+  const defs = document.createElementNS(svgNamespace, 'defs');
+  const gradientToken = Math.random().toString(36).slice(2, 9);
+  const lineGradientId = `visibility-line-${gradientToken}`;
+  const areaGradientId = `visibility-area-${gradientToken}`;
+
+  const defaultStops = [
+    { offset: '0%', color: 'var(--visibility-chart-bad)' },
+    { offset: '55%', color: 'var(--visibility-chart-warn)' },
+    { offset: '100%', color: 'var(--visibility-chart-good)' }
+  ];
+
+  const gradientStops = Array.isArray(options.gradientStops) && options.gradientStops.length
+    ? options.gradientStops
+    : defaultStops;
+
+  const createGradient = (id, opacityMapper) => {
+    const gradient = document.createElementNS(svgNamespace, 'linearGradient');
+    gradient.setAttribute('id', id);
+    gradient.setAttribute('x1', '0');
+    gradient.setAttribute('x2', '0');
+    gradient.setAttribute('y1', '1');
+    gradient.setAttribute('y2', '0');
+    gradientStops.forEach((stop, index) => {
+      if (!stop || typeof stop !== 'object') return;
+      const gradientStop = document.createElementNS(svgNamespace, 'stop');
+      const offsetValue = typeof stop.offset === 'number'
+        ? `${Math.max(0, Math.min(1, stop.offset)) * 100}%`
+        : stop.offset || defaultStops[Math.min(index, defaultStops.length - 1)].offset;
+      gradientStop.setAttribute('offset', offsetValue);
+      gradientStop.setAttribute('stop-color', stop.color || defaultStops[Math.min(index, defaultStops.length - 1)].color);
+      const opacityValue = opacityMapper(stop, index);
+      if (opacityValue !== null) {
+        gradientStop.setAttribute('stop-opacity', opacityValue);
+      }
+      gradient.appendChild(gradientStop);
+    });
+    return gradient;
+  };
+
+  const lineGradient = createGradient(lineGradientId, (stop) => {
+    if (typeof stop.opacity === 'number') {
+      return Math.max(0, Math.min(1, stop.opacity));
+    }
+    return null;
+  });
+
+  const areaGradient = createGradient(areaGradientId, (stop, index) => {
+    if (typeof stop.fillOpacity === 'number') {
+      return Math.max(0, Math.min(1, stop.fillOpacity));
+    }
+    if (typeof stop.opacity === 'number') {
+      return Math.max(0, Math.min(1, stop.opacity));
+    }
+    if (index === 0 || index === gradientStops.length - 1) {
+      return 0.32;
+    }
+    return 0.22;
+  });
+
+  defs.appendChild(lineGradient);
+  defs.appendChild(areaGradient);
+  svg.appendChild(defs);
+
+  const desc = document.createElementNS(svgNamespace, 'desc');
   const stepMinutes =
     track.length > 1 ? Math.round((track[1].date.getTime() - track[0].date.getTime()) / 60000) : null;
   desc.textContent = `Altitude de ${objectName}${stepMinutes ? ` toutes les ${stepMinutes} minutes` : ''}.`;
   svg.appendChild(desc);
 
-  const baseline = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  const baseline = document.createElementNS(svgNamespace, 'line');
   baseline.setAttribute('x1', margin.left);
   baseline.setAttribute('x2', margin.left + chartWidth);
   baseline.setAttribute('y1', margin.top + chartHeight);
@@ -79,7 +146,7 @@ export function renderAltitudeSparkline(container, trackSource, options = {}) {
 
   if (thresholdAltitude !== null) {
     const thresholdY = scaleY(thresholdAltitude);
-    const thresholdLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    const thresholdLine = document.createElementNS(svgNamespace, 'line');
     thresholdLine.setAttribute('x1', margin.left);
     thresholdLine.setAttribute('x2', margin.left + chartWidth);
     thresholdLine.setAttribute('y1', thresholdY);
@@ -92,26 +159,51 @@ export function renderAltitudeSparkline(container, trackSource, options = {}) {
   const lastX = scaleX(track[track.length - 1].date.getTime());
 
   if (track.length > 1) {
-    const areaPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const areaPath = document.createElementNS(svgNamespace, 'path');
     const areaSegments = track
       .map((point) => `L ${scaleX(point.date.getTime())} ${scaleY(point.altitude)}`)
       .join(' ');
     areaPath.setAttribute('d', `M ${firstX} ${margin.top + chartHeight} ${areaSegments} L ${lastX} ${margin.top + chartHeight} Z`);
     areaPath.setAttribute('class', 'visibility-chart__area');
+    areaPath.setAttribute('fill', `url(#${areaGradientId})`);
+    areaPath.style.fill = 'var(--visibility-chart-line)';
+    areaPath.style.opacity = '0.18';
     svg.appendChild(areaPath);
   }
 
-  const linePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  const linePath = document.createElementNS(svgNamespace, 'path');
   const pathData = track
     .map((point, index) => `${index === 0 ? 'M' : 'L'} ${scaleX(point.date.getTime())} ${scaleY(point.altitude)}`)
     .join(' ');
   linePath.setAttribute('d', pathData);
-  linePath.setAttribute('class', 'visibility-chart__line');
+  linePath.setAttribute('fill', 'none');
+  linePath.setAttribute('stroke', `url(#${lineGradientId})`);
+  linePath.style.stroke = 'var(--visibility-chart-line)';
+  linePath.setAttribute('stroke-width', '2.6');
+  linePath.setAttribute('stroke-linecap', 'round');
+  linePath.setAttribute('stroke-linejoin', 'round');
+  linePath.setAttribute('class', 'visibility-chart__line visibility-chart__line--animated');
   svg.appendChild(linePath);
+
+  const pathLength = (() => {
+    try {
+      return linePath.getTotalLength();
+    } catch (error) {
+      return null;
+    }
+  })();
+
+  if (typeof pathLength === 'number' && Number.isFinite(pathLength) && pathLength > 0) {
+    linePath.setAttribute('stroke-dasharray', pathLength);
+    linePath.setAttribute('stroke-dashoffset', pathLength);
+    requestAnimationFrame(() => {
+      linePath.classList.add('visibility-chart__line--drawn');
+    });
+  }
 
   const now = Date.now();
   if (now >= minTime && now <= maxTime) {
-    const nowLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    const nowLine = document.createElementNS(svgNamespace, 'line');
     const x = scaleX(now);
     nowLine.setAttribute('x1', x);
     nowLine.setAttribute('x2', x);
@@ -150,7 +242,7 @@ export function renderAltitudeSparkline(container, trackSource, options = {}) {
     }
 
     if (Number.isFinite(nowAltitude)) {
-      const nowDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      const nowDot = document.createElementNS(svgNamespace, 'circle');
       nowDot.setAttribute('cx', x);
       nowDot.setAttribute('cy', scaleY(nowAltitude));
       nowDot.setAttribute('r', 4.2);
@@ -160,11 +252,12 @@ export function renderAltitudeSparkline(container, trackSource, options = {}) {
   }
 
   track.forEach((point, index) => {
-    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    const dot = document.createElementNS(svgNamespace, 'circle');
     dot.setAttribute('cx', scaleX(point.date.getTime()));
     dot.setAttribute('cy', scaleY(point.altitude));
     dot.setAttribute('r', index === 0 || index === track.length - 1 ? 3.5 : 2.5);
     dot.setAttribute('class', 'visibility-chart__dot');
+    dot.style.setProperty('--dot-index', index);
     svg.appendChild(dot);
   });
 
@@ -181,7 +274,7 @@ export function renderAltitudeSparkline(container, trackSource, options = {}) {
     if (!Number.isFinite(alt)) return;
     const y = scaleY(alt);
     if (y <= margin.top || y >= margin.top + chartHeight) return;
-    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    const text = document.createElementNS(svgNamespace, 'text');
     text.setAttribute('x', 6);
     text.setAttribute('y', y + 4);
     const classes = ['visibility-chart__label'];
