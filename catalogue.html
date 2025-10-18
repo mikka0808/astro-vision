@@ -53,8 +53,11 @@
           <option value="magnitude">Magnitude croissante</option>
         </select>
         <details class="filter-details">
-          <summary>Filtrer par catalogue</summary>
-          <div id="catalogueSelectionOptions" class="filter-options"></div>
+          <summary class="filter-details__summary">
+            <span class="filter-details__summary-label">Filtrer par catalogue</span>
+            <span id="catalogueSelectionBadge" class="filter-details__badge" aria-live="polite" hidden></span>
+          </summary>
+          <div id="catalogueSelectionOptions" class="filter-options filter-options--catalogues"></div>
           <div class="filter-actions">
             <button type="button" class="link-button" id="selectAllCatalogues">Tout sélectionner</button>
             <button type="button" class="link-button" id="clearCatalogueSelection">Tout désélectionner</button>

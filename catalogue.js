@@ -45,6 +45,7 @@ const catalogueSelectionOptions = document.getElementById('catalogueSelectionOpt
 const selectAllCataloguesButton = document.getElementById('selectAllCatalogues');
 const clearCatalogueSelectionButton = document.getElementById('clearCatalogueSelection');
 const catalogueSelectionSummary = document.getElementById('catalogueSelectionSummary');
+const catalogueSelectionBadge = document.getElementById('catalogueSelectionBadge');
 const catalogueList = document.getElementById('catalogueList');
 const nightModeToggle = document.getElementById('nightModeToggle');
 const catalogueHeading = document.getElementById('catalogueTitle');
@@ -447,9 +448,55 @@ function readCatalogueSelectionFromUI() {
   return selected;
 }
 
+function updateCatalogueSelectionBadge(totalCatalogues = 0) {
+  if (!catalogueSelectionBadge) return;
+  if (!Number.isFinite(totalCatalogues) || totalCatalogues <= 0) {
+    catalogueSelectionBadge.textContent = '';
+    catalogueSelectionBadge.hidden = true;
+    catalogueSelectionBadge.removeAttribute('aria-label');
+    catalogueSelectionBadge.removeAttribute('title');
+    return;
+  }
+  let label = '';
+  let description = '';
+  if (activeCatalogueIds === null) {
+    label = 'Tous';
+    description = 'Tous les catalogues sont affichés';
+  } else if (Array.isArray(activeCatalogueIds) && activeCatalogueIds.length === 0) {
+    label = 'Aucun';
+    description = 'Aucun catalogue sélectionné';
+  } else {
+    const count = getSelectionIds().length;
+    if (count <= 0) {
+      label = 'Aucun';
+      description = 'Aucun catalogue sélectionné';
+    } else {
+      label = `${count}/${totalCatalogues}`;
+      description = `${count} catalogue${count > 1 ? 's' : ''} sélectionné${count > 1 ? 's' : ''} sur ${totalCatalogues}`;
+    }
+  }
+  if (!label) {
+    catalogueSelectionBadge.textContent = '';
+    catalogueSelectionBadge.hidden = true;
+    catalogueSelectionBadge.removeAttribute('aria-label');
+    catalogueSelectionBadge.removeAttribute('title');
+    return;
+  }
+  catalogueSelectionBadge.textContent = label;
+  catalogueSelectionBadge.hidden = false;
+  if (description) {
+    catalogueSelectionBadge.setAttribute('aria-label', description);
+    catalogueSelectionBadge.setAttribute('title', description);
+  } else {
+    catalogueSelectionBadge.removeAttribute('aria-label');
+    catalogueSelectionBadge.removeAttribute('title');
+  }
+}
+
 function updateCatalogueSelectionSummary() {
   if (!catalogueSelectionSummary) return;
   const totalCatalogues = Array.isArray(catalogueDefinitions) ? catalogueDefinitions.length : 0;
+  updateCatalogueSelectionBadge(totalCatalogues);
   if (totalCatalogues === 0) {
     catalogueSelectionSummary.textContent = 'Aucun catalogue disponible pour le moment.';
     return;
@@ -820,11 +867,13 @@ function hasCustomCatalogueSelection() {
   return selected.length > 0 && selected.length < catalogueDefinitions.length;
 }
 
-function syncFilterDetailState(detailsElement, hasActive) {
+function syncFilterDetailState(detailsElement, hasActive, { autoOpen = true } = {}) {
   if (!detailsElement) return;
   if (hasActive) {
     detailsElement.dataset.active = 'true';
-    detailsElement.open = true;
+    if (autoOpen) {
+      detailsElement.open = true;
+    }
   } else {
     delete detailsElement.dataset.active;
   }
@@ -916,7 +965,7 @@ function renderActiveFilterChips() {
   syncFilterDetailState(typeFilterDetails, activeTypeFilters.length > 0);
   syncFilterDetailState(difficultyFilterDetails, activeDifficultyFilters.length > 0);
   syncFilterDetailState(seasonFilterDetails, activeSeasonFilters.length > 0);
-  syncFilterDetailState(catalogueSelectionDetails, hasCustomCatalogueSelection());
+  syncFilterDetailState(catalogueSelectionDetails, hasCustomCatalogueSelection(), { autoOpen: false });
 }
 
 function clearAllFilters() {
