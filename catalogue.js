@@ -40,6 +40,8 @@ const sessionMoon = document.getElementById('sessionMoon');
 const sessionEvents = document.getElementById('sessionEvents');
 const sessionDecision = document.getElementById('sessionDecision');
 const sessionPanel = document.getElementById('sessionPanel');
+const sessionContextToggle = document.getElementById('sessionContextToggle');
+const sessionContextBody = document.getElementById('sessionContextBody');
 const sortSelect = document.getElementById('catalogueSort');
 const catalogueFilterSummary = document.getElementById('catalogueFilterSummary');
 const catalogueTypeOptions = document.getElementById('catalogueTypeOptions');
@@ -61,6 +63,80 @@ const typeFilterDetails = catalogueTypeOptions ? catalogueTypeOptions.closest('d
 const difficultyFilterDetails = catalogueDifficultyOptions ? catalogueDifficultyOptions.closest('details') : null;
 const seasonFilterDetails = catalogueSeasonOptions ? catalogueSeasonOptions.closest('details') : null;
 const catalogueSelectionDetails = catalogueSelectionOptions ? catalogueSelectionOptions.closest('details') : null;
+
+let sessionContextPanelState = null;
+
+function initSessionContextPanel() {
+  if (!sessionContextToggle || !sessionContextBody) {
+    return;
+  }
+  const section = sessionContextToggle.closest('.panel');
+  const showLabel = sessionContextToggle.dataset.labelShow || 'Afficher les détails du contexte';
+  const hideLabel = sessionContextToggle.dataset.labelHide || 'Masquer les détails du contexte';
+  sessionContextPanelState = {
+    button: sessionContextToggle,
+    body: sessionContextBody,
+    section,
+    showLabel,
+    hideLabel,
+    expanded: false,
+    ready: false
+  };
+  sessionContextToggle.textContent = showLabel;
+  sessionContextToggle.setAttribute('aria-expanded', 'false');
+  sessionContextToggle.disabled = true;
+  sessionContextBody.hidden = true;
+  if (section) {
+    section.classList.add('panel--collapsed');
+    section.classList.remove('panel--expanded');
+    section.classList.remove('panel--ready');
+  }
+  sessionContextToggle.addEventListener('click', () => {
+    if (!sessionContextPanelState || !sessionContextPanelState.ready) {
+      return;
+    }
+    setSessionContextPanelExpanded(!sessionContextPanelState.expanded);
+  });
+}
+
+function setSessionContextPanelExpanded(expanded) {
+  if (!sessionContextPanelState) {
+    return;
+  }
+  sessionContextPanelState.expanded = expanded;
+  const { button, body, section, showLabel, hideLabel } = sessionContextPanelState;
+  if (button) {
+    button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    button.textContent = expanded ? hideLabel : showLabel;
+  }
+  if (body) {
+    if (typeof body.toggleAttribute === 'function') {
+      body.toggleAttribute('hidden', !expanded);
+    } else {
+      body.hidden = !expanded;
+    }
+  }
+  if (section) {
+    section.classList.toggle('panel--expanded', expanded);
+    section.classList.toggle('panel--collapsed', !expanded);
+  }
+}
+
+function setSessionContextPanelReady(ready) {
+  if (!sessionContextPanelState) {
+    return;
+  }
+  sessionContextPanelState.ready = ready;
+  if (sessionContextPanelState.button) {
+    sessionContextPanelState.button.disabled = !ready;
+  }
+  if (!ready) {
+    setSessionContextPanelExpanded(false);
+  }
+  if (sessionContextPanelState.section) {
+    sessionContextPanelState.section.classList.toggle('panel--ready', ready);
+  }
+}
 
 let activeSearchTerm = '';
 let activeSearchLabel = '';
@@ -1731,6 +1807,7 @@ function resolveCatalogueSelection(snapshot, catalogues = []) {
 
 async function bootstrap() {
   try {
+    setSessionContextPanelReady(false);
     const [{ catalogues, objects, sources }, snapshot] = await Promise.all([
       loadCatalog(),
       Promise.resolve(readSessionSnapshot())
@@ -1777,9 +1854,13 @@ async function bootstrap() {
     if (!snapshot && sessionPanel) {
       sessionPanel.classList.add('warning');
     }
+    setSessionContextPanelReady(true);
+    setSessionContextPanelExpanded(false);
   } catch (error) {
     console.error(error);
     catalogueHint.textContent = "Impossible de charger le catalogue pour le moment.";
+    setSessionContextPanelReady(true);
+    setSessionContextPanelExpanded(false);
   }
 }
 
@@ -1832,6 +1913,8 @@ if (clearCatalogueSelectionButton) {
     });
   });
 }
+
+initSessionContextPanel();
 
 renderActiveFilterChips();
 

@@ -24,13 +24,29 @@
   <main>
     <section class="panel" id="sessionPanel" aria-live="polite">
       <div class="panel-header">
-        <h2>Contexte d'observation</h2>
-        <p id="sessionSummary">Analyse en attente...</p>
+        <div class="panel-heading">
+          <h2>Contexte d'observation</h2>
+          <p id="sessionSummary">Analyse en attente...</p>
+        </div>
+        <button
+          type="button"
+          id="sessionContextToggle"
+          class="panel-toggle"
+          data-panel-toggle
+          data-label-show="Afficher le détail du contexte"
+          data-label-hide="Masquer le détail du contexte"
+          aria-expanded="false"
+          aria-controls="sessionContextBody"
+        >
+          Afficher le détail du contexte
+        </button>
       </div>
-      <p class="help-text" id="sessionDecision">Score global en attente…</p>
-      <p class="help-text" id="sessionWeather"></p>
-      <p class="help-text" id="sessionMoon"></p>
-      <ul id="sessionEvents" class="event-list"></ul>
+      <div class="panel-body contextual-body" id="sessionContextBody" hidden>
+        <p class="help-text" id="sessionDecision">Score global en attente…</p>
+        <p class="help-text" id="sessionWeather"></p>
+        <p class="help-text" id="sessionMoon"></p>
+        <ul id="sessionEvents" class="event-list"></ul>
+      </div>
     </section>
 
     <section class="panel" id="cataloguePanel">
@@ -39,20 +55,24 @@
         <p id="catalogueHint">Chargement des catalogues...</p>
       </div>
       <div class="catalogue-controls">
-        <label class="sr-only" for="catalogueSearch">Rechercher un objet du catalogue</label>
-        <input
-          type="search"
-          id="catalogueSearch"
-          class="catalogue-search"
-          placeholder="Rechercher (nom, désignation, constellation...)"
-          autocomplete="off"
-        />
-        <label for="catalogueSort">Trier par</label>
-        <select id="catalogueSort" aria-label="Trier les objets du catalogue">
-          <option value="score" selected>Score décroissant</option>
-          <option value="name">Nom (A → Z)</option>
-          <option value="magnitude">Magnitude croissante</option>
-        </select>
+        <div class="filter-control filter-control--search">
+          <label class="sr-only" for="catalogueSearch">Rechercher un objet du catalogue</label>
+          <input
+            type="search"
+            id="catalogueSearch"
+            class="catalogue-search"
+            placeholder="Rechercher (nom, désignation, constellation...)"
+            autocomplete="off"
+          />
+        </div>
+        <div class="filter-control filter-control--sort">
+          <label for="catalogueSort">Trier par</label>
+          <select id="catalogueSort" aria-label="Trier les objets du catalogue">
+            <option value="score" selected>Score décroissant</option>
+            <option value="name">Nom (A → Z)</option>
+            <option value="magnitude">Magnitude croissante</option>
+          </select>
+        </div>
         <details class="filter-details">
           <summary class="filter-details__summary">
             <span class="filter-details__summary-label">Filtrer par catalogue</span>
