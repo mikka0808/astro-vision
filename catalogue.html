@@ -105,7 +105,16 @@
       </div>
       <p class="help-text" id="catalogueSelectionSummary">Sélection en cours de préparation…</p>
       <p class="help-text" id="catalogueFilterSummary">Aucun filtre actif pour l’instant.</p>
-      <div id="catalogueList" class="catalogue-list" role="list"></div>
+      <section class="catalogue-overview" aria-labelledby="catalogueOverviewTitle">
+        <div class="catalogue-overview__header">
+          <h3 id="catalogueOverviewTitle" class="catalogue-overview__title">Panorama des catalogues</h3>
+          <p class="catalogue-overview__intro">
+            Compare les catalogues disponibles avant de filtrer&nbsp;: vocation, couverture et nombre d’objets
+            réellement chargés pour cette session.
+          </p>
+        </div>
+        <div id="catalogueList" class="catalogue-overview__grid" role="list"></div>
+      </section>
       <div id="catalogueGrid" class="catalogue-grid" role="list"></div>
       <nav
         id="cataloguePagination"

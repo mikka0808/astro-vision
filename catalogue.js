@@ -745,6 +745,7 @@ function renderCatalogueList(catalogues = []) {
       header.appendChild(badge);
     }
     const title = document.createElement('h3');
+    title.className = 'catalogue-list__title';
     title.textContent = catalogue.name || catalogue.abbreviation || normalizedId.toUpperCase();
     header.appendChild(title);
     item.appendChild(header);
@@ -760,7 +761,7 @@ function renderCatalogueList(catalogues = []) {
     }
     if (metaParts.length > 0) {
       const meta = document.createElement('p');
-      meta.className = 'catalogue-list__meta';
+      meta.className = 'catalogue-list__tagline';
       meta.textContent = metaParts.join(' • ');
       item.appendChild(meta);
     }
@@ -773,16 +774,29 @@ function renderCatalogueList(catalogues = []) {
     }
 
     const count = catalogueObjectCounts.get(normalizedId);
-    let countText = 'Chargement…';
+    const countLine = document.createElement('div');
+    countLine.className = 'catalogue-list__count';
     if (Number.isFinite(count)) {
       const plural = count > 1 ? 's' : '';
-      countText = `${count.toLocaleString('fr-FR')} objet${plural} disponibles`;
+      const value = document.createElement('strong');
+      value.className = 'catalogue-list__count-value';
+      value.textContent = count.toLocaleString('fr-FR');
+      const suffix = document.createElement('span');
+      suffix.className = 'catalogue-list__count-label';
+      suffix.textContent = ` objet${plural} disponibles`;
+      countLine.appendChild(value);
+      countLine.appendChild(suffix);
     } else if (loadedCatalogueIds.has(normalizedId)) {
-      countText = 'Aucun objet disponible';
+      const empty = document.createElement('span');
+      empty.className = 'catalogue-list__count-label';
+      empty.textContent = 'Aucun objet disponible';
+      countLine.appendChild(empty);
+    } else {
+      const pending = document.createElement('span');
+      pending.className = 'catalogue-list__count-label';
+      pending.textContent = 'Chargement…';
+      countLine.appendChild(pending);
     }
-    const countLine = document.createElement('p');
-    countLine.className = 'catalogue-list__count';
-    countLine.textContent = countText;
     item.appendChild(countLine);
 
     catalogueList.appendChild(item);
