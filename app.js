@@ -1666,7 +1666,7 @@ function renderTargets(targets, stats = {}) {
 
   targets.forEach((entry) => {
     const card = document.createElement('article');
-    card.className = 'target-card';
+    card.className = 'target-card tone-frame';
     card.setAttribute('role', 'listitem');
     const rawScore = Number.isFinite(entry.score) ? Math.round(entry.score * 100) : null;
     const scoreValue = rawScore !== null ? Math.max(0, Math.min(100, rawScore)) : null;
@@ -1698,6 +1698,11 @@ function renderTargets(targets, stats = {}) {
     const catalogueLabel = formatCatalogueList(uniqueCatalogues);
     const scoreLabel = scoreValue !== null ? `${scoreValue}/100` : '—';
     const barWidth = scoreValue !== null ? scoreValue : 0;
+    if (scoreTone !== 'neutral') {
+      card.dataset.tone = scoreTone;
+    } else {
+      delete card.dataset.tone;
+    }
     card.innerHTML = `
       <header class="target-card__header">
         <div>
@@ -1706,25 +1711,35 @@ function renderTargets(targets, stats = {}) {
         </div>
         <span class="score-chip"${toneAttr}>${scoreLabel}</span>
       </header>
-      <p>${entry.object.description}</p>
-      <dl class="target-metrics">
-        <div><dt>Hauteur max</dt><dd>${formatAltitude(entry.altitude)}</dd></div>
-        <div><dt>Altitude moyenne</dt><dd>${averageAltitudeText}</dd></div>
-        <div><dt>Moment idéal</dt><dd>${bestMoment}</dd></div>
-      </dl>
-      <div class="visibility-chart" role="img" aria-label="Evolution de l'altitude durant la session"></div>
-      <div class="score-bar" aria-hidden="true"${toneAttr}><span style="width:${barWidth}%"></span></div>
-      <details class="target-details">
-        <summary>Détails visibilité</summary>
-        <ul>
-          <li>Catalogues pondérés : ${catalogueLabel} (${weightPercent}%)</li>
-          <li>Type : ${typeLabel}</li>
-          <li>Magnitude apparente : Mag ${magnitudeText}</li>
-          <li>Direction optimale : ${direction}</li>
-          <li>Début de session : ${formatAltitude(entry.startAltitude)} • ${startDirection}</li>
-          <li>Fin de session : ${endAltitudeText} • ${endDirection}</li>
-          <li>Altitude moyenne : ${averageAltitudeText} (min ${minAltitudeText})</li>
-        </ul>
+      <p class="target-summary">${entry.object.description}</p>
+      <div class="target-glance">
+        <div>
+          <span class="target-glance__label">Moment idéal</span>
+          <strong class="target-glance__value">${bestMoment}</strong>
+        </div>
+        <div>
+          <span class="target-glance__label">Direction</span>
+          <strong class="target-glance__value">${formatAltitude(entry.altitude)} • ${direction}</strong>
+        </div>
+      </div>
+      <details class="card-fold">
+        <summary>Analyse détaillée</summary>
+        <div class="card-fold__content">
+          <div class="score-bar" aria-hidden="true"${toneAttr}><span style="width:${barWidth}%"></span></div>
+          <dl class="target-metrics">
+            <div><dt>Altitude moyenne</dt><dd>${averageAltitudeText}</dd></div>
+            <div><dt>Altitude minimale</dt><dd>${minAltitudeText}</dd></div>
+            <div><dt>Fin de fenêtre</dt><dd>${endAltitudeText} • ${endDirection}</dd></div>
+          </dl>
+          <div class="visibility-chart" role="img" aria-label="Evolution de l'altitude durant la session"></div>
+          <ul class="target-insights">
+            <li>Catalogues pondérés : ${catalogueLabel} (${weightPercent}%)</li>
+            <li>Type : ${typeLabel}</li>
+            <li>Magnitude apparente : Mag ${magnitudeText}</li>
+            <li>Début de session : ${formatAltitude(entry.startAltitude)} • ${startDirection}</li>
+            <li>Temps visible &gt; 30° : ${coverageText}</li>
+          </ul>
+        </div>
       </details>
     `;
     renderVisibilityChart(card, entry);

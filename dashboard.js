@@ -23,8 +23,11 @@ const scoreMeter = document.querySelector('.score-meter');
 const detailsEl = document.getElementById('dashboardDetails');
 const metricsList = document.getElementById('dashboardMetrics');
 const updatedEl = document.getElementById('dashboardUpdated');
+const contextSummaryEl = document.getElementById('dashboardContextSummary');
 const contextEl = document.getElementById('dashboardContext');
+const weatherSummaryEl = document.getElementById('dashboardWeatherSummary');
 const weatherEl = document.getElementById('dashboardWeather');
+const moonSummaryEl = document.getElementById('dashboardMoonSummary');
 const moonEl = document.getElementById('dashboardMoon');
 const alertsList = document.getElementById('dashboardAlerts');
 const calendarList = document.getElementById('dashboardCalendar');
@@ -83,6 +86,7 @@ function toneToIcon(tone) {
 
 function createDecisionItem({ tone = 'neutral', icon }) {
   const item = document.createElement('li');
+  item.classList.add('tone-frame');
   if (tone !== 'neutral') {
     item.dataset.tone = tone;
   }
@@ -270,8 +274,9 @@ function enrichEntriesWithTrack(snapshot) {
 }
 
 function renderContext(snapshot) {
-  if (!contextEl) return;
+  if (!contextEl || !contextSummaryEl) return;
   if (!snapshot?.context) {
+    contextSummaryEl.innerHTML = '<p>Aucune session enregistrée.</p>';
     contextEl.textContent = 'Aucune session enregistrée. Retourne sur la page principale pour lancer une analyse.';
     return;
   }
@@ -283,6 +288,11 @@ function renderContext(snapshot) {
   const duration = Number.isFinite(durationHours) ? `${durationHours} h` : 'durée inconnue';
   const bortleText = Number.isFinite(bortle) ? `Bortle ${bortle}` : 'Bortle ?';
   const summarySuffix = bortleSummary ? ` ${bortleSummary}` : '';
+  contextSummaryEl.innerHTML = `
+    <p>🗓️ ${when}</p>
+    <p>⏱️ ${duration}</p>
+    <p>💡 ${bortleText}${summarySuffix ? ` — ${summarySuffix.trim()}` : ''}</p>
+  `;
   const lines = [
     `<strong>Session :</strong> ${when} (${duration})`,
     `<strong>Coordonnées :</strong> lat ${latText}, lon ${lonText}`,
@@ -292,21 +302,29 @@ function renderContext(snapshot) {
 }
 
 function renderWeather(snapshot) {
-  if (!weatherEl) return;
+  if (!weatherEl || !weatherSummaryEl) return;
   if (!snapshot?.weather) {
+    weatherSummaryEl.innerHTML = '<p>Résumé météo indisponible.</p>';
     weatherEl.textContent = 'Résumé météo indisponible.';
     return;
   }
-  weatherEl.textContent = buildWeatherSummary(snapshot.weather);
+  const weatherText = buildWeatherSummary(snapshot.weather);
+  weatherEl.textContent = weatherText;
+  weatherSummaryEl.innerHTML = `<p>${headlineFrom(weatherText)}</p>`;
 }
 
 function renderMoon(snapshot) {
-  if (!moonEl) return;
+  if (!moonEl || !moonSummaryEl) return;
   const moon = snapshot?.moon;
   if (!moon) {
+    moonSummaryEl.innerHTML = '<p>Phase lunaire non calculée.</p>';
     moonEl.textContent = 'Phase lunaire non calculée.';
     return;
   }
+  moonSummaryEl.innerHTML = `
+    <p>${moon.emoji ?? '🌙'} ${moon.name}</p>
+    <p>${formatIllumination(moon.illumination)}</p>
+  `;
   moonEl.textContent = `${moon.emoji ?? '🌙'} ${moon.name} — ${formatIllumination(moon.illumination)} éclairée.`;
 }
 
@@ -608,7 +626,7 @@ function renderTopTargets(entries) {
   }
   entries.forEach((entry, index) => {
     const card = document.createElement('article');
-    card.className = 'mini-target';
+    card.className = 'mini-target tone-frame';
     const header = document.createElement('header');
     header.className = 'mini-target__header';
     const rawScore = getEntryScore(entry);
@@ -641,13 +659,25 @@ function renderTopTargets(entries) {
     header.appendChild(scoreChip);
     card.appendChild(header);
 
-    const meta = document.createElement('p');
-    meta.className = 'mini-target__meta';
+    const meta = document.createElement('div');
+    meta.className = 'mini-target__glance';
     const bestTime = formatLocalTime(entry.bestTime);
     const altitude = formatAltitude(entry.altitude);
     const direction = describeAzimuth(entry.azimuth);
-    meta.textContent = `🕒 ${bestTime} • ⛰️ ${altitude} • 🧭 ${direction}`;
+    meta.innerHTML = `
+      <div><span>Moment idéal</span><strong>${bestTime}</strong></div>
+      <div><span>Direction</span><strong>${altitude} • ${direction}</strong></div>
+    `;
     card.appendChild(meta);
+
+    const fold = document.createElement('details');
+    fold.className = 'card-fold';
+    const summary = document.createElement('summary');
+    summary.textContent = 'Détails visibilité';
+    fold.appendChild(summary);
+
+    const foldContent = document.createElement('div');
+    foldContent.className = 'card-fold__content';
 
     const metrics = document.createElement('dl');
     metrics.className = 'mini-target__metrics';
@@ -661,17 +691,48 @@ function renderTopTargets(entries) {
       <div><dt>🌇 Fin</dt><dd>${formatAltitude(entry.endAltitude)} • ${endDirection}</dd></div>
       <div><dt>🕓 Temps &gt; 30°</dt><dd>${coveragePercent}</dd></div>
     `;
-    card.appendChild(metrics);
+    foldContent.appendChild(metrics);
 
     const chart = document.createElement('div');
     chart.className = 'visibility-chart';
     chart.setAttribute('role', 'img');
     chart.setAttribute('aria-label', `Altitude de ${entry.object?.name ?? 'la cible'} durant la session`);
-    card.appendChild(chart);
+    foldContent.appendChild(chart);
+
+    const infoList = document.createElement('ul');
+    infoList.className = 'target-insights';
+    infoList.innerHTML = `
+      <li>Altitude moyenne : ${formatAltitude(entry.averageAltitude)}</li>
+      <li>Altitude minimale : ${formatAltitude(entry.minAltitude)}</li>
+      <li>Poids catalogue : ${weightDisplay(entry)}</li>
+    `;
+    foldContent.appendChild(infoList);
+
+    fold.appendChild(foldContent);
+    card.appendChild(fold);
+
     renderAltitudeSparkline(chart, entry.track, { objectName: entry.object?.name, width: 300, height: 150 });
 
     targetsGrid.appendChild(card);
   });
+}
+
+function weightDisplay(entry) {
+  if (!Number.isFinite(entry.weightFactor)) return '—';
+  const weightPercent = Math.round(Math.max(0, entry.weightFactor) * 100);
+  const weightedCatalogues = Array.isArray(entry.weightCatalogueRefs) && entry.weightCatalogueRefs.length > 0
+    ? entry.weightCatalogueRefs
+    : entry.object?.catalogueRefs;
+  const uniqueCatalogues = Array.isArray(weightedCatalogues) ? Array.from(new Set(weightedCatalogues)) : [];
+  if (uniqueCatalogues.length === 0) return `${weightPercent}%`;
+  return `${weightPercent}% (${uniqueCatalogues.join(', ')})`;
+}
+
+function headlineFrom(text) {
+  if (!text) return '—';
+  const parts = text.split(/(?<=[.!?])\s+/);
+  const first = parts.find((part) => part.trim().length > 0);
+  return first ? first.trim() : text;
 }
 
 function renderScore(decision, snapshot) {

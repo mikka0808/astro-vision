@@ -39,8 +39,13 @@
           </header>
           <p class="metric-score" id="dashboardScore">—</p>
           <div class="score-meter" aria-hidden="true"><span id="dashboardGauge"></span></div>
-          <ul class="metric-list" id="dashboardMetrics"></ul>
-          <p class="metric-hint" id="dashboardDetails">Aucune session récente.</p>
+          <details class="card-fold">
+            <summary>Détails du calcul</summary>
+            <div class="card-fold__content">
+              <ul class="metric-list" id="dashboardMetrics"></ul>
+              <p class="metric-hint" id="dashboardDetails">Aucune session récente.</p>
+            </div>
+          </details>
         </article>
         <article class="metric-card metric-card--context">
           <header class="metric-card__header">
@@ -50,7 +55,15 @@
               <p class="metric-subtitle">Coordonnées &amp; pollution lumineuse</p>
             </div>
           </header>
-          <p class="metric-text" id="dashboardContext">Aucune session enregistrée. Retourne sur la page principale pour lancer une analyse.</p>
+          <div class="metric-quick" id="dashboardContextSummary">
+            <p>Aucune session enregistrée.</p>
+          </div>
+          <details class="card-fold">
+            <summary>Détails du contexte</summary>
+            <div class="card-fold__content">
+              <p class="metric-text" id="dashboardContext">Aucune session enregistrée. Retourne sur la page principale pour lancer une analyse.</p>
+            </div>
+          </details>
         </article>
         <article class="metric-card metric-card--weather">
           <header class="metric-card__header">
@@ -60,7 +73,15 @@
               <p class="metric-subtitle">Nébulosité, transparence &amp; vent</p>
             </div>
           </header>
-          <p class="metric-text" id="dashboardWeather">Résumé météo indisponible.</p>
+          <div class="metric-quick" id="dashboardWeatherSummary">
+            <p>Résumé météo indisponible.</p>
+          </div>
+          <details class="card-fold">
+            <summary>Voir la météo détaillée</summary>
+            <div class="card-fold__content">
+              <p class="metric-text" id="dashboardWeather">Résumé météo indisponible.</p>
+            </div>
+          </details>
         </article>
         <article class="metric-card metric-card--moon">
           <header class="metric-card__header">
@@ -70,7 +91,15 @@
               <p class="metric-subtitle">Phase et éclairement</p>
             </div>
           </header>
-          <p class="metric-text" id="dashboardMoon">Phase lunaire non calculée.</p>
+          <div class="metric-quick" id="dashboardMoonSummary">
+            <p>Phase lunaire non calculée.</p>
+          </div>
+          <details class="card-fold">
+            <summary>Voir la phase complète</summary>
+            <div class="card-fold__content">
+              <p class="metric-text" id="dashboardMoon">Phase lunaire non calculée.</p>
+            </div>
+          </details>
         </article>
       </div>
     </section>

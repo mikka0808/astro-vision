@@ -1510,12 +1510,10 @@ function buildCard(object, metrics) {
     detailParams.set('number', object.number);
   }
   const destination = `messier.html?${detailParams.toString()}`;
-  const card = document.createElement('a');
-  card.className = `catalogue-card ${classifyScore(score)}`;
-  card.href = destination;
+  const card = document.createElement('article');
+  card.className = `catalogue-card tone-frame ${classifyScore(score)}`;
   card.setAttribute('role', 'listitem');
-  card.setAttribute('aria-label', `Voir la fiche détaillée de ${object.name}`);
-  card.title = 'Ouvrir la fiche détaillée';
+  card.dataset.href = destination;
   if (Number.isFinite(object.number) && object.primaryCatalogueId === 'messier') {
     card.dataset.messier = `M${object.number}`;
   }
@@ -1535,6 +1533,11 @@ function buildCard(object, metrics) {
   const scoreValue = scoreRatio !== null ? Math.round(scoreRatio * 100) : null;
   const scoreDisplay = scoreValue !== null ? Math.max(0, Math.min(100, scoreValue)) : null;
   const scoreTone = scoreDisplay !== null ? resolveScoreTone(scoreDisplay, { scale: 100 }) : 'neutral';
+  if (scoreTone !== 'neutral') {
+    card.dataset.tone = scoreTone;
+  } else {
+    delete card.dataset.tone;
+  }
   const toneAttr = scoreTone === 'neutral' ? '' : ` data-tone="${scoreTone}"`;
   const barWidth = scoreDisplay !== null ? scoreDisplay : 0;
   const scoreLabel = scoreDisplay !== null ? `${scoreDisplay}/100` : '—';
@@ -1555,6 +1558,7 @@ function buildCard(object, metrics) {
   const altitudeText = formatAltitude(metrics?.altitude);
   const averageAltitudeText = formatAltitude(metrics?.averageAltitude);
   const minAltitudeText = formatAltitude(metrics?.minAltitude);
+  const startAltitudeText = formatAltitude(metrics?.startAltitude);
   const endAltitudeText = formatAltitude(metrics?.endAltitude);
   const coveragePercent = Number.isFinite(metrics?.visibilityRatio) ? Math.round(metrics.visibilityRatio * 100) : null;
   const visibleSamples = Number.isFinite(metrics?.visibleSamples) ? metrics.visibleSamples : null;
@@ -1564,30 +1568,44 @@ function buildCard(object, metrics) {
   text.innerHTML = `
     <header class="catalogue-card__header">
       <div>
-        <h3>${object.name}</h3>
+        <h3><a class="catalogue-card__link" href="${destination}" aria-label="Voir la fiche détaillée de ${object.name}" title="Ouvrir la fiche détaillée">${object.name}</a></h3>
         <div class="meta">${typeLabel} • ${object.constellation} • Mag ${magnitudeText}</div>
         <div class="meta meta--catalogue">Catalogue : ${catalogueLabel}</div>
       </div>
       <span class="score-chip"${toneAttr}>${scoreLabel}</span>
     </header>
-    <p>${object.description}</p>
+    <p class="catalogue-summary">${object.description}</p>
     <div class="catalogue-visibility">
       <div>
         <span class="catalogue-visibility__label">Moment idéal</span>
-        <span class="catalogue-visibility__value">${bestTime}</span>
+        <strong class="catalogue-visibility__value">${bestTime}</strong>
       </div>
       <div>
         <span class="catalogue-visibility__label">Direction</span>
-        <span class="catalogue-visibility__value">${altitudeText} • ${direction}</span>
+        <strong class="catalogue-visibility__value">${altitudeText} • ${direction}</strong>
       </div>
     </div>
-    <dl class="target-metrics">
-      <div><dt>Hauteur max</dt><dd>${altitudeText}</dd></div>
-      <div><dt>Altitude moyenne</dt><dd>${averageAltitudeText}</dd></div>
-      <div><dt>Moment idéal</dt><dd>${bestTime}</dd></div>
-    </dl>
-    <div class="visibility-chart" role="img" aria-label="Évolution de l'altitude de ${object.name} durant la session"></div>
-    <div class="score-bar" aria-hidden="true"${toneAttr}><span style="width:${barWidth}%"></span></div>
+    <details class="card-fold">
+      <summary>Fiche complète</summary>
+      <div class="card-fold__content">
+        <div class="score-bar" aria-hidden="true"${toneAttr}><span style="width:${barWidth}%"></span></div>
+        <dl class="target-metrics">
+          <div><dt>Altitude moyenne</dt><dd>${averageAltitudeText}</dd></div>
+          <div><dt>Altitude minimale</dt><dd>${minAltitudeText}</dd></div>
+          <div><dt>Fin de fenêtre</dt><dd>${endAltitudeText} • ${endDirection}</dd></div>
+        </dl>
+        <div class="visibility-chart" role="img" aria-label="Évolution de l'altitude de ${object.name} durant la session"></div>
+        <ul class="target-insights">
+          <li>Type : ${typeLabel}</li>
+          <li>Magnitude apparente : Mag ${magnitudeText}</li>
+          <li>Temps visible &gt; 30° : ${coverageText}</li>
+          <li>Début de session : ${startAltitudeText} • ${startDirection}</li>
+          <li>Fin de session : ${endAltitudeText} • ${endDirection}</li>
+          <li>Catalogues : ${catalogueLabel}</li>
+          <li>Points mesurés : ${visibleSamples !== null ? `${visibleSamples} ${sampleLabel}` : '—'}</li>
+        </ul>
+      </div>
+    </details>
   `;
 
   const chartContainer = text.querySelector('.visibility-chart');
@@ -1598,19 +1616,6 @@ function buildCard(object, metrics) {
       height: 160
     });
   }
-
-  const factors = document.createElement('ul');
-  factors.className = 'factor-list';
-  factors.innerHTML = `
-    <li>Type : <strong>${typeLabel}</strong></li>
-    <li>Catalogue(s) : <strong>${catalogueLabel || '—'}</strong></li>
-    <li>Magnitude : <strong>Mag ${magnitudeText}</strong></li>
-    <li>Direction optimale : <strong>${direction}</strong></li>
-    <li>Début de session : <strong>${formatAltitude(metrics?.startAltitude)} • ${startDirection}</strong></li>
-    <li>Fin de session : <strong>${endAltitudeText} • ${endDirection}</strong></li>
-    <li>Altitude moyenne : <strong>${averageAltitudeText} (min ${minAltitudeText})</strong></li>
-  `;
-  text.appendChild(factors);
 
   card.appendChild(previewWrapper);
   card.appendChild(text);
@@ -1777,9 +1782,16 @@ async function bootstrap() {
 
 if (catalogueGrid) {
   catalogueGrid.addEventListener('click', (event) => {
-    const card = event.target.closest('a.catalogue-card');
+    const card = event.target.closest('.catalogue-card');
     if (!card) return;
-    const href = card.getAttribute('href');
+    if (event.target.closest('.card-fold')) {
+      return;
+    }
+    const directLink = event.target.closest('a');
+    if (directLink) {
+      return;
+    }
+    const href = card.dataset.href;
     if (!href) return;
     if (event.defaultPrevented) return;
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
