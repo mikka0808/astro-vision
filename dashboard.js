@@ -104,6 +104,46 @@ function createDecisionItem({ tone = 'neutral', icon }) {
   return { item, content, badge };
 }
 
+function clampDateInRange(date, minDate, maxDate) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+  const time = date.getTime();
+  const min = minDate instanceof Date && !Number.isNaN(minDate.getTime()) ? minDate.getTime() : null;
+  const max = maxDate instanceof Date && !Number.isNaN(maxDate.getTime()) ? maxDate.getTime() : null;
+  const clamped = Math.min(max ?? Number.POSITIVE_INFINITY, Math.max(min ?? Number.NEGATIVE_INFINITY, time));
+  return new Date(clamped);
+}
+
+function resolveSessionBounds(entry = {}) {
+  const start = entry.sessionStart ? new Date(entry.sessionStart) : null;
+  const hasStart = start instanceof Date && !Number.isNaN(start.getTime());
+  if (!hasStart) {
+    return { start: null, end: null };
+  }
+  const duration = Number(entry.sessionDurationHours);
+  const end = Number.isFinite(duration)
+    ? new Date(start.getTime() + Math.max(0, duration) * 60 * 60 * 1000)
+    : null;
+  return { start, end: end instanceof Date && !Number.isNaN(end.getTime()) ? end : null };
+}
+
+function computeVisibilityWindow(entry = {}) {
+  const peak = entry.bestTime ? new Date(entry.bestTime) : null;
+  if (!(peak instanceof Date) || Number.isNaN(peak.getTime())) {
+    return { start: null, end: null };
+  }
+  const { start: sessionStart, end: sessionEnd } = resolveSessionBounds(entry);
+  const windowWidthMinutes = Math.max(30, Math.min(90, Math.round((entry.visibilityRatio ?? 0.6) * 90)));
+  const halfWindowMs = (windowWidthMinutes / 2) * 60000;
+  const rawStart = new Date(peak.getTime() - halfWindowMs);
+  const rawEnd = new Date(peak.getTime() + halfWindowMs);
+  const start = clampDateInRange(rawStart, sessionStart, sessionEnd);
+  const end = clampDateInRange(rawEnd, sessionStart, sessionEnd);
+  return {
+    start: start ? start.toISOString() : null,
+    end: end ? end.toISOString() : null
+  };
+}
+
 function applyNightMode(enabled, { persist = true } = {}) {
   document.body.classList.toggle('night-mode', enabled);
   if (nightModeToggle) {
@@ -664,10 +704,19 @@ function renderTopTargets(entries) {
 
     const meta = document.createElement('div');
     meta.className = 'mini-target__glance';
-    const bestTime = formatLocalTime(entry.bestTime);
-    const altitude = formatAltitude(entry.altitude);
+    const { start: windowStart, end: windowEnd } = computeVisibilityWindow(entry);
+    const bestTime = entry.bestTime ? formatLocalTime(entry.bestTime) : '—';
+    const windowLabel = windowStart && windowEnd
+      ? `${formatLocalTime(windowStart)} → ${formatLocalTime(windowEnd)}`
+      : windowStart
+        ? `Dès ${formatLocalTime(windowStart)}`
+        : windowEnd
+          ? `Jusqu'à ${formatLocalTime(windowEnd)}`
+          : '—';
+    const altitude = Number.isFinite(entry.altitude) ? formatAltitude(entry.altitude) : '—';
     const direction = describeAzimuth(entry.azimuth);
     meta.innerHTML = `
+      <div><span>Fenêtre</span><strong>${windowLabel}</strong></div>
       <div><span>Moment idéal</span><strong>${bestTime}</strong></div>
       <div><span>Direction</span><strong>${altitude} • ${direction}</strong></div>
     `;
