@@ -24,7 +24,8 @@ import {
   parseCoordinate,
   selectTopTargets,
   computeDecisionInsights,
-  resolveScoreTone
+  resolveScoreTone,
+  getAstrophotoProfile
 } from './astro-core.js';
 import { renderAltitudeSparkline } from './charts.js';
 import {
@@ -93,6 +94,10 @@ const decisionAstrophotoList = document.getElementById('decisionAstrophotoList')
 const astrophotoSummary = document.getElementById('astrophotoSummary');
 const enableAstrophotoInput = document.getElementById('enableAstrophoto');
 const equipmentSelect = document.getElementById('equipmentProfile');
+const astrophotoGuidancePanel = document.getElementById('astrophotoGuidance');
+const astrophotoGuidanceSummary = document.getElementById('astrophotoGuidanceSummary');
+const astrophotoGuidanceFacts = document.getElementById('astrophotoGuidanceFacts');
+const astrophotoGuidanceChecklist = document.getElementById('astrophotoGuidanceChecklist');
 const panelToggleButtons = document.querySelectorAll('[data-panel-toggle]');
 const nightModeToggle = document.getElementById('nightModeToggle');
 const skyMapPanel = document.getElementById('skyMapPanel');
@@ -430,6 +435,8 @@ function collapseContextPanel(panelId) {
 }
 
 setupContextPanels();
+
+renderAstrophotoGuidance();
 
 function clampWeight(value, fallback = 1) {
   if (!Number.isFinite(value)) return fallback;
@@ -997,6 +1004,75 @@ function readLastSessionSnapshot() {
   }
 }
 
+function renderAstrophotoGuidance() {
+  if (!astrophotoGuidancePanel || !astrophotoGuidanceSummary) return;
+  const enabled = enableAstrophotoInput?.checked;
+  if (!enabled) {
+    astrophotoGuidancePanel.hidden = false;
+    astrophotoGuidancePanel.setAttribute('data-state', 'inactive');
+    astrophotoGuidancePanel.setAttribute('aria-hidden', 'false');
+    astrophotoGuidanceSummary.textContent =
+      'Active le mode photo pour afficher des conseils de capture adaptés à ton équipement.';
+    if (astrophotoGuidanceFacts) {
+      astrophotoGuidanceFacts.innerHTML = '';
+      astrophotoGuidanceFacts.hidden = true;
+    }
+    if (astrophotoGuidanceChecklist) {
+      astrophotoGuidanceChecklist.innerHTML = '';
+      astrophotoGuidanceChecklist.hidden = true;
+    }
+    return;
+  }
+
+  const profile = getAstrophotoProfile(equipmentSelect?.value || 'visual');
+  const guidance = profile?.guidance ?? null;
+
+  astrophotoGuidancePanel.hidden = false;
+  astrophotoGuidancePanel.removeAttribute('data-state');
+  astrophotoGuidancePanel.removeAttribute('aria-hidden');
+  astrophotoGuidanceSummary.textContent = guidance?.summary || profile?.description ||
+    'Optimise ton setup photo avant la prise de vue.';
+
+  if (astrophotoGuidanceFacts) {
+    astrophotoGuidanceFacts.innerHTML = '';
+    const facts = [];
+    if (guidance?.exposure) {
+      facts.push({ label: 'Pose unitaire', value: guidance.exposure });
+    }
+    if (guidance?.integration) {
+      facts.push({ label: 'Intégration cible', value: guidance.integration });
+    }
+    if (guidance?.filters) {
+      facts.push({ label: 'Filtres', value: guidance.filters });
+    }
+    facts.forEach((fact) => {
+      const item = document.createElement('div');
+      item.className = 'astrophoto-guidance__fact';
+      const term = document.createElement('span');
+      term.className = 'astrophoto-guidance__term';
+      term.textContent = fact.label;
+      const desc = document.createElement('span');
+      desc.className = 'astrophoto-guidance__description';
+      desc.textContent = fact.value;
+      item.appendChild(term);
+      item.appendChild(desc);
+      astrophotoGuidanceFacts.appendChild(item);
+    });
+    astrophotoGuidanceFacts.hidden = facts.length === 0;
+  }
+
+  if (astrophotoGuidanceChecklist) {
+    astrophotoGuidanceChecklist.innerHTML = '';
+    const checklist = Array.isArray(guidance?.checklist) ? guidance.checklist : [];
+    checklist.forEach((entry) => {
+      const li = document.createElement('li');
+      li.textContent = entry;
+      astrophotoGuidanceChecklist.appendChild(li);
+    });
+    astrophotoGuidanceChecklist.hidden = checklist.length === 0;
+  }
+}
+
 function applyAstrophotoToggle() {
   if (!enableAstrophotoInput || !equipmentSelect) return;
   const enabled = enableAstrophotoInput.checked;
@@ -1004,6 +1080,7 @@ function applyAstrophotoToggle() {
   if (!enabled) {
     equipmentSelect.value = 'visual';
   }
+  renderAstrophotoGuidance();
 }
 
 function readAstrophotoSettings() {
@@ -1924,14 +2001,24 @@ function renderDecisionSupport(decision) {
     if (astro.active) {
       const profileLabel = astro.profileLabel ?? 'Profil photo';
       const description = typeof astro.profileDescription === 'string' ? astro.profileDescription.trim() : '';
+      const guidance = astro.guidance || {};
       const parts = [];
       parts.push(description ? `${profileLabel} — ${description}` : profileLabel);
+      if (guidance.exposure) {
+        parts.push(`Pose ${guidance.exposure}`);
+      }
+      if (guidance.integration) {
+        parts.push(`Intégration ${guidance.integration}`);
+      }
+      if (guidance.filters) {
+        parts.push(guidance.filters);
+      }
       if (nightSummary) {
         parts.push(nightSummary);
       }
       astrophotoSummary.textContent = parts.join(' • ');
     } else {
-      const base = 'Active le mode photo pour obtenir des recommandations dédiées.';
+      const base = 'Active le mode photo pour obtenir des recommandations et conseils de capture dédiés.';
       astrophotoSummary.textContent = nightSummary ? `${base} • ${nightSummary}` : base;
     }
     if (astro.active && Array.isArray(astro.recommendations) && astro.recommendations.length > 0) {
@@ -2413,6 +2500,7 @@ if (enableAstrophotoInput) {
 if (equipmentSelect) {
   equipmentSelect.addEventListener('change', () => {
     astrophotoSettings = readAstrophotoSettings();
+    renderAstrophotoGuidance();
     refreshDecisionSupport();
   });
 }

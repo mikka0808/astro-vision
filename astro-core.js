@@ -214,7 +214,17 @@ const ASTROPHOTO_PROFILES = [
     minAltitude: 15,
     maxMagnitude: 12,
     weights: { base: 0.45, altitude: 0.2, window: 0.15, brightness: 0.1, seeing: 0.05, transparency: 0.05 },
-    categoryBoost: {}
+    categoryBoost: {},
+    guidance: {
+      summary: 'Pour des sessions découverte et imagerie légère sans autoguidage.',
+      exposure: '30 à 60 s à ISO 1600–3200 (f/4–f/5.6)',
+      integration: "Vise 30 à 45 min d'intégration totale",
+      filters: 'Filtre CLS/UHC utile en ciel urbain, UV/IR cut ailleurs',
+      checklist: [
+        'Effectue la mise au point avec un masque de Bahtinov ou l’assistant de ton boîtier.',
+        'Prévois darks et flats dédiés avant de remballer pour faciliter le traitement.'
+      ]
+    }
   },
   {
     id: 'dslr-wide',
@@ -223,7 +233,17 @@ const ASTROPHOTO_PROFILES = [
     minAltitude: 20,
     maxMagnitude: 9.5,
     weights: { base: 0.35, altitude: 0.2, window: 0.15, brightness: 0.15, seeing: 0.05, transparency: 0.1 },
-    categoryBoost: { Nébuleuses: 1.15, 'Amas ouverts': 1.1, 'Autres objets': 0.9 }
+    categoryBoost: { Nébuleuses: 1.15, 'Amas ouverts': 1.1, 'Autres objets': 0.9 },
+    guidance: {
+      summary: 'Optimise le grand champ : nébuleuses diffuses et régions étoilées.',
+      exposure: '60 à 180 s à ISO 800–1600 (f/2.8–f/4)',
+      integration: 'Empile au moins 2 h pour révéler les faibles nébulosités',
+      filters: 'Filtre duo-band conseillé en Bortle ≥ 5, UV/IR cut suffisant sous ciel noir',
+      checklist: [
+        'Active le dithering toutes les 2–3 poses pour lisser le bruit résiduel.',
+        'Prépare ton cadrage dans Telescopius, Stellarium ou N.I.N.A. avant la session.'
+      ]
+    }
   },
   {
     id: 'newton-150',
@@ -232,7 +252,17 @@ const ASTROPHOTO_PROFILES = [
     minAltitude: 25,
     maxMagnitude: 11,
     weights: { base: 0.4, altitude: 0.2, window: 0.1, brightness: 0.15, seeing: 0.1, transparency: 0.05 },
-    categoryBoost: { Galaxies: 1.15, Nébuleuses: 1.1, 'Amas globulaires': 1.05 }
+    categoryBoost: { Galaxies: 1.15, Nébuleuses: 1.1, 'Amas globulaires': 1.05 },
+    guidance: {
+      summary: "Tire parti d'un 150/750 sur les galaxies et nébuleuses contrastées.",
+      exposure: '180 à 240 s avec gain 100–120 ou ISO 800–1600 sous autoguidage',
+      integration: 'Cible 3 h pour détailler les structures faibles',
+      filters: 'Filtre L-eNhance/L-eXtreme pour les nébuleuses, luminance libre pour les galaxies',
+      checklist: [
+        'Vérifie la collimation et une mise en station < 1′ d’arc avant de lancer les poses.',
+        'Collecte darks, flats et dark-flats à la même température que les lights.'
+      ]
+    }
   },
   {
     id: 'planetary',
@@ -242,7 +272,17 @@ const ASTROPHOTO_PROFILES = [
     maxMagnitude: 7.5,
     weights: { base: 0.25, altitude: 0.25, window: 0.15, brightness: 0.1, seeing: 0.2, transparency: 0.05 },
     categoryBoost: { Planètes: 1.3, Étoiles: 1.15, 'Amas globulaires': 1.05 },
-    requireSeeing: 0.55
+    requireSeeing: 0.55,
+    guidance: {
+      summary: 'Optimise la haute résolution sur planètes et étoiles doubles.',
+      exposure: 'Séquences vidéo de 90 à 180 s à ≥ 150 i/s (ROI serré)',
+      integration: 'Empile 10 à 15 % des meilleures images pour préserver les détails',
+      filters: 'Filtre IR-cut obligatoire, ajoute un ADC ou IR-pass selon la cible',
+      checklist: [
+        'Laisse le tube atteindre la température extérieure pour stabiliser la turbulence interne.',
+        'Surveille le seeing en direct et ajuste barlow/focale pour rester sous l’échantillonnage critique.'
+      ]
+    }
   }
 ];
 
@@ -290,6 +330,18 @@ function describeGeneralQuality(value) {
 
 function findAstrophotoProfile(id) {
   return ASTROPHOTO_PROFILES.find((profile) => profile.id === id) || ASTROPHOTO_PROFILES[0];
+}
+
+export function getAstrophotoProfile(id) {
+  const profile = findAstrophotoProfile(id);
+  if (!profile) return null;
+  const guidance = profile.guidance
+    ? {
+        ...profile.guidance,
+        checklist: Array.isArray(profile.guidance.checklist) ? [...profile.guidance.checklist] : []
+      }
+    : null;
+  return { ...profile, guidance };
 }
 
 export function describeSeeingQuality(value) {
@@ -1358,6 +1410,7 @@ export function computeDecisionInsights(results = [], options = {}) {
         profileId: equipment?.profileId ?? 'visual',
         profileLabel: findAstrophotoProfile(equipment?.profileId)?.label,
         profileDescription: findAstrophotoProfile(equipment?.profileId)?.description,
+        guidance: findAstrophotoProfile(equipment?.profileId)?.guidance ?? null,
         recommendations: []
       }
     };
@@ -1440,6 +1493,7 @@ export function computeDecisionInsights(results = [], options = {}) {
       profileId: astrophoto.profile.id,
       profileLabel: astrophoto.profile.label,
       profileDescription: astrophoto.profile.description,
+      guidance: astrophoto.profile.guidance ?? null,
       recommendations: astroSettings.enabled ? astrophoto.recommendations : []
     }
   };

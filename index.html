@@ -127,7 +127,7 @@
         </fieldset>
         <fieldset class="field-group field-group--catalogues">
           <legend>Catalogues à inclure</legend>
-          <details class="filter-details" id="catalogueSelectionDetails" open>
+          <details class="filter-details" id="catalogueSelectionDetails">
             <summary class="filter-details__summary">
               <span class="filter-details__summary-label">Choisir les catalogues</span>
               <span id="catalogueSelectionBadge" class="filter-details__badge" aria-live="polite" hidden></span>
@@ -154,7 +154,12 @@
             <option value="newton-150">Photo ciel profond — Télescope 150/750 + caméra</option>
             <option value="planetary">Planétaire — Caméra haute cadence + Barlow</option>
           </select>
-          <small class="help-text">Choisis ton équipement photo pour adapter la sélection des cibles les plus photogéniques.</small>
+          <small class="help-text">Choisis ton équipement photo pour adapter la sélection et débloquer les réglages recommandés.</small>
+          <div id="astrophotoGuidance" class="astrophoto-guidance" hidden aria-live="polite">
+            <p id="astrophotoGuidanceSummary" class="help-text"></p>
+            <div id="astrophotoGuidanceFacts" class="astrophoto-guidance__facts" hidden></div>
+            <ul id="astrophotoGuidanceChecklist" class="astrophoto-guidance__checklist" hidden></ul>
+          </div>
         </fieldset>
         <div class="field-group submit">
           <button type="submit" id="compute">🔭 Lancer l'analyse</button>

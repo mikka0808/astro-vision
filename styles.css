@@ -1361,6 +1361,70 @@ main {
   gap: clamp(0.7rem, 2vw, 1rem);
 }
 
+.astrophoto-guidance {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(130, 183, 255, 0.22);
+  background: rgba(130, 183, 255, 0.08);
+  transition: border-style 0.2s ease, opacity 0.2s ease;
+}
+
+body.night-mode .astrophoto-guidance {
+  border-color: rgba(255, 154, 139, 0.26);
+  background: rgba(255, 154, 139, 0.1);
+}
+
+.astrophoto-guidance[data-state='inactive'] {
+  border-style: dashed;
+  opacity: 0.85;
+}
+
+.astrophoto-guidance__facts {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.astrophoto-guidance__fact {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.astrophoto-guidance__term {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.astrophoto-guidance__description {
+  font-weight: 600;
+  color: var(--color-text-soft);
+}
+
+.astrophoto-guidance__checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.astrophoto-guidance__checklist li {
+  position: relative;
+  padding-left: 1.5rem;
+  color: var(--color-text-soft);
+}
+
+.astrophoto-guidance__checklist li::before {
+  content: '✔️';
+  position: absolute;
+  left: 0;
+  top: 0.05rem;
+  font-size: 0.85rem;
+}
+
 legend {
   font-weight: 600;
 }
