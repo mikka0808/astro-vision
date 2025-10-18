@@ -10,7 +10,8 @@ import {
   formatIllumination,
   formatLocalDateTime,
   formatLocalTime,
-  describeAzimuth
+  describeAzimuth,
+  resolveScoreTone
 } from './astro-core.js';
 import { renderAltitudeSparkline } from './charts.js';
 
@@ -33,13 +34,6 @@ const timelineContainer = document.getElementById('dashboardTimeline');
 const targetsGrid = document.getElementById('dashboardTargetsGrid');
 const nightModeToggle = document.getElementById('nightModeToggle');
 
-function getScoreTone(score) {
-  if (!Number.isFinite(score)) return 'neutral';
-  if (score >= 75) return 'good';
-  if (score >= 45) return 'warn';
-  return 'bad';
-}
-
 function classifyMetric(value, { good, warn, invert = false }) {
   if (!Number.isFinite(value)) return 'neutral';
   const adjusted = invert ? 100 - value : value;
@@ -49,7 +43,7 @@ function classifyMetric(value, { good, warn, invert = false }) {
 }
 
 function applyScoreTone(scoreValue) {
-  const tone = getScoreTone(scoreValue);
+  const tone = resolveScoreTone(scoreValue, { scale: 100 });
   if (scoreCard) {
     if (tone === 'neutral') {
       delete scoreCard.dataset.level;
@@ -245,7 +239,15 @@ function enrichEntriesWithTrack(snapshot) {
       durationHours: duration,
       moonIllumination: snapshot?.moon?.illumination ?? 0
     });
-    const enriched = snapshot.weather ? applyWeather(evaluated, snapshot.weather) : evaluated;
+    const weatherContext = {
+      latitude: lat,
+      longitude: lon,
+      durationHours: duration,
+      date
+    };
+    const enriched = snapshot.weather
+      ? applyWeather(evaluated, snapshot.weather, { context: weatherContext })
+      : evaluated;
     const byName = new Map(enriched.map((entry) => [entry.object?.name, entry]));
     const mergedEntries = snapshot.entries.map((entry) => {
       const update = byName.get(entry.object?.name);
@@ -322,7 +324,7 @@ function renderAlerts(decision) {
   }
   decision.alerts.forEach((alert) => {
     const scoreValue = Number.isFinite(alert.score) ? Math.round(alert.score * 100) : null;
-    const tone = getScoreTone(scoreValue);
+    const tone = Number.isFinite(scoreValue) ? resolveScoreTone(scoreValue, { scale: 100 }) : 'neutral';
     const { item, content } = createDecisionItem({ tone });
     const title = document.createElement('strong');
     title.textContent = alert.object?.name ?? 'Cible recommandée';
@@ -358,7 +360,7 @@ function renderCalendar(decision) {
     const windowScore = Number.isFinite(bestWindow?.score ?? bestWindow?.baseScore)
       ? Math.round((bestWindow.score ?? bestWindow.baseScore) * 100)
       : null;
-    const tone = getScoreTone(windowScore);
+    const tone = Number.isFinite(windowScore) ? resolveScoreTone(windowScore, { scale: 100 }) : 'neutral';
     const { item, content, badge } = createDecisionItem({ tone, icon: '📅' });
     const title = document.createElement('strong');
     title.textContent = entry.object?.name ?? 'Objet céleste';
@@ -410,7 +412,7 @@ function renderAstrophoto(decision) {
   }
   astro.recommendations.forEach((entry) => {
     const astroScoreValue = Number.isFinite(entry.astroScore) ? Math.round(entry.astroScore * 100) : null;
-    const tone = getScoreTone(astroScoreValue);
+    const tone = Number.isFinite(astroScoreValue) ? resolveScoreTone(astroScoreValue, { scale: 100 }) : 'neutral';
     const { item, content } = createDecisionItem({ tone, icon: '📷' });
     const title = document.createElement('strong');
     title.textContent = entry.object?.name ?? 'Cible photo';
@@ -609,10 +611,13 @@ function renderTopTargets(entries) {
     card.className = 'mini-target';
     const header = document.createElement('header');
     header.className = 'mini-target__header';
-    const scoreValue = Math.max(0, Math.min(100, Math.round(getEntryScore(entry) * 100)));
-    const tone = getScoreTone(scoreValue);
+    const rawScore = getEntryScore(entry);
+    const scoreValue = Number.isFinite(rawScore) ? Math.max(0, Math.min(100, Math.round(rawScore * 100))) : null;
+    const tone = scoreValue !== null ? resolveScoreTone(scoreValue, { scale: 100 }) : 'neutral';
     if (tone !== 'neutral') {
       card.dataset.tone = tone;
+    } else {
+      delete card.dataset.tone;
     }
     const heading = document.createElement('div');
     heading.className = 'mini-target__heading';
@@ -626,9 +631,11 @@ function renderTopTargets(entries) {
     heading.appendChild(title);
     const scoreChip = document.createElement('span');
     scoreChip.className = 'score-chip';
-    scoreChip.textContent = `${scoreValue}/100`;
+    scoreChip.textContent = scoreValue !== null ? `${scoreValue}/100` : '—';
     if (tone !== 'neutral') {
       scoreChip.dataset.tone = tone;
+    } else {
+      delete scoreChip.dataset.tone;
     }
     header.appendChild(heading);
     header.appendChild(scoreChip);

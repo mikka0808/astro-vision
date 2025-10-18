@@ -23,7 +23,8 @@ import {
   getUpcomingEvents,
   parseCoordinate,
   selectTopTargets,
-  computeDecisionInsights
+  computeDecisionInsights,
+  resolveScoreTone
 } from './astro-core.js';
 import { renderAltitudeSparkline } from './charts.js';
 import {
@@ -137,15 +138,8 @@ let computedNightSessionSlots = null;
 let computedNightStartDate = null;
 let computedNightEndDate = null;
 
-function getScoreTone(score) {
-  if (!Number.isFinite(score)) return 'neutral';
-  if (score >= 75) return 'good';
-  if (score >= 45) return 'warn';
-  return 'bad';
-}
-
 function applyGlobalScoreTone(scoreValue) {
-  const tone = getScoreTone(scoreValue);
+  const tone = resolveScoreTone(scoreValue, { scale: 100 });
   if (decisionGlobalCard) {
     if (tone === 'neutral') {
       delete decisionGlobalCard.dataset.level;
@@ -1111,7 +1105,14 @@ function refreshScoresAfterBortle(value, summary) {
       durationHours: duration,
       moonIllumination: cachedMoon?.illumination ?? 0
     });
-    const scored = applyWeather(evaluated, cachedWeather || {});
+    const scored = applyWeather(evaluated, cachedWeather || {}, {
+      context: {
+        latitude: lat,
+        longitude: lon,
+        durationHours: duration,
+        date: observationDate
+      }
+    });
     const weighted = applyObservationWeights(scored, cachedContext.observationMode);
     cachedResults = weighted;
     cachedContext = {
@@ -1667,7 +1668,10 @@ function renderTargets(targets, stats = {}) {
     const card = document.createElement('article');
     card.className = 'target-card';
     card.setAttribute('role', 'listitem');
-    const scoreValue = Math.round((entry.score ?? 0) * 100);
+    const rawScore = Number.isFinite(entry.score) ? Math.round(entry.score * 100) : null;
+    const scoreValue = rawScore !== null ? Math.max(0, Math.min(100, rawScore)) : null;
+    const scoreTone = scoreValue !== null ? resolveScoreTone(scoreValue, { scale: 100 }) : 'neutral';
+    const toneAttr = scoreTone === 'neutral' ? '' : ` data-tone="${scoreTone}"`;
     const bestMoment = formatLocalTime(entry.bestTime);
     const direction = describeAzimuth(entry.azimuth);
     const startDirection = describeAzimuth(entry.startAzimuth);
@@ -1692,13 +1696,15 @@ function renderTargets(targets, stats = {}) {
       ? Array.from(new Set(weightedCatalogues))
       : [];
     const catalogueLabel = formatCatalogueList(uniqueCatalogues);
+    const scoreLabel = scoreValue !== null ? `${scoreValue}/100` : '—';
+    const barWidth = scoreValue !== null ? scoreValue : 0;
     card.innerHTML = `
       <header class="target-card__header">
         <div>
           <h3>${entry.object.name}</h3>
           <div class="meta">${typeLabel} • ${entry.object.constellation} • Mag ${magnitudeText}</div>
         </div>
-        <span class="score-chip">${Math.max(0, Math.min(100, scoreValue))}/100</span>
+        <span class="score-chip"${toneAttr}>${scoreLabel}</span>
       </header>
       <p>${entry.object.description}</p>
       <dl class="target-metrics">
@@ -1707,7 +1713,7 @@ function renderTargets(targets, stats = {}) {
         <div><dt>Moment idéal</dt><dd>${bestMoment}</dd></div>
       </dl>
       <div class="visibility-chart" role="img" aria-label="Evolution de l'altitude durant la session"></div>
-      <div class="score-bar" aria-hidden="true"><span style="width:${Math.max(0, Math.min(100, scoreValue))}%"></span></div>
+      <div class="score-bar" aria-hidden="true"${toneAttr}><span style="width:${barWidth}%"></span></div>
       <details class="target-details">
         <summary>Détails visibilité</summary>
         <ul>
@@ -1813,7 +1819,7 @@ function renderDecisionSupport(decision) {
         const windowScore = Number.isFinite(bestWindow?.score ?? bestWindow?.baseScore)
           ? Math.round((bestWindow.score ?? bestWindow.baseScore) * 100)
           : null;
-        const tone = getScoreTone(windowScore);
+        const tone = Number.isFinite(windowScore) ? resolveScoreTone(windowScore, { scale: 100 }) : 'neutral';
         const { item, content, badge } = createDecisionItem({ tone, icon: '📅' });
         const title = document.createElement('strong');
         title.textContent = entry.object?.name ?? 'Objet céleste';
@@ -1860,7 +1866,7 @@ function renderDecisionSupport(decision) {
     } else {
       alerts.forEach((alert) => {
         const scoreLabel = Number.isFinite(alert.score) ? Math.round(alert.score * 100) : null;
-        const tone = getScoreTone(scoreLabel);
+        const tone = Number.isFinite(scoreLabel) ? resolveScoreTone(scoreLabel, { scale: 100 }) : 'neutral';
         const { item, content } = createDecisionItem({ tone });
         const title = document.createElement('strong');
         title.textContent = alert.object?.name ?? 'Cible recommandée';
@@ -1913,7 +1919,7 @@ function renderDecisionSupport(decision) {
     if (astro.active && Array.isArray(astro.recommendations) && astro.recommendations.length > 0) {
       astro.recommendations.slice(0, 4).forEach((entry) => {
         const astroScoreValue = Number.isFinite(entry.astroScore) ? Math.round(entry.astroScore * 100) : null;
-        const tone = getScoreTone(astroScoreValue);
+        const tone = Number.isFinite(astroScoreValue) ? resolveScoreTone(astroScoreValue, { scale: 100 }) : 'neutral';
         const { item, content } = createDecisionItem({ tone, icon: '📷' });
         const title = document.createElement('strong');
         title.textContent = entry.object?.name ?? 'Cible photo';
@@ -2204,7 +2210,14 @@ async function handleSessionSubmit(event) {
       durationHours: duration,
       moonIllumination: moon.illumination
     });
-    const scoredEntries = applyWeather(evaluated, weather);
+    const scoredEntries = applyWeather(evaluated, weather, {
+      context: {
+        latitude: lat,
+        longitude: lon,
+        durationHours: duration,
+        date: observationDateUTC
+      }
+    });
     const weightedEntries = applyObservationWeights(scoredEntries, observationMode);
     const catalogueWeightSnapshot = buildCatalogueWeightSnapshot(selectedCatalogues, observationMode);
     cachedSourceObjects = filteredObjects;

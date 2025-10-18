@@ -575,6 +575,140 @@ export function brightnessScore(magnitude) {
   return Math.max(0, Math.min(1, (10 - magnitude) / 8));
 }
 
+const SCORE_WEIGHTS = {
+  altitude: 0.16,
+  averageAltitude: 0.1,
+  startAltitude: 0.06,
+  stability: 0.06,
+  coverage: 0.12,
+  duration: 0.08,
+  brightness: 0.08,
+  seasonal: 0.08,
+  bortle: 0.06,
+  weather: 0.12,
+  moon: 0.06,
+  context: 0.02
+};
+
+const SCORE_TONE_THRESHOLDS = {
+  good: 0.75,
+  warn: 0.45
+};
+
+function toDate(value) {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  return parsed;
+}
+
+function computeContextFactor(entry = {}, durationHours, context = {}) {
+  const sessionStart = toDate(entry.sessionStart) || toDate(context.date) || null;
+  const bestTime = toDate(entry.bestTime) || null;
+  let timeAlignment = 0.6;
+  if (sessionStart && Number.isFinite(durationHours)) {
+    const sessionEnd = new Date(sessionStart.getTime() + durationHours * 60 * 60 * 1000);
+    if (bestTime) {
+      if (bestTime >= sessionStart && bestTime <= sessionEnd) {
+        timeAlignment = 1;
+      } else {
+        const diffHours = Math.abs(bestTime.getTime() - sessionStart.getTime()) / (60 * 60 * 1000);
+        const tolerance = Math.max(2, durationHours * 1.5);
+        timeAlignment = clamp01(1 - diffHours / tolerance, 0.6);
+      }
+    } else {
+      timeAlignment = 0.75;
+    }
+  } else if (bestTime) {
+    timeAlignment = 0.75;
+  }
+  const latitude = Number(entry.contextLatitude ?? context.latitude ?? context.lat);
+  const longitude = Number(entry.contextLongitude ?? context.longitude ?? context.lon);
+  const hasLocation = Number.isFinite(latitude) && Number.isFinite(longitude);
+  const locationConfidence = hasLocation ? 1 : 0.65;
+  return clamp01(timeAlignment * 0.6 + locationConfidence * 0.4, hasLocation ? 0.7 : 0.5);
+}
+
+function computeScoreInputs(entry = {}, { weatherImpact = {}, context = {} } = {}) {
+  const altitude = clamp01(((Number(entry.altitude) || 0) - 10) / 70, 0);
+  const averageAltitude = clamp01(((Number(entry.averageAltitude ?? entry.altitude) || 0) - 15) / 60, 0);
+  const startAltitude = clamp01(((Number(entry.startAltitude ?? entry.altitude) || 0) - 10) / 60, 0);
+  const drift = Number(entry.altitudeDrift);
+  const stability = clamp01(1 - Math.min(1, Math.abs(Number.isFinite(drift) ? drift : 0) / 45), 0.4);
+  const coverage = clamp01(entry.visibilityRatio ?? 0, 0);
+  const contextDuration = Number.isFinite(entry.sessionDurationHours)
+    ? Number(entry.sessionDurationHours)
+    : Number.isFinite(context.durationHours)
+    ? Number(context.durationHours)
+    : Number.isFinite(context.duration)
+    ? Number(context.duration)
+    : 2;
+  const visibleHours = Math.max(0, coverage * Math.max(contextDuration, 0));
+  const durationReference = Math.max(1.5, Math.min(6, contextDuration || 2));
+  const duration = clamp01(visibleHours / durationReference, 0);
+  const brightness = clamp01(brightnessScore(entry.object?.magnitude ?? entry.magnitude ?? 10), 0.3);
+  const seasonal = clamp01(entry.monthFactor ?? 0.5, 0);
+  const bortle = clamp01(entry.bortleFactor ?? 0.5, 0);
+  const moon = clamp01(entry.moonFactor ?? 1, 0.25);
+  const weatherFactor = clamp01(weatherImpact.weatherFactor ?? entry.weatherFactor ?? 1, 0);
+  const seeing = clamp01(weatherImpact.seeingFactor ?? entry.seeingFactor ?? 1, 0);
+  const transparency = clamp01(weatherImpact.transparencyFactor ?? entry.transparencyFactor ?? 1, 0);
+  const dew = clamp01(weatherImpact.dewFactor ?? entry.dewFactor ?? 1, 0);
+  const weatherComposite = clamp01(weatherFactor * 0.6 + seeing * 0.15 + transparency * 0.15 + dew * 0.1, 0);
+  const contextQuality = computeContextFactor(entry, contextDuration, context);
+  return {
+    altitude,
+    averageAltitude,
+    startAltitude,
+    stability,
+    coverage,
+    duration,
+    brightness,
+    seasonal,
+    bortle,
+    weather: weatherComposite,
+    moon,
+    context: contextQuality
+  };
+}
+
+export function computeUnifiedVisibilityScore(entry = {}, options = {}) {
+  const inputs = computeScoreInputs(entry, options);
+  const breakdown = {};
+  let score = 0;
+  Object.entries(SCORE_WEIGHTS).forEach(([key, weight]) => {
+    const value = clamp01(inputs[key] ?? 0, 0);
+    const contribution = value * weight;
+    breakdown[key] = { weight, value, contribution };
+    score += contribution;
+  });
+  return { score, breakdown };
+}
+
+export function resolveScoreTone(score, { scale = 100, goodThreshold = SCORE_TONE_THRESHOLDS.good, warnThreshold = SCORE_TONE_THRESHOLDS.warn } = {}) {
+  const numeric = Number(score);
+  if (!Number.isFinite(numeric)) {
+    return 'neutral';
+  }
+  const ratio = scale === 1 ? numeric : numeric / (scale || 100);
+  if (!Number.isFinite(ratio)) {
+    return 'neutral';
+  }
+  const value = clamp01(ratio, 0);
+  if (value >= goodThreshold) {
+    return 'good';
+  }
+  if (value >= warnThreshold) {
+    return 'warn';
+  }
+  return 'bad';
+}
+
 export function bortleScore(observerBortle, targetBortle) {
   const diff = observerBortle - targetBortle;
   if (diff <= 0) return 1;
@@ -612,33 +746,39 @@ function moonFactorForObject(object, illumination, altitude) {
   return Math.min(1, Math.max(0.25, factor));
 }
 
-export function buildScore(object, context) {
-  const {
-    altitude,
-    averageAltitude = altitude,
-    startAltitude = altitude,
-    visibilityRatio = 1,
-    monthFactor = 0,
-    bortleFactor = 0,
-    weatherFactor = 1,
-    moonFactor = 1
-  } = context;
-  if (!Number.isFinite(altitude) || altitude <= 5) return 0; // trop bas
-  const clamp = (value) => Math.min(1, Math.max(0, value));
-  const altitudeFactor = clamp((altitude - 10) / 70);
-  const averageFactor = clamp((averageAltitude - 15) / 60);
-  const startFactor = clamp((startAltitude - 10) / 60);
-  const windowFactor = clamp(visibilityRatio);
-  const brightnessFactor = brightnessScore(object.magnitude);
-  const baseScore =
-    altitudeFactor * 0.3 +
-    averageFactor * 0.2 +
-    startFactor * 0.1 +
-    windowFactor * 0.1 +
-    clamp(monthFactor) * 0.1 +
-    brightnessFactor * 0.1 +
-    clamp(bortleFactor) * 0.1;
-  return baseScore * weatherFactor * moonFactor;
+export function buildScore(object, context = {}) {
+  if (!object) return 0;
+  const entry = {
+    object,
+    altitude: context.altitude,
+    averageAltitude: context.averageAltitude ?? context.altitude,
+    startAltitude: context.startAltitude ?? context.altitude,
+    visibilityRatio: context.visibilityRatio ?? 0,
+    monthFactor: context.monthFactor ?? 0,
+    bortleFactor: context.bortleFactor ?? 0,
+    moonFactor: context.moonFactor ?? 1,
+    altitudeDrift: context.altitudeDrift ?? 0,
+    sessionDurationHours: context.sessionDurationHours ?? context.durationHours,
+    sessionStart: context.sessionStart ?? context.date ?? context.dateISO ?? null,
+    bestTime: context.bestTime ?? context.bestTimeISO ?? null,
+    contextLatitude: context.latitude ?? context.lat,
+    contextLongitude: context.longitude ?? context.lon
+  };
+  const { score } = computeUnifiedVisibilityScore(entry, {
+    weatherImpact: {
+      weatherFactor: context.weatherFactor ?? 1,
+      seeingFactor: context.seeingFactor ?? 1,
+      transparencyFactor: context.transparencyFactor ?? 1,
+      dewFactor: context.dewFactor ?? 1
+    },
+    context: {
+      latitude: context.latitude ?? context.lat,
+      longitude: context.longitude ?? context.lon,
+      durationHours: entry.sessionDurationHours,
+      date: toDate(entry.sessionStart)
+    }
+  });
+  return score;
 }
 
 export function evaluateTargets(objects, { lat, lon, bortle, date, durationHours, moonIllumination = 0 }) {
@@ -690,7 +830,13 @@ export function evaluateTargets(objects, { lat, lon, bortle, date, durationHours
       monthFactor,
       bortleFactor,
       weatherFactor,
-      moonFactor
+      moonFactor,
+      altitudeDrift,
+      sessionDurationHours: normalizedDurationHours,
+      sessionStart: date,
+      bestTime: bestPosition.sampleDate,
+      latitude: lat,
+      longitude: lon
     });
     const visibilityTrack = track.map((pos) => ({
       timeISO: pos.sampleDate.toISOString(),
@@ -717,7 +863,9 @@ export function evaluateTargets(objects, { lat, lon, bortle, date, durationHours
       baseScore,
       track: visibilityTrack,
       sessionStart: date.toISOString(),
-      sessionDurationHours: normalizedDurationHours
+      sessionDurationHours: normalizedDurationHours,
+      contextLatitude: lat,
+      contextLongitude: lon
     };
   });
 }
@@ -752,12 +900,12 @@ export function computeWeatherImpact(weather = {}) {
   };
 }
 
-export function applyWeather(results, weather = {}) {
+export function applyWeather(results, weather = {}, options = {}) {
   const impact = computeWeatherImpact(weather);
+  const context = options.context || {};
   return results.map((entry) => {
     const weatherFactor = impact.weatherFactor;
-    const score = entry.baseScore * weatherFactor;
-    return {
+    const enrichedEntry = {
       ...entry,
       weatherFactor,
       seeingFactor: impact.seeingFactor,
@@ -774,8 +922,26 @@ export function applyWeather(results, weather = {}) {
       seeingText: weather.seeingText,
       transparencyText: weather.transparencyText,
       dewRiskText: weather.dewRiskText,
-      aerosolText: weather.aerosolText,
-      score
+      aerosolText: weather.aerosolText
+    };
+    const scoringContext = {
+      ...context,
+      latitude: context.latitude ?? context.lat ?? enrichedEntry.contextLatitude,
+      longitude: context.longitude ?? context.lon ?? enrichedEntry.contextLongitude,
+      durationHours: context.durationHours ?? context.duration ?? enrichedEntry.sessionDurationHours,
+      date:
+        context.date ??
+        context.dateISO ??
+        (enrichedEntry.sessionStart ? new Date(enrichedEntry.sessionStart) : null)
+    };
+    const { score, breakdown } = computeUnifiedVisibilityScore(enrichedEntry, {
+      weatherImpact: impact,
+      context: scoringContext
+    });
+    return {
+      ...enrichedEntry,
+      score,
+      scoreBreakdown: breakdown
     };
   });
 }

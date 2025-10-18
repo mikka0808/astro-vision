@@ -9,7 +9,8 @@ import {
   formatCoordinate,
   formatIllumination,
   formatLocalDateTime,
-  formatLocalTime
+  formatLocalTime,
+  resolveScoreTone
 } from './astro-core.js';
 import { createObservationPreview, resolveImageSources } from './catalogue-media.js';
 import { getObjectDossier } from './object-dossiers.js';
@@ -356,7 +357,14 @@ function findMetrics(snapshot, object) {
       durationHours: context.durationHours,
       moonIllumination
     });
-    const scored = applyWeather(evaluated, weather);
+    const scored = applyWeather(evaluated, weather, {
+      context: {
+        latitude: context.latitude,
+        longitude: context.longitude,
+        durationHours: context.durationHours,
+        date: observationDate
+      }
+    });
     return scored && scored[0] ? scored[0] : null;
   }
   return null;
@@ -476,7 +484,10 @@ function renderSessionMetrics(metrics) {
     sessionFacts.appendChild(createFact('Disponibilité', 'Aucun score calculé pour cette cible.'));
     return;
   }
-  const scoreValue = Math.max(0, Math.min(100, Math.round((metrics.score ?? 0) * 100)));
+  const rawScore = Number.isFinite(metrics.score) ? Math.round(metrics.score * 100) : null;
+  const scoreValue = rawScore !== null ? Math.max(0, Math.min(100, rawScore)) : null;
+  const scoreTone = scoreValue !== null ? resolveScoreTone(scoreValue, { scale: 100 }) : 'neutral';
+  const scoreLabel = scoreValue !== null ? `${scoreValue}/100` : '—';
   const bestTime = formatLocalTime(metrics.bestTime) || '—';
   const altitude = formatAltitude(metrics.altitude);
   const averageAltitude = formatAltitude(metrics.averageAltitude);
@@ -491,12 +502,21 @@ function renderSessionMetrics(metrics) {
     coveragePercent === null
       ? '—'
       : `${coveragePercent}%${visibleSamples !== null ? ` (${visibleSamples} point${visibleSamples > 1 ? 's' : ''})` : ''}`;
+  const scoreFact = createFact('Score de visibilité', scoreLabel);
+  if (scoreTone !== 'neutral') {
+    scoreFact.dataset.tone = scoreTone;
+    const dd = scoreFact.querySelector('dd');
+    if (dd) {
+      dd.dataset.tone = scoreTone;
+    }
+  }
+  sessionFacts.appendChild(scoreFact);
   [
-    ['Score de visibilité', `${scoreValue}/100`],
     ['Moment idéal', bestTime],
     ['Altitude maximale', altitude],
     ['Azimut optimal', azimuth],
     ['Altitude moyenne', averageAltitude],
+    ['Couverture de la session', coverageText],
     ['Début de session', `${startAltitude} • ${describeAzimuth(metrics.startAzimuth)}`],
     ['Fin de session', `${endAltitude} • ${describeAzimuth(metrics.endAzimuth)}`]
   ].forEach(([term, detail]) => {

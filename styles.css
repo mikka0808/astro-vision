@@ -66,7 +66,7 @@ body.night-mode {
   --color-text-muted: rgba(255, 178, 178, 0.62);
   --color-accent: #ff9a8b;
   --color-accent-strong: #ff6e6e;
-  --color-good: #ffb48b;
+  --color-good: #6fe3a7;
   --color-warn: #ffd27a;
   --color-bad: #ff7f7f;
 }
@@ -435,6 +435,46 @@ main {
 }
 
 .score-meter span[data-level='bad'] {
+  background: linear-gradient(90deg, #ff6f6f, var(--color-bad));
+}
+
+.score-bar {
+  width: 100%;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: rgba(130, 183, 255, 0.14);
+  overflow: hidden;
+}
+
+.score-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-accent-strong), var(--color-accent));
+  transition: width 0.45s cubic-bezier(0.22, 0.61, 0.36, 1), background 0.35s ease;
+}
+
+.score-bar[data-tone='good'] {
+  background: rgba(124, 226, 165, 0.16);
+}
+
+.score-bar[data-tone='warn'] {
+  background: rgba(245, 197, 107, 0.16);
+}
+
+.score-bar[data-tone='bad'] {
+  background: rgba(255, 140, 140, 0.16);
+}
+
+.score-bar[data-tone='good'] span {
+  background: linear-gradient(90deg, #33d48f, var(--color-good));
+}
+
+.score-bar[data-tone='warn'] span {
+  background: linear-gradient(90deg, #ffb44b, var(--color-warn));
+}
+
+.score-bar[data-tone='bad'] span {
   background: linear-gradient(90deg, #ff6f6f, var(--color-bad));
 }
 
@@ -1173,6 +1213,46 @@ small {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.object-session-facts {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+}
+
+.object-session-facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.object-session-facts dt {
+  margin: 0;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.object-session-facts dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.object-session-facts [data-tone='good'] dd,
+.object-session-facts dd[data-tone='good'] {
+  color: var(--color-good);
+}
+
+.object-session-facts [data-tone='warn'] dd,
+.object-session-facts dd[data-tone='warn'] {
+  color: var(--color-warn);
+}
+
+.object-session-facts [data-tone='bad'] dd,
+.object-session-facts dd[data-tone='bad'] {
+  color: var(--color-bad);
 }
 
 .object-article {

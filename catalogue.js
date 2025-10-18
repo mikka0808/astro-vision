@@ -11,7 +11,8 @@ import {
   formatCoordinate,
   formatIllumination,
   formatLocalDateTime,
-  formatLocalTime
+  formatLocalTime,
+  resolveScoreTone
 } from './astro-core.js';
 import { createObservationPreview } from './catalogue-media.js';
 import { renderAltitudeSparkline } from './charts.js';
@@ -1486,13 +1487,16 @@ function renderSessionDetails(snapshot) {
 
 function classifyScore(score) {
   if (!Number.isFinite(score) || score <= 0) return SCORE_CLASSES.none;
-  if (score >= 0.66) return SCORE_CLASSES.high;
-  if (score >= 0.4) return SCORE_CLASSES.medium;
-  return SCORE_CLASSES.low;
+  const tone = resolveScoreTone(score, { scale: 1 });
+  if (tone === 'good') return SCORE_CLASSES.high;
+  if (tone === 'warn') return SCORE_CLASSES.medium;
+  if (tone === 'bad') return SCORE_CLASSES.low;
+  return SCORE_CLASSES.none;
 }
 
 function buildCard(object, metrics) {
-  const score = metrics?.score ?? 0;
+  const scoreRatio = Number.isFinite(metrics?.score) ? metrics.score : null;
+  const score = scoreRatio ?? 0;
   const detailParams = new URLSearchParams();
   if (object.slug) {
     detailParams.set('id', object.slug);
@@ -1528,9 +1532,12 @@ function buildCard(object, metrics) {
 
   const text = document.createElement('div');
   text.className = 'catalogue-text';
-  const scoreValue = Math.round(score * 100);
-  const scoreDisplay = Math.max(0, Math.min(100, scoreValue));
-  const barWidth = scoreDisplay;
+  const scoreValue = scoreRatio !== null ? Math.round(scoreRatio * 100) : null;
+  const scoreDisplay = scoreValue !== null ? Math.max(0, Math.min(100, scoreValue)) : null;
+  const scoreTone = scoreDisplay !== null ? resolveScoreTone(scoreDisplay, { scale: 100 }) : 'neutral';
+  const toneAttr = scoreTone === 'neutral' ? '' : ` data-tone="${scoreTone}"`;
+  const barWidth = scoreDisplay !== null ? scoreDisplay : 0;
+  const scoreLabel = scoreDisplay !== null ? `${scoreDisplay}/100` : '—';
   const bestTime = formatLocalTime(metrics?.bestTime);
   const direction = describeAzimuth(metrics?.azimuth);
   const startDirection = describeAzimuth(metrics?.startAzimuth);
@@ -1561,7 +1568,7 @@ function buildCard(object, metrics) {
         <div class="meta">${typeLabel} • ${object.constellation} • Mag ${magnitudeText}</div>
         <div class="meta meta--catalogue">Catalogue : ${catalogueLabel}</div>
       </div>
-      <span class="score-chip">${scoreDisplay}/100</span>
+      <span class="score-chip"${toneAttr}>${scoreLabel}</span>
     </header>
     <p>${object.description}</p>
     <div class="catalogue-visibility">
@@ -1580,7 +1587,7 @@ function buildCard(object, metrics) {
       <div><dt>Moment idéal</dt><dd>${bestTime}</dd></div>
     </dl>
     <div class="visibility-chart" role="img" aria-label="Évolution de l'altitude de ${object.name} durant la session"></div>
-    <div class="score-bar" aria-hidden="true"><span style="width:${barWidth}%"></span></div>
+    <div class="score-bar" aria-hidden="true"${toneAttr}><span style="width:${barWidth}%"></span></div>
   `;
 
   const chartContainer = text.querySelector('.visibility-chart');
@@ -1676,7 +1683,11 @@ function mergeMetrics(objects, snapshot) {
         durationHours,
         moonIllumination
       });
-      const scored = weather ? applyWeather(evaluated, weather) : evaluated;
+      const scored = weather
+        ? applyWeather(evaluated, weather, {
+            context: { latitude: lat, longitude: lon, durationHours, date: observationDate }
+          })
+        : evaluated;
       const rebuilt = scored[0];
       if (rebuilt) {
         metrics = metrics ? { ...metrics, ...rebuilt } : rebuilt;
