@@ -95,7 +95,7 @@ function drawGalaxy(ctx, random) {
     ctx.globalAlpha = 0.06 + 0.6 * Math.pow(1 - t, 1.5);
     ctx.fillStyle = `rgb(${Math.round(20 + t * 220)}, ${Math.round(20 + t * 220)}, ${Math.round(20 + t * 220)})`;
     ctx.beginPath();
-    ctx.ellipse(0, 0, major * t, minor * t, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, major * t, minor * t, 0, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.globalAlpha = 0.9;

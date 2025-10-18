@@ -28,6 +28,7 @@ import {
 } from './catalogue-utils.js';
 
 const catalogueGrid = document.getElementById('catalogueGrid');
+const cataloguePagination = document.getElementById('cataloguePagination');
 const catalogueHint = document.getElementById('catalogueHint');
 const sessionSummary = document.getElementById('sessionSummary');
 const sessionWeather = document.getElementById('sessionWeather');
@@ -44,6 +45,7 @@ const catalogueSelectionOptions = document.getElementById('catalogueSelectionOpt
 const selectAllCataloguesButton = document.getElementById('selectAllCatalogues');
 const clearCatalogueSelectionButton = document.getElementById('clearCatalogueSelection');
 const catalogueSelectionSummary = document.getElementById('catalogueSelectionSummary');
+const catalogueSelectionBadge = document.getElementById('catalogueSelectionBadge');
 const catalogueList = document.getElementById('catalogueList');
 const nightModeToggle = document.getElementById('nightModeToggle');
 const catalogueHeading = document.getElementById('catalogueTitle');
@@ -55,6 +57,11 @@ const typeFilterDetails = catalogueTypeOptions ? catalogueTypeOptions.closest('d
 const difficultyFilterDetails = catalogueDifficultyOptions ? catalogueDifficultyOptions.closest('details') : null;
 const seasonFilterDetails = catalogueSeasonOptions ? catalogueSeasonOptions.closest('details') : null;
 const catalogueSelectionDetails = catalogueSelectionOptions ? catalogueSelectionOptions.closest('details') : null;
+
+let activeSearchTerm = '';
+let activeSearchLabel = '';
+
+const PAGE_SIZE = 100;
 
 const SORT_BY = {
   score: 'score',
@@ -144,8 +151,12 @@ function buildSearchCorpus(object) {
 }
 
 function setActiveSearchValue(value) {
-  activeSearchLabel = String(value || '').trim();
-  activeSearchTerm = normaliseSearchText(value);
+  const label = String(value || '').trim();
+  const term = normaliseSearchText(value);
+  const changed = label !== activeSearchLabel || term !== activeSearchTerm;
+  activeSearchLabel = label;
+  activeSearchTerm = term;
+  return changed;
 }
 
 function escapeForQuery(value) {
@@ -204,8 +215,8 @@ if (nightModeToggle) {
 if (catalogueSearchInput) {
   setActiveSearchValue(catalogueSearchInput.value || '');
   catalogueSearchInput.addEventListener('input', (event) => {
-    setActiveSearchValue(event.target.value || '');
-    updateCatalogue();
+    const changed = setActiveSearchValue(event.target.value || '');
+    updateCatalogue({ resetPage: changed });
   });
 }
 
@@ -231,9 +242,8 @@ let currentSort = SORT_BY.score;
 let activeTypeFilters = [];
 let activeDifficultyFilters = [];
 let activeSeasonFilters = [];
-let activeSearchTerm = '';
-let activeSearchLabel = '';
 let catalogueSources = new Map();
+let currentPage = 1;
 const catalogueLoadPromises = new Map();
 const loadedCatalogueIds = new Set();
 const objectSlugIndex = new Map();
@@ -438,9 +448,55 @@ function readCatalogueSelectionFromUI() {
   return selected;
 }
 
+function updateCatalogueSelectionBadge(totalCatalogues = 0) {
+  if (!catalogueSelectionBadge) return;
+  if (!Number.isFinite(totalCatalogues) || totalCatalogues <= 0) {
+    catalogueSelectionBadge.textContent = '';
+    catalogueSelectionBadge.hidden = true;
+    catalogueSelectionBadge.removeAttribute('aria-label');
+    catalogueSelectionBadge.removeAttribute('title');
+    return;
+  }
+  let label = '';
+  let description = '';
+  if (activeCatalogueIds === null) {
+    label = 'Tous';
+    description = 'Tous les catalogues sont affichés';
+  } else if (Array.isArray(activeCatalogueIds) && activeCatalogueIds.length === 0) {
+    label = 'Aucun';
+    description = 'Aucun catalogue sélectionné';
+  } else {
+    const count = getSelectionIds().length;
+    if (count <= 0) {
+      label = 'Aucun';
+      description = 'Aucun catalogue sélectionné';
+    } else {
+      label = `${count}/${totalCatalogues}`;
+      description = `${count} catalogue${count > 1 ? 's' : ''} sélectionné${count > 1 ? 's' : ''} sur ${totalCatalogues}`;
+    }
+  }
+  if (!label) {
+    catalogueSelectionBadge.textContent = '';
+    catalogueSelectionBadge.hidden = true;
+    catalogueSelectionBadge.removeAttribute('aria-label');
+    catalogueSelectionBadge.removeAttribute('title');
+    return;
+  }
+  catalogueSelectionBadge.textContent = label;
+  catalogueSelectionBadge.hidden = false;
+  if (description) {
+    catalogueSelectionBadge.setAttribute('aria-label', description);
+    catalogueSelectionBadge.setAttribute('title', description);
+  } else {
+    catalogueSelectionBadge.removeAttribute('aria-label');
+    catalogueSelectionBadge.removeAttribute('title');
+  }
+}
+
 function updateCatalogueSelectionSummary() {
   if (!catalogueSelectionSummary) return;
   const totalCatalogues = Array.isArray(catalogueDefinitions) ? catalogueDefinitions.length : 0;
+  updateCatalogueSelectionBadge(totalCatalogues);
   if (totalCatalogues === 0) {
     catalogueSelectionSummary.textContent = 'Aucun catalogue disponible pour le moment.';
     return;
@@ -491,7 +547,7 @@ async function applyCatalogueSelection(selection) {
   const selectionObjects = filterObjectsByCatalogue(enrichedCatalogueObjects, activeCatalogueIds);
   catalogueEntries = mergeMetrics(selectionObjects, lastSessionSnapshot);
   populateCatalogueFilters(selectionObjects);
-  updateCatalogue();
+  updateCatalogue({ resetPage: true });
   updateCatalogueSelectionControls();
 }
 
@@ -811,11 +867,13 @@ function hasCustomCatalogueSelection() {
   return selected.length > 0 && selected.length < catalogueDefinitions.length;
 }
 
-function syncFilterDetailState(detailsElement, hasActive) {
+function syncFilterDetailState(detailsElement, hasActive, { autoOpen = true } = {}) {
   if (!detailsElement) return;
   if (hasActive) {
     detailsElement.dataset.active = 'true';
-    detailsElement.open = true;
+    if (autoOpen) {
+      detailsElement.open = true;
+    }
   } else {
     delete detailsElement.dataset.active;
   }
@@ -894,7 +952,7 @@ function renderActiveFilterChips() {
           if (input) input.checked = false;
           activeSeasonFilters = activeSeasonFilters.filter((value) => value !== descriptor.id);
         }
-        updateCatalogue();
+        updateCatalogue({ resetPage: true });
       });
       chip.appendChild(label);
       chip.appendChild(removeBtn);
@@ -907,7 +965,7 @@ function renderActiveFilterChips() {
   syncFilterDetailState(typeFilterDetails, activeTypeFilters.length > 0);
   syncFilterDetailState(difficultyFilterDetails, activeDifficultyFilters.length > 0);
   syncFilterDetailState(seasonFilterDetails, activeSeasonFilters.length > 0);
-  syncFilterDetailState(catalogueSelectionDetails, hasCustomCatalogueSelection());
+  syncFilterDetailState(catalogueSelectionDetails, hasCustomCatalogueSelection(), { autoOpen: false });
 }
 
 function clearAllFilters() {
@@ -934,7 +992,7 @@ function clearAllFilters() {
     catalogueSearchInput.value = '';
     catalogueSearchInput.focus();
   }
-  updateCatalogue();
+  updateCatalogue({ resetPage: true });
 }
 
 const DEFAULT_CATEGORY_LABEL = 'Objet céleste';
@@ -1037,7 +1095,7 @@ function populateCatalogueTypeFilter(objects) {
     checkbox.checked = activeTypeFilters.includes(category);
     checkbox.addEventListener('change', () => {
       activeTypeFilters = readTypeSelection();
-      updateCatalogue();
+      updateCatalogue({ resetPage: true });
     });
     const span = document.createElement('span');
     const count = counts.get(category) || 0;
@@ -1055,7 +1113,7 @@ function populateCatalogueTypeFilter(objects) {
       input.checked = false;
     });
     activeTypeFilters = [];
-    updateCatalogue();
+    updateCatalogue({ resetPage: true });
   });
   catalogueTypeOptions.appendChild(resetBtn);
 }
@@ -1086,7 +1144,7 @@ function populateCatalogueDifficultyFilter(objects) {
     checkbox.checked = activeDifficultyFilters.includes(band.id);
     checkbox.addEventListener('change', () => {
       activeDifficultyFilters = readDifficultySelection();
-      updateCatalogue();
+      updateCatalogue({ resetPage: true });
     });
     const span = document.createElement('span');
     const count = counts.get(band.id) || 0;
@@ -1104,7 +1162,7 @@ function populateCatalogueDifficultyFilter(objects) {
       input.checked = false;
     });
     activeDifficultyFilters = [];
-    updateCatalogue();
+    updateCatalogue({ resetPage: true });
   });
   catalogueDifficultyOptions.appendChild(resetBtn);
 }
@@ -1136,7 +1194,7 @@ function populateCatalogueSeasonFilter(objects) {
     checkbox.checked = activeSeasonFilters.includes(season.id);
     checkbox.addEventListener('change', () => {
       activeSeasonFilters = readSeasonSelection();
-      updateCatalogue();
+      updateCatalogue({ resetPage: true });
     });
     const span = document.createElement('span');
     const count = counts.get(season.id) || 0;
@@ -1154,7 +1212,7 @@ function populateCatalogueSeasonFilter(objects) {
       input.checked = false;
     });
     activeSeasonFilters = [];
-    updateCatalogue();
+    updateCatalogue({ resetPage: true });
   });
   catalogueSeasonOptions.appendChild(resetBtn);
 }
@@ -1165,6 +1223,71 @@ function populateCatalogueFilters(objects) {
   populateCatalogueSeasonFilter(objects);
 }
 
+function clampPage(page, totalPages) {
+  if (!Number.isFinite(totalPages) || totalPages <= 0) {
+    return 1;
+  }
+  if (!Number.isFinite(page)) {
+    return 1;
+  }
+  const normalized = Math.trunc(page);
+  if (normalized < 1) {
+    return 1;
+  }
+  if (normalized > totalPages) {
+    return totalPages;
+  }
+  return normalized;
+}
+
+function renderPaginationControls(totalItems, totalPages) {
+  if (!cataloguePagination) {
+    return;
+  }
+  if (!Number.isFinite(totalItems) || totalItems <= 0 || !Number.isFinite(totalPages) || totalPages <= 1) {
+    cataloguePagination.innerHTML = '';
+    cataloguePagination.hidden = true;
+    return;
+  }
+  const startIndex = (currentPage - 1) * PAGE_SIZE + 1;
+  const endIndex = Math.min(totalItems, currentPage * PAGE_SIZE);
+  cataloguePagination.innerHTML = '';
+  cataloguePagination.hidden = false;
+  const summary = document.createElement('span');
+  summary.className = 'pagination__summary';
+  summary.textContent = `Objets ${startIndex} à ${endIndex} sur ${totalItems}`;
+  const controls = document.createElement('div');
+  controls.className = 'pagination__controls';
+  const prevButton = document.createElement('button');
+  prevButton.type = 'button';
+  prevButton.className = 'pagination__button';
+  prevButton.textContent = 'Précédent';
+  prevButton.disabled = currentPage <= 1;
+  prevButton.addEventListener('click', () => {
+    if (currentPage > 1) {
+      updateCatalogue({ page: currentPage - 1 });
+    }
+  });
+  const status = document.createElement('span');
+  status.className = 'pagination__status';
+  status.textContent = `Page ${currentPage} / ${totalPages}`;
+  const nextButton = document.createElement('button');
+  nextButton.type = 'button';
+  nextButton.className = 'pagination__button';
+  nextButton.textContent = 'Suivant';
+  nextButton.disabled = currentPage >= totalPages;
+  nextButton.addEventListener('click', () => {
+    if (currentPage < totalPages) {
+      updateCatalogue({ page: currentPage + 1 });
+    }
+  });
+  controls.appendChild(prevButton);
+  controls.appendChild(status);
+  controls.appendChild(nextButton);
+  cataloguePagination.appendChild(summary);
+  cataloguePagination.appendChild(controls);
+}
+
 function renderCatalogue(entries) {
   catalogueGrid.innerHTML = '';
   entries.forEach(({ object, metrics }) => {
@@ -1172,7 +1295,12 @@ function renderCatalogue(entries) {
   });
 }
 
-function updateCatalogue() {
+function updateCatalogue({ resetPage = false, page = null } = {}) {
+  if (resetPage) {
+    currentPage = 1;
+  } else if (Number.isFinite(page)) {
+    currentPage = page;
+  }
   const selectionObjects = filterObjectsByCatalogue(enrichedCatalogueObjects, activeCatalogueIds);
   if (!Array.isArray(catalogueEntries) || catalogueEntries.length === 0) {
     if (catalogueGrid) {
@@ -1193,6 +1321,7 @@ function updateCatalogue() {
       }
       catalogueGrid.appendChild(empty);
     }
+    renderPaginationControls(0, 0);
     updateCatalogueSummary(selectionObjects, lastSessionSnapshot);
     updateCatalogueFilterSummary(0, 0);
     renderActiveFilterChips();
@@ -1200,10 +1329,16 @@ function updateCatalogue() {
   }
   const filtered = applyFilters(catalogueEntries);
   const sorted = sortEntries(filtered, currentSort);
+  const totalItems = sorted.length;
+  const totalPages = totalItems > 0 ? Math.ceil(totalItems / PAGE_SIZE) : 0;
+  currentPage = clampPage(currentPage, totalPages);
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const pageEntries = sorted.slice(startIndex, startIndex + PAGE_SIZE);
   if (!catalogueGrid) {
     updateCatalogueSummary(selectionObjects, lastSessionSnapshot);
     updateCatalogueFilterSummary(filtered.length, catalogueEntries.length);
     renderActiveFilterChips();
+    renderPaginationControls(totalItems, totalPages);
     return;
   }
   if (sorted.length === 0) {
@@ -1214,11 +1349,12 @@ function updateCatalogue() {
       'Aucun objet ne correspond aux filtres sélectionnés. Réinitialise les filtres pour afficher de nouveau la sélection complète.';
     catalogueGrid.appendChild(empty);
   } else {
-    renderCatalogue(sorted);
+    renderCatalogue(pageEntries);
   }
   updateCatalogueSummary(selectionObjects, lastSessionSnapshot);
   updateCatalogueFilterSummary(filtered.length, catalogueEntries.length);
   renderActiveFilterChips();
+  renderPaginationControls(totalItems, totalPages);
 }
 
 function readSessionSnapshot() {
@@ -1616,7 +1752,7 @@ async function bootstrap() {
     const filteredObjects = filterObjectsByCatalogue(enrichedCatalogueObjects, activeCatalogueIds);
     catalogueEntries = mergeMetrics(filteredObjects, snapshot);
     populateCatalogueFilters(filteredObjects);
-    updateCatalogue();
+    updateCatalogue({ resetPage: true });
     updateCatalogueSelectionControls();
     prefetchRemainingCatalogues();
     if (!snapshot && sessionPanel) {

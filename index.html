@@ -126,7 +126,18 @@
         </fieldset>
         <fieldset class="field-group field-group--catalogues">
           <legend>Catalogues à inclure</legend>
-          <div id="catalogueSelection" class="catalogue-grid" aria-live="polite"></div>
+          <details class="filter-details" id="catalogueSelectionDetails" open>
+            <summary class="filter-details__summary">
+              <span class="filter-details__summary-label">Choisir les catalogues</span>
+              <span id="catalogueSelectionBadge" class="filter-details__badge" aria-live="polite" hidden></span>
+            </summary>
+            <div id="catalogueSelection" class="filter-options filter-options--catalogues" aria-live="polite"></div>
+            <div class="filter-actions">
+              <button type="button" class="link-button" id="selectAllCatalogues">Tout sélectionner</button>
+              <button type="button" class="link-button" id="clearCatalogueSelection">Tout désélectionner</button>
+            </div>
+          </details>
+          <p class="help-text" id="catalogueSelectionSummary">Sélection en cours de préparation…</p>
           <small class="help-text" id="catalogueHint">Sélectionne un mode pour appliquer les pondérations recommandées.</small>
         </fieldset>
         <fieldset class="field-group field-group--toggle">

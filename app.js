@@ -49,6 +49,12 @@ const refreshBortleBtn = document.getElementById('refreshBortle');
 const bortleHint = document.getElementById('bortleHint');
 const observationModeInputs = document.querySelectorAll('input[name="observationMode"]');
 const catalogueSelection = document.getElementById('catalogueSelection');
+const catalogueSelectionSummary = document.getElementById('catalogueSelectionSummary');
+const catalogueSelectionBadge = document.getElementById('catalogueSelectionBadge');
+const catalogueSelectionDetails = document.getElementById('catalogueSelectionDetails')
+  || (catalogueSelection ? catalogueSelection.closest('details') : null);
+const selectAllCataloguesButton = document.getElementById('selectAllCatalogues');
+const clearCatalogueSelectionButton = document.getElementById('clearCatalogueSelection');
 const catalogueHint = document.getElementById('catalogueHint');
 const weatherPanel = document.getElementById('weatherPanel');
 const weatherSummary = document.getElementById('weatherSummary');
@@ -410,10 +416,107 @@ function formatCatalogueList(ids = []) {
     .join(' • ');
 }
 
+function getCatalogueDefinitionCount() {
+  if (Array.isArray(catalogueDefinitions) && catalogueDefinitions.length > 0) {
+    return catalogueDefinitions.length;
+  }
+  return catalogueCheckboxMap.size;
+}
+
+function syncCatalogueSelectionDetailState(selectedCount, total) {
+  if (!catalogueSelectionDetails) return;
+  if (!Number.isFinite(total) || total <= 0) {
+    delete catalogueSelectionDetails.dataset.active;
+    return;
+  }
+  if (selectedCount > 0 && selectedCount < total) {
+    catalogueSelectionDetails.dataset.active = 'true';
+  } else {
+    delete catalogueSelectionDetails.dataset.active;
+  }
+}
+
+function updateCatalogueSelectionBadgeUI(total, selectedIds = []) {
+  if (!catalogueSelectionBadge) return;
+  if (!Number.isFinite(total) || total <= 0) {
+    catalogueSelectionBadge.textContent = '';
+    catalogueSelectionBadge.hidden = true;
+    catalogueSelectionBadge.removeAttribute('aria-label');
+    catalogueSelectionBadge.removeAttribute('title');
+    return;
+  }
+  const count = Array.isArray(selectedIds) ? selectedIds.length : 0;
+  let label = '';
+  let description = '';
+  if (count === 0) {
+    label = 'Aucun';
+    description = 'Aucun catalogue sélectionné';
+  } else if (count >= total) {
+    label = 'Tous';
+    description = `Tous les ${total} catalogues sont sélectionnés`;
+  } else {
+    label = `${count}/${total}`;
+    const plural = count > 1 ? 's' : '';
+    description = `${count} catalogue${plural} sélectionné${plural} sur ${total}`;
+  }
+  if (!label) {
+    catalogueSelectionBadge.textContent = '';
+    catalogueSelectionBadge.hidden = true;
+    catalogueSelectionBadge.removeAttribute('aria-label');
+    catalogueSelectionBadge.removeAttribute('title');
+    return;
+  }
+  catalogueSelectionBadge.textContent = label;
+  catalogueSelectionBadge.hidden = false;
+  if (description) {
+    catalogueSelectionBadge.setAttribute('aria-label', description);
+    catalogueSelectionBadge.setAttribute('title', description);
+  } else {
+    catalogueSelectionBadge.removeAttribute('aria-label');
+    catalogueSelectionBadge.removeAttribute('title');
+  }
+}
+
+function updateCatalogueSelectionSummary() {
+  if (!catalogueSelectionSummary) return;
+  const total = getCatalogueDefinitionCount();
+  const selected = getSelectedCatalogueIds();
+  updateCatalogueSelectionBadgeUI(total, selected);
+  syncCatalogueSelectionDetailState(selected.length, total);
+  if (selectAllCataloguesButton) {
+    selectAllCataloguesButton.disabled = total === 0;
+  }
+  if (clearCatalogueSelectionButton) {
+    clearCatalogueSelectionButton.disabled = total === 0;
+  }
+  if (total === 0) {
+    catalogueSelectionSummary.textContent = 'Aucun catalogue disponible pour le moment.';
+    return;
+  }
+  if (selected.length === 0) {
+    catalogueSelectionSummary.textContent =
+      'Aucun catalogue sélectionné. Active au moins une case pour générer des recommandations.';
+    return;
+  }
+  const list = formatCatalogueList(selected);
+  if (selected.length >= total) {
+    catalogueSelectionSummary.textContent =
+      list && list !== '—'
+        ? `Tous les ${total} catalogues sont activés (${list}).`
+        : `Tous les ${total} catalogues sont activés.`;
+    return;
+  }
+  const plural = selected.length > 1;
+  const label = list && list !== '—' ? list : selected.join(', ');
+  catalogueSelectionSummary.textContent = `${selected.length} catalogue${plural ? 's' : ''} sélectionné${
+    plural ? 's' : ''
+  } : ${label}.`;
+}
+
 function updateRecommendedStyles(mode) {
   const recommended = new Set(OBSERVATION_MODES[mode]?.recommended ?? []);
   catalogueCheckboxMap.forEach(({ label }, id) => {
-    label.classList.toggle('catalogue-option--recommended', recommended.has(id));
+    label.classList.toggle('filter-option--recommended', recommended.has(id));
   });
 }
 
@@ -458,22 +561,19 @@ function getSelectedCatalogueIds() {
 }
 
 function setSelectedCatalogueIds(ids = []) {
-  const values = Array.isArray(ids) ? new Set(ids.filter(Boolean)) : new Set();
+  const selectAll = ids === null;
+  const values = selectAll
+    ? new Set(Array.from(catalogueCheckboxMap.keys()))
+    : new Set((Array.isArray(ids) ? ids : []).filter(Boolean));
   const applied = [];
   catalogueCheckboxMap.forEach(({ checkbox }) => {
-    const shouldSelect = values.size === 0 ? false : values.has(checkbox.value);
+    const shouldSelect = selectAll ? true : values.has(checkbox.value);
     checkbox.checked = shouldSelect;
     if (shouldSelect) {
       applied.push(checkbox.value);
     }
   });
-  if (applied.length === 0 && catalogueCheckboxMap.size > 0) {
-    const first = catalogueCheckboxMap.values().next().value;
-    if (first) {
-      first.checkbox.checked = true;
-      applied.push(first.checkbox.value);
-    }
-  }
+  updateCatalogueSelectionSummary();
   return applied;
 }
 
@@ -567,6 +667,7 @@ function populateCatalogueSelection(catalogues = [], objects = []) {
     empty.className = 'help-text';
     empty.textContent = 'Aucun catalogue disponible.';
     catalogueSelection.appendChild(empty);
+    updateCatalogueSelectionSummary();
     return;
   }
   const counts = new Map();
@@ -578,20 +679,20 @@ function populateCatalogueSelection(catalogues = [], objects = []) {
   });
   catalogues.forEach((catalogue) => {
     const label = document.createElement('label');
-    label.className = 'catalogue-option';
+    label.className = 'filter-option filter-option--catalogue';
     label.dataset.catalogue = catalogue.id;
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.value = catalogue.id;
     checkbox.name = 'catalogueIds';
     const content = document.createElement('div');
-    content.className = 'catalogue-option__content';
+    content.className = 'filter-option__content';
     const title = document.createElement('span');
-    title.className = 'catalogue-option__title';
+    title.className = 'filter-option__label';
     const abbrev = catalogue.abbreviation ? `${catalogue.abbreviation} — ` : '';
     title.textContent = `${abbrev}${catalogue.name}`;
     const meta = document.createElement('span');
-    meta.className = 'catalogue-option__meta';
+    meta.className = 'filter-option__meta';
     const count = counts.get(catalogue.id) ?? 0;
     const countLabel = count === 0 ? 'Aucun objet' : `${count} objet${count > 1 ? 's' : ''}`;
     const typeLabel = catalogue.type ? catalogue.type : '';
@@ -606,6 +707,7 @@ function populateCatalogueSelection(catalogues = [], objects = []) {
       const mode = getActiveObservationMode();
       const selectedIds = getSelectedCatalogueIds();
       catalogueSelectionByMode.set(mode, selectedIds);
+      updateCatalogueSelectionSummary();
       if (catalogueHint) {
         catalogueHint.textContent = 'Chargement des catalogues sélectionnés…';
       }
@@ -618,6 +720,7 @@ function populateCatalogueSelection(catalogues = [], objects = []) {
       }
     });
   });
+  updateCatalogueSelectionSummary();
 }
 
 function shiftDateValue(dateValue, offsetDays) {
@@ -2136,6 +2239,36 @@ if (observationModeInputs && observationModeInputs.length > 0) {
       activeObservationMode = input.value;
       applyObservationModeContext(activeObservationMode);
     });
+  });
+}
+
+if (selectAllCataloguesButton) {
+  selectAllCataloguesButton.addEventListener('click', async () => {
+    if (selectAllCataloguesButton.disabled) return;
+    const mode = getActiveObservationMode();
+    const applied = setSelectedCatalogueIds(null);
+    catalogueSelectionByMode.set(mode, applied);
+    updateRecommendedStyles(mode);
+    if (catalogueHint) {
+      catalogueHint.textContent = 'Chargement des catalogues sélectionnés…';
+    }
+    try {
+      await ensureCatalogueData(applied);
+    } catch (error) {
+      console.error('Chargement de tous les catalogues impossible :', error);
+    } finally {
+      updateCatalogueHint(mode);
+    }
+  });
+}
+
+if (clearCatalogueSelectionButton) {
+  clearCatalogueSelectionButton.addEventListener('click', () => {
+    if (clearCatalogueSelectionButton.disabled) return;
+    setSelectedCatalogueIds([]);
+    const mode = getActiveObservationMode();
+    catalogueSelectionByMode.set(mode, []);
+    updateCatalogueHint(mode);
   });
 }
 
