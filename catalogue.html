@@ -54,7 +54,14 @@
         </select>
         <details class="filter-details">
           <summary class="filter-details__summary">
-            <span class="filter-details__summary-label">Filtrer par catalogue</span>
+            <span class="filter-details__summary-label">
+              <span class="filter-details__summary-title">Filtrer par catalogue</span>
+              <span
+                id="catalogueSelectionSummaryLabel"
+                class="filter-details__summary-hint"
+                aria-live="polite"
+              >Chargement…</span>
+            </span>
             <span id="catalogueSelectionBadge" class="filter-details__badge" aria-live="polite" hidden></span>
           </summary>
           <div id="catalogueSelectionOptions" class="filter-options filter-options--catalogues"></div>

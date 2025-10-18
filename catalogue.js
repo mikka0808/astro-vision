@@ -45,6 +45,7 @@ const catalogueSelectionOptions = document.getElementById('catalogueSelectionOpt
 const selectAllCataloguesButton = document.getElementById('selectAllCatalogues');
 const clearCatalogueSelectionButton = document.getElementById('clearCatalogueSelection');
 const catalogueSelectionSummary = document.getElementById('catalogueSelectionSummary');
+const catalogueSelectionSummaryLabel = document.getElementById('catalogueSelectionSummaryLabel');
 const catalogueSelectionBadge = document.getElementById('catalogueSelectionBadge');
 const catalogueList = document.getElementById('catalogueList');
 const nightModeToggle = document.getElementById('nightModeToggle');
@@ -409,16 +410,6 @@ function hasActiveCatalogueSelection(selection = activeCatalogueIds) {
   return normaliseCatalogueIdList(selection).length > 0;
 }
 
-function formatCatalogueOptionLabel(catalogue) {
-  if (!catalogue) return '';
-  const abbr = (catalogue.abbreviation || '').trim();
-  const name = (catalogue.name || '').trim();
-  if (abbr && name && abbr !== name) {
-    return `${abbr} — ${name}`;
-  }
-  return name || abbr || (catalogue.id ? catalogue.id.toUpperCase() : '');
-}
-
 function shouldCatalogueBeChecked(id) {
   const normalized = normaliseCatalogueId(id);
   if (!normalized) return false;
@@ -497,32 +488,48 @@ function updateCatalogueSelectionSummary() {
   if (!catalogueSelectionSummary) return;
   const totalCatalogues = Array.isArray(catalogueDefinitions) ? catalogueDefinitions.length : 0;
   updateCatalogueSelectionBadge(totalCatalogues);
+
+  let summaryText = 'Chargement des catalogues…';
+  let hintText = 'Chargement…';
+
   if (totalCatalogues === 0) {
-    catalogueSelectionSummary.textContent = 'Aucun catalogue disponible pour le moment.';
-    return;
+    summaryText = 'Aucun catalogue disponible pour le moment.';
+    hintText = 'Aucun catalogue disponible';
+  } else if (!hasActiveCatalogueSelection()) {
+    summaryText = 'Aucun catalogue sélectionné. Utilise les cases à cocher ci-dessus pour afficher des objets.';
+    hintText = 'Aucun catalogue sélectionné';
+  } else {
+    const selectionIds = getSelectionIds();
+    const list = selectionIds.length > 0 ? formatCatalogueList(selectionIds, catalogueDefinitions) : '';
+    const count = selectionIds.length;
+    const displayingAll = activeCatalogueIds === null || count === totalCatalogues;
+
+    if (displayingAll) {
+      hintText = 'Tous les catalogues';
+    } else if (count === 0) {
+      hintText = 'Aucun catalogue sélectionné';
+    } else if (count === 1 && list && list !== '—') {
+      hintText = list;
+    } else {
+      hintText = `${count} catalogue${count > 1 ? 's' : ''}`;
+    }
+
+    if (activeCatalogueIds === null) {
+      summaryText = list
+        ? `Tous les ${totalCatalogues} catalogues sont affichés (${list}).`
+        : `Tous les ${totalCatalogues} catalogues sont affichés.`;
+    } else if (count === 0) {
+      summaryText = 'Aucun catalogue sélectionné. Utilise les cases à cocher ci-dessus pour afficher des objets.';
+    } else {
+      const label = list && list !== '—' ? list : selectionIds.join(', ');
+      summaryText = count === 1 ? `Catalogue affiché : ${label}.` : `${count} catalogues affichés : ${label}.`;
+    }
   }
-  if (!hasActiveCatalogueSelection()) {
-    catalogueSelectionSummary.textContent =
-      'Aucun catalogue sélectionné. Utilise les cases à cocher ci-dessus pour afficher des objets.';
-    return;
+
+  if (catalogueSelectionSummaryLabel) {
+    catalogueSelectionSummaryLabel.textContent = hintText;
   }
-  const selectionIds = getSelectionIds();
-  const list = selectionIds.length > 0 ? formatCatalogueList(selectionIds, catalogueDefinitions) : '';
-  if (activeCatalogueIds === null) {
-    catalogueSelectionSummary.textContent = list
-      ? `Tous les ${totalCatalogues} catalogues sont affichés (${list}).`
-      : `Tous les ${totalCatalogues} catalogues sont affichés.`;
-    return;
-  }
-  const count = selectionIds.length;
-  if (count === 0) {
-    catalogueSelectionSummary.textContent =
-      'Aucun catalogue sélectionné. Utilise les cases à cocher ci-dessus pour afficher des objets.';
-    return;
-  }
-  const label = list && list !== '—' ? list : selectionIds.join(', ');
-  catalogueSelectionSummary.textContent =
-    count === 1 ? `Catalogue affiché : ${label}.` : `${count} catalogues affichés : ${label}.`;
+  catalogueSelectionSummary.textContent = summaryText;
 }
 
 async function applyCatalogueSelection(selection) {
@@ -574,34 +581,47 @@ function updateCatalogueSelectionControls() {
       return;
     }
     const label = document.createElement('label');
-    label.className = 'filter-option';
-    label.classList.add('filter-option--catalogue');
+    label.className = 'catalogue-card';
     if (catalogue.description) {
       label.title = catalogue.description;
     }
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.value = catalogue.id;
+    checkbox.className = 'catalogue-card__input';
     checkbox.checked = shouldCatalogueBeChecked(catalogue.id);
     checkbox.addEventListener('change', () => {
+      label.classList.toggle('catalogue-card--checked', checkbox.checked);
       const nextSelection = readCatalogueSelectionFromUI();
       applyCatalogueSelection(nextSelection).catch((error) => {
         console.error('Impossible de mettre à jour la sélection de catalogues :', error);
       });
     });
+    label.classList.toggle('catalogue-card--checked', checkbox.checked);
     const count = catalogueObjectCounts.get(normalizedId);
-    let countText = '…';
+    let countText = 'Chargement…';
     if (Number.isFinite(count)) {
-      countText = count.toLocaleString('fr-FR');
+      const plural = count > 1 ? 's' : '';
+      countText = `${count.toLocaleString('fr-FR')} objet${plural}`;
     } else if (loadedCatalogueIds.has(normalizedId)) {
-      countText = '0';
+      countText = 'Aucun objet disponible';
     }
-    const content = document.createElement('span');
-    content.className = 'filter-option__content';
-    const nameLine = document.createElement('span');
-    nameLine.className = 'filter-option__label';
-    nameLine.textContent = `${formatCatalogueOptionLabel(catalogue)} (${countText})`;
-    content.appendChild(nameLine);
+    const body = document.createElement('span');
+    body.className = 'catalogue-card__body';
+    const header = document.createElement('span');
+    header.className = 'catalogue-card__header';
+    if (catalogue.abbreviation) {
+      const abbr = document.createElement('span');
+      abbr.className = 'catalogue-card__abbr';
+      abbr.textContent = catalogue.abbreviation;
+      header.appendChild(abbr);
+    }
+    const title = document.createElement('span');
+    title.className = 'catalogue-card__title';
+    title.textContent =
+      catalogue.name || catalogue.abbreviation || (catalogue.id ? catalogue.id.toUpperCase() : normalizedId.toUpperCase());
+    header.appendChild(title);
+    body.appendChild(header);
     const metaParts = [];
     if (catalogue.focus) {
       metaParts.push(catalogue.focus);
@@ -613,12 +633,16 @@ function updateCatalogueSelectionControls() {
     }
     if (metaParts.length > 0) {
       const meta = document.createElement('span');
-      meta.className = 'filter-option__meta';
+      meta.className = 'catalogue-card__meta';
       meta.textContent = metaParts.join(' • ');
-      content.appendChild(meta);
+      body.appendChild(meta);
     }
+    const countLine = document.createElement('span');
+    countLine.className = 'catalogue-card__count';
+    countLine.textContent = countText;
+    body.appendChild(countLine);
     label.appendChild(checkbox);
-    label.appendChild(content);
+    label.appendChild(body);
     catalogueSelectionOptions.appendChild(label);
   });
   if (selectAllCataloguesButton) {
