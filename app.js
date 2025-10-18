@@ -32,6 +32,9 @@ import {
   fetchCatalogueObjectsFromSource,
   getCatalogueSourceSummary
 } from './catalogue-data.js';
+import { loadScorePreferencesFromCookie } from './score-preferences.js';
+
+loadScorePreferencesFromCookie();
 
 const sessionForm = document.getElementById('sessionForm');
 const addressInput = document.getElementById('addressLookup');

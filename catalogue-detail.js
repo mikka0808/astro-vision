@@ -14,6 +14,9 @@ import {
 } from './astro-core.js';
 import { createObservationPreview, resolveImageSources } from './catalogue-media.js';
 import { getObjectDossier } from './object-dossiers.js';
+import { loadScorePreferencesFromCookie } from './score-preferences.js';
+
+loadScorePreferencesFromCookie();
 
 const MONTH_NAMES = [
   'janvier',

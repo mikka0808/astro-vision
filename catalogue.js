@@ -27,6 +27,9 @@ import {
   filterObjectsByCatalogue,
   countObjectsByCatalogue
 } from './catalogue-utils.js';
+import { loadScorePreferencesFromCookie } from './score-preferences.js';
+
+loadScorePreferencesFromCookie();
 
 const catalogueGrid = document.getElementById('catalogueGrid');
 const cataloguePagination = document.getElementById('cataloguePagination');

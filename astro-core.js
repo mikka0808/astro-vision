@@ -575,7 +575,7 @@ export function brightnessScore(magnitude) {
   return Math.max(0, Math.min(1, (10 - magnitude) / 8));
 }
 
-const SCORE_WEIGHTS = {
+const DEFAULT_SCORE_WEIGHTS = {
   altitude: 0.16,
   averageAltitude: 0.1,
   startAltitude: 0.06,
@@ -589,6 +589,38 @@ const SCORE_WEIGHTS = {
   moon: 0.06,
   context: 0.02
 };
+
+let activeScoreWeights = { ...DEFAULT_SCORE_WEIGHTS };
+
+export function getDefaultScoreWeights() {
+  return { ...DEFAULT_SCORE_WEIGHTS };
+}
+
+export function getScoreWeights() {
+  return { ...activeScoreWeights };
+}
+
+export function setScoreWeightOverrides(overrides = null) {
+  if (!overrides || typeof overrides !== 'object') {
+    activeScoreWeights = { ...DEFAULT_SCORE_WEIGHTS };
+    return getScoreWeights();
+  }
+  const nextWeights = { ...DEFAULT_SCORE_WEIGHTS };
+  let hasOverride = false;
+  Object.entries(overrides).forEach(([key, value]) => {
+    if (!Object.prototype.hasOwnProperty.call(DEFAULT_SCORE_WEIGHTS, key)) {
+      return;
+    }
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric < 0) {
+      return;
+    }
+    nextWeights[key] = numeric;
+    hasOverride = true;
+  });
+  activeScoreWeights = hasOverride ? nextWeights : { ...DEFAULT_SCORE_WEIGHTS };
+  return getScoreWeights();
+}
 
 const SCORE_TONE_THRESHOLDS = {
   good: 0.75,
@@ -681,8 +713,15 @@ export function computeUnifiedVisibilityScore(entry = {}, options = {}) {
   const inputs = computeScoreInputs(entry, options);
   const breakdown = {};
   let score = 0;
-  Object.entries(SCORE_WEIGHTS).forEach(([key, weight]) => {
+  const weights = getScoreWeights();
+  const normalizedEntries = Object.entries(weights).map(([key, weight]) => {
+    const numeric = Number(weight);
+    return [key, Number.isFinite(numeric) && numeric > 0 ? numeric : 0];
+  });
+  const totalWeight = normalizedEntries.reduce((sum, [, weight]) => sum + weight, 0) || 1;
+  normalizedEntries.forEach(([key, rawWeight]) => {
     const value = clamp01(inputs[key] ?? 0, 0);
+    const weight = rawWeight / totalWeight;
     const contribution = value * weight;
     breakdown[key] = { weight, value, contribution };
     score += contribution;

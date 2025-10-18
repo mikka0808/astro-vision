@@ -14,6 +14,9 @@ import {
   resolveScoreTone
 } from './astro-core.js';
 import { renderAltitudeSparkline } from './charts.js';
+import { loadScorePreferencesFromCookie } from './score-preferences.js';
+
+loadScorePreferencesFromCookie();
 
 const summaryEl = document.getElementById('dashboardSummary');
 const scoreEl = document.getElementById('dashboardScore');
