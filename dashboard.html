@@ -31,24 +31,45 @@
       <div class="overview-grid">
         <article class="metric-card metric-card--score">
           <header class="metric-card__header">
-            <h3>Score global</h3>
-            <p class="help-text" id="dashboardUpdated"></p>
+            <span class="metric-card__icon" aria-hidden="true">🎯</span>
+            <div class="metric-card__title">
+              <h3>Score global</h3>
+              <p class="help-text" id="dashboardUpdated"></p>
+            </div>
           </header>
           <p class="metric-score" id="dashboardScore">—</p>
           <div class="score-meter" aria-hidden="true"><span id="dashboardGauge"></span></div>
           <ul class="metric-list" id="dashboardMetrics"></ul>
-          <p class="help-text" id="dashboardDetails">Aucune session récente.</p>
+          <p class="metric-hint" id="dashboardDetails">Aucune session récente.</p>
         </article>
-        <article class="metric-card">
-          <h3>Contexte</h3>
+        <article class="metric-card metric-card--context">
+          <header class="metric-card__header">
+            <span class="metric-card__icon" aria-hidden="true">🧭</span>
+            <div class="metric-card__title">
+              <h3>Contexte</h3>
+              <p class="metric-subtitle">Coordonnées &amp; pollution lumineuse</p>
+            </div>
+          </header>
           <p class="metric-text" id="dashboardContext">Aucune session enregistrée. Retourne sur la page principale pour lancer une analyse.</p>
         </article>
-        <article class="metric-card">
-          <h3>Météo</h3>
+        <article class="metric-card metric-card--weather">
+          <header class="metric-card__header">
+            <span class="metric-card__icon" aria-hidden="true">🌦️</span>
+            <div class="metric-card__title">
+              <h3>Météo</h3>
+              <p class="metric-subtitle">Nébulosité, transparence &amp; vent</p>
+            </div>
+          </header>
           <p class="metric-text" id="dashboardWeather">Résumé météo indisponible.</p>
         </article>
-        <article class="metric-card">
-          <h3>Lune</h3>
+        <article class="metric-card metric-card--moon">
+          <header class="metric-card__header">
+            <span class="metric-card__icon" aria-hidden="true">🌙</span>
+            <div class="metric-card__title">
+              <h3>Lune</h3>
+              <p class="metric-subtitle">Phase et éclairement</p>
+            </div>
+          </header>
           <p class="metric-text" id="dashboardMoon">Phase lunaire non calculée.</p>
         </article>
       </div>

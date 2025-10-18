@@ -81,6 +81,8 @@ const decisionSummary = document.getElementById('decisionSummary');
 const globalScoreValue = document.getElementById('globalScoreValue');
 const globalScoreGauge = document.getElementById('globalScoreGauge');
 const globalScoreDetails = document.getElementById('globalScoreDetails');
+const decisionGlobalCard = document.getElementById('decisionGlobal');
+const globalScoreMeter = decisionGlobalCard ? decisionGlobalCard.querySelector('.score-meter') : null;
 const decisionCalendarList = document.getElementById('decisionCalendarList');
 const decisionAlertsList = document.getElementById('decisionAlertsList');
 const decisionAstrophotoList = document.getElementById('decisionAstrophotoList');
@@ -134,6 +136,67 @@ let computedNightDurationHours = null;
 let computedNightSessionSlots = null;
 let computedNightStartDate = null;
 let computedNightEndDate = null;
+
+function getScoreTone(score) {
+  if (!Number.isFinite(score)) return 'neutral';
+  if (score >= 75) return 'good';
+  if (score >= 45) return 'warn';
+  return 'bad';
+}
+
+function applyGlobalScoreTone(scoreValue) {
+  const tone = getScoreTone(scoreValue);
+  if (decisionGlobalCard) {
+    if (tone === 'neutral') {
+      delete decisionGlobalCard.dataset.level;
+    } else {
+      decisionGlobalCard.dataset.level = tone;
+    }
+  }
+  if (globalScoreMeter) {
+    if (tone === 'neutral') {
+      delete globalScoreMeter.dataset.level;
+    } else {
+      globalScoreMeter.dataset.level = tone;
+    }
+  }
+  if (globalScoreGauge) {
+    if (tone === 'neutral') {
+      delete globalScoreGauge.dataset.level;
+    } else {
+      globalScoreGauge.dataset.level = tone;
+    }
+  }
+}
+
+function toneToIcon(tone) {
+  switch (tone) {
+    case 'good':
+      return '🟢';
+    case 'warn':
+      return '🟡';
+    case 'bad':
+      return '🔴';
+    default:
+      return '🔭';
+  }
+}
+
+function createDecisionItem({ tone = 'neutral', icon }) {
+  const item = document.createElement('li');
+  if (tone !== 'neutral') {
+    item.dataset.tone = tone;
+  }
+  const badge = document.createElement('span');
+  badge.className = 'decision-icon';
+  badge.setAttribute('aria-hidden', 'true');
+  badge.textContent = icon ?? toneToIcon(tone);
+  const content = document.createElement('div');
+  content.className = 'decision-content';
+  item.appendChild(badge);
+  item.appendChild(content);
+  return { item, content, badge };
+}
 const OBSERVATION_MODES = {
   visual: {
     id: 'visual',
@@ -1714,6 +1777,7 @@ function renderDecisionSupport(decision) {
   if (globalScoreGauge) {
     globalScoreGauge.style.width = `${scoreValue}%`;
   }
+  applyGlobalScoreTone(scoreValue);
   const aggregates = decision.aggregates ?? {};
   const avgAltitude = Number.isFinite(aggregates.avgAltitude) ? Math.round(aggregates.avgAltitude) : null;
   const avgVisibility = Number.isFinite(aggregates.avgVisibility) ? Math.round(aggregates.avgVisibility * 100) : null;
@@ -1725,11 +1789,11 @@ function renderDecisionSupport(decision) {
     : null;
   if (globalScoreDetails) {
     const parts = [];
-    if (avgAltitude !== null) parts.push(`Altitude moyenne ${avgAltitude}°`);
-    if (avgVisibility !== null) parts.push(`Couverture ${avgVisibility}% du créneau`);
-    if (skyWindow !== null) parts.push(`Fenêtre ciel ${skyWindow}%`);
-    if (atmosphere !== null) parts.push(`Atmosphère ${atmosphere}%`);
-    if (moonPercent !== null) parts.push(`Lune ${moonPercent}%`);
+    if (avgAltitude !== null) parts.push(`🧭 Altitude ${avgAltitude}°`);
+    if (avgVisibility !== null) parts.push(`🛰️ Couverture ${avgVisibility}%`);
+    if (skyWindow !== null) parts.push(`🌤️ Fenêtre ciel ${skyWindow}%`);
+    if (atmosphere !== null) parts.push(`💨 Atmosphère ${atmosphere}%`);
+    if (moonPercent !== null) parts.push(`🌙 Lune ${moonPercent}%`);
     globalScoreDetails.textContent = parts.join(' • ');
   }
 
@@ -1737,12 +1801,20 @@ function renderDecisionSupport(decision) {
     decisionCalendarList.innerHTML = '';
     const calendarEntries = Array.isArray(decision.calendar) ? decision.calendar.slice(0, 3) : [];
     if (calendarEntries.length === 0) {
-      const item = document.createElement('li');
-      item.textContent = 'Lance une analyse pour générer des fenêtres optimales.';
+      const { item, content } = createDecisionItem({ icon: 'ℹ️' });
+      item.classList.add('empty');
+      const body = document.createElement('span');
+      body.textContent = 'Lance une analyse pour générer des fenêtres optimales.';
+      content.appendChild(body);
       decisionCalendarList.appendChild(item);
     } else {
       calendarEntries.forEach((entry) => {
-        const item = document.createElement('li');
+        const bestWindow = entry.windows?.[0];
+        const windowScore = Number.isFinite(bestWindow?.score ?? bestWindow?.baseScore)
+          ? Math.round((bestWindow.score ?? bestWindow.baseScore) * 100)
+          : null;
+        const tone = getScoreTone(windowScore);
+        const { item, content, badge } = createDecisionItem({ tone, icon: '📅' });
         const title = document.createElement('strong');
         title.textContent = entry.object?.name ?? 'Objet céleste';
         const span = document.createElement('span');
@@ -1764,8 +1836,12 @@ function renderDecisionSupport(decision) {
             return `${dayLabel} • ${timeLabel} • ${altitudeLabel} • ${scoreLabel}${moonLabel ? ` • ${moonLabel}` : ''}`;
           });
         span.innerHTML = lines.join('<br>');
-        item.appendChild(title);
-        item.appendChild(span);
+        content.appendChild(title);
+        content.appendChild(span);
+        if (lines.length === 0) {
+          badge.textContent = 'ℹ️';
+          item.classList.add('empty');
+        }
         decisionCalendarList.appendChild(item);
       });
     }
@@ -1775,12 +1851,17 @@ function renderDecisionSupport(decision) {
     decisionAlertsList.innerHTML = '';
     const alerts = Array.isArray(decision.alerts) ? decision.alerts : [];
     if (alerts.length === 0) {
-      const item = document.createElement('li');
-      item.textContent = 'Aucune alerte particulière pour ce créneau.';
+      const { item, content } = createDecisionItem({ icon: 'ℹ️' });
+      item.classList.add('empty');
+      const body = document.createElement('span');
+      body.textContent = 'Aucune alerte particulière pour ce créneau.';
+      content.appendChild(body);
       decisionAlertsList.appendChild(item);
     } else {
       alerts.forEach((alert) => {
-        const item = document.createElement('li');
+        const scoreLabel = Number.isFinite(alert.score) ? Math.round(alert.score * 100) : null;
+        const tone = getScoreTone(scoreLabel);
+        const { item, content } = createDecisionItem({ tone });
         const title = document.createElement('strong');
         title.textContent = alert.object?.name ?? 'Cible recommandée';
         const span = document.createElement('span');
@@ -1788,11 +1869,12 @@ function renderDecisionSupport(decision) {
         const end = alert.windowEnd ? formatLocalTime(alert.windowEnd) : null;
         const peak = formatLocalTime(alert.peak);
         const altitudeLabel = formatAltitude(alert.altitude);
-        const direction = alert.direction || 'Direction inconnue';
-        const windowText = start && end ? `entre ${start} et ${end}` : `vers ${peak}`;
-        span.textContent = `${windowText} • ${altitudeLabel} • ${direction}`;
-        item.appendChild(title);
-        item.appendChild(span);
+        const direction = alert.direction || describeAzimuth(alert.object?.azimuth);
+        const windowText = start && end ? `${start} → ${end}` : `vers ${peak}`;
+        const scoreText = Number.isFinite(alert.score) ? `${Math.round(alert.score * 100)}/100` : '—';
+        span.textContent = `🕒 ${windowText} • ⛰️ ${altitudeLabel} • 🧭 ${direction} • 🎯 ${scoreText}`;
+        content.appendChild(title);
+        content.appendChild(span);
         decisionAlertsList.appendChild(item);
       });
     }
@@ -1830,7 +1912,9 @@ function renderDecisionSupport(decision) {
     }
     if (astro.active && Array.isArray(astro.recommendations) && astro.recommendations.length > 0) {
       astro.recommendations.slice(0, 4).forEach((entry) => {
-        const item = document.createElement('li');
+        const astroScoreValue = Number.isFinite(entry.astroScore) ? Math.round(entry.astroScore * 100) : null;
+        const tone = getScoreTone(astroScoreValue);
+        const { item, content } = createDecisionItem({ tone, icon: '📷' });
         const title = document.createElement('strong');
         title.textContent = entry.object?.name ?? 'Cible photo';
         const span = document.createElement('span');
@@ -1838,14 +1922,18 @@ function renderDecisionSupport(decision) {
         const baseScore = Number.isFinite(entry.score ?? entry.baseScore)
           ? `${Math.round((entry.score ?? entry.baseScore) * 100)}/100`
           : '—';
-        span.textContent = `${formatLocalTime(entry.bestTime)} • ${formatAltitude(entry.altitude)} • ${entry.direction || describeAzimuth(entry.azimuth)} • Photo ${scoreLabel} • Score global ${baseScore}`;
-        item.appendChild(title);
-        item.appendChild(span);
+        const directionLabel = entry.direction || describeAzimuth(entry.azimuth);
+        span.textContent = `🕒 ${formatLocalTime(entry.bestTime)} • ⛰️ ${formatAltitude(entry.altitude)} • 🧭 ${directionLabel} • 📸 ${scoreLabel} • 🎯 ${baseScore}`;
+        content.appendChild(title);
+        content.appendChild(span);
         decisionAstrophotoList.appendChild(item);
       });
     } else if (astro.active) {
-      const item = document.createElement('li');
-      item.textContent = 'Aucune cible photo ne dépasse le seuil pour cet équipement.';
+      const { item, content } = createDecisionItem({ icon: 'ℹ️' });
+      item.classList.add('empty');
+      const body = document.createElement('span');
+      body.textContent = 'Aucune cible photo ne dépasse le seuil pour cet équipement.';
+      content.appendChild(body);
       decisionAstrophotoList.appendChild(item);
     }
   }
