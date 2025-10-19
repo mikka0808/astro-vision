@@ -1,6 +1,7 @@
 import { NIGHT_MODE_STORAGE_KEY } from './astro-core.js';
 import { parseCataloguePayload } from './catalogue-data.js';
 import {
+  flattenCataloguePreferences,
   getCatalogueModes,
   getDefaultCatalogueSelections,
   loadCataloguePreferences,
@@ -11,70 +12,37 @@ import {
 const MODE_METADATA = {
   visual: {
     icon: '🌙',
-    title: 'Observation visuelle directe',
-    description: 'Messier, Caldwell et NGC lumineux adaptés au ciel urbain.'
+    label: 'Observation visuelle',
+    shortLabel: 'Visuel',
+    description: 'Objets lumineux et contrastés pour le télescope ou les jumelles.'
   },
   research: {
     icon: '🛰️',
-    title: 'Visuel assisté (EAA)',
-    description: 'Messier, Caldwell, NGC et nébuleuses Sharpless pour le live stacking.'
+    label: 'Visuel assisté (EAA)',
+    shortLabel: 'Visuel assisté',
+    description: 'Live stacking et visuel assisté avec caméras sensibles.'
   },
   astrophoto: {
     icon: '📸',
-    title: 'Astrophotographie',
-    description: 'Messier, Caldwell, NGC/IC et catalogues étendus pour la longue pose.'
+    label: 'Astrophotographie',
+    shortLabel: 'Astrophotographie',
+    description: 'Catalogue adaptés aux poses longues et aux filtres étroits.'
   }
 };
 
-const tabsContainer = document.getElementById('cataloguePreferenceTabs');
-const modeShell = document.getElementById('cataloguePreferenceModeShell');
-if (modeShell) {
-  modeShell.setAttribute('role', 'tabpanel');
-}
-if (tabsContainer) {
-  tabsContainer.addEventListener('keydown', (event) => {
-    const targetTab = event.target.closest('.catalogue-settings__tab');
-    if (!targetTab) return;
-    if (!availableModes.length) return;
-    const currentIndex = availableModes.indexOf(targetTab.dataset.mode);
-    if (currentIndex === -1) return;
-    let nextIndex = currentIndex;
-    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
-      nextIndex = (currentIndex + 1) % availableModes.length;
-      event.preventDefault();
-    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-      nextIndex = (currentIndex - 1 + availableModes.length) % availableModes.length;
-      event.preventDefault();
-    } else if (event.key === 'Home') {
-      nextIndex = 0;
-      event.preventDefault();
-    } else if (event.key === 'End') {
-      nextIndex = availableModes.length - 1;
-      event.preventDefault();
-    } else {
-      return;
-    }
-    const nextMode = availableModes[nextIndex];
-    if (nextMode) {
-      setActiveMode(nextMode);
-    }
-  });
-}
+const legendContainer = document.getElementById('catalogueUsageLegend');
+const listContainer = document.getElementById('cataloguePreferenceList');
 const resetButton = document.getElementById('resetCataloguePreferences');
 const nightModeToggle = document.getElementById('nightModeToggle');
 
 const defaultSelections = getDefaultCatalogueSelections();
 let preferenceState = loadCataloguePreferences();
-const availableModes = getCatalogueModes();
-let activeMode = availableModes[0] || null;
-let loadedCatalogues = [];
+const availableModes = getCatalogueModes().filter((mode) => MODE_METADATA[mode]);
+const recommendedByMode = new Map(
+  availableModes.map((mode) => [mode, new Set(defaultSelections[mode] || [])])
+);
+let selectedCatalogueIds = new Set(flattenCataloguePreferences(preferenceState));
 const catalogueMeta = new Map();
-
-availableModes.forEach((mode) => {
-  if (!Array.isArray(preferenceState[mode])) {
-    preferenceState[mode] = [...(defaultSelections[mode] || [])];
-  }
-});
 
 function applyNightMode(enabled, { persist = true } = {}) {
   document.body.classList.toggle('night-mode', enabled);
@@ -121,160 +89,196 @@ function formatCatalogueMeta(catalogue) {
   return details.join(' · ');
 }
 
-function handleCatalogueToggle(modeId, catalogueId, checked) {
-  const current = new Set(Array.isArray(preferenceState[modeId]) ? preferenceState[modeId] : []);
-  if (checked) {
-    current.add(catalogueId);
-  } else {
-    current.delete(catalogueId);
+function describeUsageWeight(weight) {
+  if (!Number.isFinite(weight)) {
+    return 'Usage limité';
   }
-  preferenceState[modeId] = Array.from(current);
+  if (weight >= 1.05) {
+    return 'Très favorable';
+  }
+  if (weight >= 0.75) {
+    return 'Favorable';
+  }
+  if (weight >= 0.45) {
+    return 'Utilisable';
+  }
+  return 'Usage limité';
+}
+
+function classifyUsageWeight(weight) {
+  if (!Number.isFinite(weight) || weight < 0.35) {
+    return 'limited';
+  }
+  if (weight >= 1.05) {
+    return 'strong';
+  }
+  if (weight >= 0.75) {
+    return 'recommended';
+  }
+  return 'usable';
+}
+
+function renderUsageLegend() {
+  if (!legendContainer) return;
+  legendContainer.innerHTML = '';
+  if (!availableModes.length) {
+    return;
+  }
+  availableModes.forEach((mode) => {
+    const meta = MODE_METADATA[mode];
+    const item = document.createElement('div');
+    item.className = 'catalogue-settings__legend-item';
+
+    const icon = document.createElement('span');
+    icon.className = 'catalogue-settings__legend-icon';
+    icon.textContent = meta.icon;
+    item.appendChild(icon);
+
+    const copy = document.createElement('div');
+    copy.className = 'catalogue-settings__legend-copy';
+
+    const title = document.createElement('span');
+    title.className = 'catalogue-settings__legend-title';
+    title.textContent = meta.label;
+    copy.appendChild(title);
+
+    if (meta.description) {
+      const desc = document.createElement('span');
+      desc.className = 'catalogue-settings__legend-desc';
+      desc.textContent = meta.description;
+      copy.appendChild(desc);
+    }
+
+    item.appendChild(copy);
+    legendContainer.appendChild(item);
+  });
+}
+
+function buildUsageTag(modeId, catalogue) {
+  const meta = MODE_METADATA[modeId];
+  const weights = catalogue?.observationWeights || {};
+  const weight = Number.isFinite(weights[modeId]) ? weights[modeId] : Number(weights[modeId]);
+  const resolvedWeight = Number.isFinite(weight) ? weight : 0;
+  const level = classifyUsageWeight(resolvedWeight);
+  const recommended = recommendedByMode.get(modeId)?.has(catalogue.id);
+
+  const tag = document.createElement('span');
+  tag.className = 'catalogue-settings__usage-tag';
+  tag.dataset.level = level;
+  tag.textContent = `${meta.icon} ${meta.shortLabel || meta.label}`;
+  tag.title = `${meta.label} — ${describeUsageWeight(resolvedWeight)}`;
+  tag.setAttribute('aria-label', `${meta.label} : ${describeUsageWeight(resolvedWeight)}`);
+  if (recommended) {
+    tag.classList.add('catalogue-settings__usage-tag--recommended');
+  }
+  if (level === 'limited') {
+    tag.classList.add('catalogue-settings__usage-tag--limited');
+  }
+  return tag;
+}
+
+function syncPreferenceState() {
+  const next = Array.from(selectedCatalogueIds);
+  availableModes.forEach((mode) => {
+    preferenceState[mode] = [...next];
+  });
   persistCataloguePreferences(preferenceState);
 }
 
-function renderTabs() {
-  if (!tabsContainer) return;
-  tabsContainer.innerHTML = '';
-  tabsContainer.setAttribute('role', 'tablist');
-  availableModes.forEach((modeId) => {
-    const meta = MODE_METADATA[modeId] || { icon: '⭐', title: modeId };
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'catalogue-settings__tab';
-    button.id = `catalogue-tab-${modeId}`;
-    button.setAttribute('role', 'tab');
-    button.setAttribute('aria-selected', modeId === activeMode ? 'true' : 'false');
-    button.setAttribute('aria-controls', 'cataloguePreferenceModeShell');
-    button.setAttribute('tabindex', modeId === activeMode ? '0' : '-1');
-    button.dataset.mode = modeId;
-    const icon = document.createElement('span');
-    icon.className = 'catalogue-settings__tab-icon';
-    icon.textContent = meta.icon || '⭐';
-    button.appendChild(icon);
-    const label = document.createElement('span');
-    label.textContent = meta.title || modeId;
-    button.appendChild(label);
-    button.addEventListener('click', () => {
-      if (activeMode !== modeId) {
-        setActiveMode(modeId);
-      }
-    });
-    tabsContainer.appendChild(button);
-  });
-  if (modeShell && activeMode) {
-    modeShell.setAttribute('aria-labelledby', `catalogue-tab-${activeMode}`);
+function handleCatalogueToggle(catalogueId, checked, optionNode) {
+  if (!catalogueId) return;
+  const next = new Set(selectedCatalogueIds);
+  if (checked) {
+    next.add(catalogueId);
+  } else {
+    next.delete(catalogueId);
   }
+  selectedCatalogueIds = next;
+  if (optionNode) {
+    optionNode.classList.toggle('catalogue-settings__option--active', checked);
+  }
+  syncPreferenceState();
 }
 
-function buildModeSection(modeId, catalogues) {
-  const meta = MODE_METADATA[modeId] || { icon: '⭐', title: modeId };
-  const container = document.createElement('div');
-  container.className = 'catalogue-settings__mode-content';
-  container.dataset.mode = modeId;
-
-  const header = document.createElement('div');
-  header.className = 'catalogue-settings__mode-header';
-  const title = document.createElement('h3');
-  title.className = 'catalogue-settings__mode-title';
-  title.textContent = `${meta.icon ? `${meta.icon} ` : ''}${meta.title || modeId}`;
-  header.appendChild(title);
-  if (meta.description) {
-    const hint = document.createElement('p');
-    hint.className = 'catalogue-settings__mode-hint';
-    hint.textContent = meta.description;
-    header.appendChild(hint);
+function renderCatalogueList(catalogues) {
+  if (!listContainer) return;
+  listContainer.innerHTML = '';
+  if (!Array.isArray(catalogues) || catalogues.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'catalogue-settings__empty';
+    empty.textContent = 'Aucun catalogue disponible pour le moment.';
+    listContainer.appendChild(empty);
+    return;
   }
-  container.appendChild(header);
 
-  const options = document.createElement('div');
-  options.className = 'catalogue-settings__options';
-  container.appendChild(options);
-
-  const defaults = new Map((defaultSelections[modeId] || []).map((id, index) => [id, index]));
-  const orderedCatalogues = [...catalogues].sort((a, b) => {
-    const aRank = defaults.has(a.id) ? defaults.get(a.id) : 1000;
-    const bRank = defaults.has(b.id) ? defaults.get(b.id) : 1000;
-    if (aRank !== bRank) {
-      return aRank - bRank;
-    }
+  const ordered = [...catalogues].sort((a, b) => {
     return (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' });
   });
 
-  orderedCatalogues.forEach((catalogue) => {
+  ordered.forEach((catalogue) => {
     const option = document.createElement('label');
     option.className = 'catalogue-settings__option';
-    if (defaults.has(catalogue.id)) {
+    option.dataset.catalogueId = catalogue.id;
+
+    const selected = selectedCatalogueIds.has(catalogue.id);
+    if (selected) {
+      option.classList.add('catalogue-settings__option--active');
+    }
+    const isRecommended = availableModes.some((mode) => recommendedByMode.get(mode)?.has(catalogue.id));
+    if (isRecommended) {
       option.classList.add('catalogue-settings__option--recommended');
     }
 
     const row = document.createElement('div');
     row.className = 'catalogue-settings__option-row';
+
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.value = catalogue.id;
-    checkbox.checked = (preferenceState[modeId] || []).includes(catalogue.id);
-    checkbox.id = `catalogue-option-${modeId}-${catalogue.id}`;
+    checkbox.checked = selected;
+    checkbox.id = `catalogue-option-${catalogue.id}`;
     checkbox.addEventListener('change', (event) => {
-      handleCatalogueToggle(modeId, catalogue.id, event.target.checked);
+      handleCatalogueToggle(catalogue.id, event.target.checked, option);
     });
     row.appendChild(checkbox);
+
+    const info = document.createElement('div');
+    info.className = 'catalogue-settings__option-info';
 
     const title = document.createElement('span');
     title.className = 'catalogue-settings__option-title';
     title.textContent = formatCatalogueLabel(catalogue);
-    row.appendChild(title);
-
-    if (defaults.has(catalogue.id)) {
-      const badge = document.createElement('span');
-      badge.className = 'catalogue-settings__option-badge';
-      badge.textContent = 'Recommandé';
-      row.appendChild(badge);
-    }
-    option.appendChild(row);
+    info.appendChild(title);
 
     const metaText = formatCatalogueMeta(catalogue);
     if (metaText) {
-      const metaSpan = document.createElement('span');
-      metaSpan.className = 'catalogue-settings__option-meta';
-      metaSpan.textContent = metaText;
-      option.appendChild(metaSpan);
+      const meta = document.createElement('span');
+      meta.className = 'catalogue-settings__option-meta';
+      meta.textContent = metaText;
+      info.appendChild(meta);
     }
 
-    options.appendChild(option);
+    if (catalogue.description) {
+      const desc = document.createElement('span');
+      desc.className = 'catalogue-settings__option-desc';
+      desc.textContent = catalogue.description;
+      info.appendChild(desc);
+    }
+
+    row.appendChild(info);
+    option.appendChild(row);
+
+    if (availableModes.length) {
+      const usageRow = document.createElement('div');
+      usageRow.className = 'catalogue-settings__usage';
+      availableModes.forEach((mode) => {
+        usageRow.appendChild(buildUsageTag(mode, catalogue));
+      });
+      option.appendChild(usageRow);
+    }
+
+    listContainer.appendChild(option);
   });
-
-  return container;
-}
-
-function renderMode(modeId, catalogues) {
-  if (!modeShell) return;
-  modeShell.innerHTML = '';
-  modeShell.dataset.mode = modeId;
-  if (!catalogues.length) {
-    const empty = document.createElement('p');
-    empty.className = 'catalogue-settings__mode-hint';
-    empty.textContent = 'Aucun catalogue disponible.';
-    modeShell.appendChild(empty);
-    return;
-  }
-  const section = buildModeSection(modeId, catalogues);
-  modeShell.appendChild(section);
-}
-
-function setActiveMode(modeId) {
-  if (!availableModes.includes(modeId)) return;
-  activeMode = modeId;
-  renderTabs();
-  renderMode(modeId, loadedCatalogues);
-  if (modeShell) {
-    modeShell.setAttribute('aria-labelledby', `catalogue-tab-${modeId}`);
-  }
-  if (tabsContainer) {
-    const activeTab = tabsContainer.querySelector(`.catalogue-settings__tab[data-mode="${modeId}"]`);
-    if (activeTab) {
-      activeTab.focus();
-    }
-  }
 }
 
 async function loadCatalogues() {
@@ -293,14 +297,7 @@ async function loadCatalogues() {
     validCatalogues.forEach((catalogue) => {
       catalogueMeta.set(catalogue.id, catalogue);
     });
-    loadedCatalogues = validCatalogues;
-    if (!activeMode) {
-      activeMode = availableModes[0] || null;
-    }
-    renderTabs();
-    if (activeMode) {
-      renderMode(activeMode, loadedCatalogues);
-    }
+    renderCatalogueList(validCatalogues);
     if (resetButton) {
       resetButton.disabled = false;
     }
@@ -309,17 +306,23 @@ async function loadCatalogues() {
     if (resetButton) {
       resetButton.disabled = true;
     }
+    if (listContainer) {
+      listContainer.innerHTML = '';
+      const errorNode = document.createElement('p');
+      errorNode.className = 'catalogue-settings__empty';
+      errorNode.textContent = 'Erreur lors du chargement des catalogues.';
+      listContainer.appendChild(errorNode);
+    }
   }
 }
 
 if (resetButton) {
   resetButton.addEventListener('click', () => {
-    preferenceState = resetCataloguePreferences();
-    persistCataloguePreferences(preferenceState);
-    loadedCatalogues = Array.from(catalogueMeta.values());
-    if (activeMode) {
-      renderMode(activeMode, loadedCatalogues);
-    }
+    resetCataloguePreferences();
+    preferenceState = getDefaultCatalogueSelections();
+    selectedCatalogueIds = new Set(flattenCataloguePreferences(preferenceState));
+    syncPreferenceState();
+    renderCatalogueList(Array.from(catalogueMeta.values()));
   });
 }
 
@@ -331,5 +334,6 @@ if (nightModeToggle) {
 }
 
 initNightMode();
-renderTabs();
+syncPreferenceState();
+renderUsageLegend();
 loadCatalogues();
