@@ -34,11 +34,22 @@ export function countObjectsByCatalogue(objects = []) {
     return counts;
   }
   objects.forEach((object) => {
+    const primary = normaliseCatalogueId(object?.primaryCatalogueId);
     const refs = Array.isArray(object?.catalogueRefs) ? object.catalogueRefs : [];
-    const uniqueRefs = new Set(refs.map(normaliseCatalogueId).filter(Boolean));
-    uniqueRefs.forEach((id) => {
-      counts.set(id, (counts.get(id) || 0) + 1);
-    });
+    const seen = new Set();
+    if (primary) {
+      counts.set(primary, (counts.get(primary) || 0) + 1);
+      seen.add(primary);
+    }
+    refs
+      .map(normaliseCatalogueId)
+      .filter((id) => id && !seen.has(id))
+      .forEach((id) => {
+        if (!primary || id === primary) {
+          counts.set(id, (counts.get(id) || 0) + 1);
+          seen.add(id);
+        }
+      });
   });
   return counts;
 }

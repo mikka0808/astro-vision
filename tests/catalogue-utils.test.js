@@ -34,16 +34,30 @@ test('filterObjectsByCatalogue accepts string or array and respects null', async
   assert.equal(allObjects.length, objects.length);
 });
 
-test('filterObjectsByCatalogue honours catalogue references for every catalogue', async () => {
+test('countObjectsByCatalogue matches primary catalogue membership', async () => {
+  const { objects } = await datasetPromise;
+  const counts = countObjectsByCatalogue(objects);
+  const manualCounts = new Map();
+  objects.forEach((object) => {
+    const primary = normaliseCatalogueId(object?.primaryCatalogueId);
+    if (!primary) return;
+    manualCounts.set(primary, (manualCounts.get(primary) || 0) + 1);
+  });
+  manualCounts.forEach((value, key) => {
+    assert.equal(counts.get(key), value, `Expected ${key} to have ${value} objets principaux`);
+  });
+});
+
+test('filterObjectsByCatalogue inclut au moins les membres principaux de chaque catalogue', async () => {
   const { catalogues, objects } = await datasetPromise;
   const counts = countObjectsByCatalogue(objects);
   catalogues.forEach((catalogue) => {
     const id = normaliseCatalogueId(catalogue.id);
     const filtered = filterObjectsByCatalogue(objects, [id]);
-    assert.equal(
-      filtered.length,
-      counts.get(id) || 0,
-      `Expected ${id} filter to return ${counts.get(id) || 0} objects`
+    const expected = counts.get(id) || 0;
+    assert.ok(
+      filtered.length >= expected,
+      `Expected ${id} filter to return at least ${expected} objects, got ${filtered.length}`
     );
   });
 });
