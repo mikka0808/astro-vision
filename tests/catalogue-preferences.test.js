@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  filterCataloguesForPreferences,
+  filterObjectsForPreferences,
+  filterSnapshotForPreferences,
+  flattenCataloguePreferences,
   getCatalogueModes,
   getDefaultCatalogueSelections,
   loadCataloguePreferences,
@@ -52,7 +56,7 @@ test('loadCataloguePreferences returns defaults without cookie', () => {
 
 test('loadCataloguePreferences merges cookie overrides', () => {
   const payload = {
-    visual: ['messier'],
+    visual: ['Messier', 'MESSIER', ' '],
     research: [],
     astrophoto: ['ngc', 'sharpless']
   };
@@ -79,6 +83,49 @@ test('persistCataloguePreferences serialises selections to cookie', () => {
     assert.deepEqual(value.research, ['ngc']);
     assert.deepEqual(value.astrophoto, []);
   });
+});
+
+test('flattenCataloguePreferences returns a unique merged list', () => {
+  const merged = flattenCataloguePreferences({
+    visual: ['messier', 'caldwell'],
+    research: ['ngc', 'messier'],
+    astrophoto: []
+  });
+  assert.deepEqual(new Set(merged), new Set(['messier', 'caldwell', 'ngc']));
+});
+
+test('filterCataloguesForPreferences keeps only preferred catalogues', () => {
+  const catalogues = [
+    { id: 'messier' },
+    { id: 'caldwell' },
+    { id: 'arp' }
+  ];
+  const filtered = filterCataloguesForPreferences(catalogues, { visual: ['messier'], research: [], astrophoto: [] });
+  assert.deepEqual(filtered, [{ id: 'messier' }]);
+});
+
+test('filterObjectsForPreferences keeps only objects mapped to preferred catalogues', () => {
+  const objects = [
+    { slug: 'm42', catalogueRefs: ['messier'] },
+    { slug: 'arp3', catalogueRefs: ['arp'] }
+  ];
+  const filtered = filterObjectsForPreferences(objects, { visual: ['messier'], research: [], astrophoto: [] });
+  assert.deepEqual(filtered, [{ slug: 'm42', catalogueRefs: ['messier'] }]);
+});
+
+test('filterSnapshotForPreferences removes entries outside preferences and clears decision support', () => {
+  const snapshot = {
+    context: { catalogueIds: ['messier', 'arp'] },
+    entries: [
+      { object: { catalogueRefs: ['messier'] } },
+      { object: { catalogueRefs: ['arp'] } }
+    ],
+    decisionSupport: { globalScore: 0.8 }
+  };
+  const filtered = filterSnapshotForPreferences(snapshot, { visual: ['messier'], research: [], astrophoto: [] });
+  assert.strictEqual(filtered.entries.length, 1);
+  assert.deepEqual(filtered.context.catalogueIds, ['messier']);
+  assert.equal(filtered.decisionSupport, null);
 });
 
 test('resetCataloguePreferences clears cookie and returns defaults', () => {

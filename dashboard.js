@@ -15,8 +15,11 @@ import {
 } from './astro-core.js';
 import { renderAltitudeSparkline } from './charts.js';
 import { loadScorePreferencesFromCookie } from './score-preferences.js';
+import { filterSnapshotForPreferences, loadCataloguePreferences } from './catalogue-preferences.js';
 
 loadScorePreferencesFromCookie();
+
+const storedCataloguePreferences = loadCataloguePreferences();
 
 const summaryEl = document.getElementById('dashboardSummary');
 const scoreEl = document.getElementById('dashboardScore');
@@ -183,7 +186,8 @@ function readSnapshot() {
   try {
     const raw = localStorage.getItem(SESSION_STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return filterSnapshotForPreferences(parsed, storedCataloguePreferences);
   } catch (error) {
     console.error('Impossible de relire la dernière session :', error);
     return null;

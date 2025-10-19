@@ -15,8 +15,31 @@ import {
 import { createObservationPreview, resolveImageSources } from './catalogue-media.js';
 import { getObjectDossier } from './object-dossiers.js';
 import { loadScorePreferencesFromCookie } from './score-preferences.js';
+import {
+  filterCataloguesForPreferences,
+  filterObjectsForPreferences,
+  filterSnapshotForPreferences,
+  flattenCataloguePreferences,
+  loadCataloguePreferences
+} from './catalogue-preferences.js';
+import { normaliseCatalogueId } from './catalogue-utils.js';
 
 loadScorePreferencesFromCookie();
+
+const storedCataloguePreferences = loadCataloguePreferences();
+const preferredCatalogueIds = new Set(flattenCataloguePreferences(storedCataloguePreferences));
+const availableCatalogueIds = new Set(preferredCatalogueIds);
+
+function isCatalogueAllowed(id) {
+  const normalized = normaliseCatalogueId(id);
+  if (!normalized) {
+    return false;
+  }
+  if (preferredCatalogueIds.size === 0) {
+    return false;
+  }
+  return preferredCatalogueIds.has(normalized);
+}
 
 const MONTH_NAMES = [
   'janvier',
@@ -587,7 +610,8 @@ function readSessionSnapshot() {
   try {
     const raw = localStorage.getItem(SESSION_STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return filterSnapshotForPreferences(parsed, storedCataloguePreferences);
   } catch (error) {
     console.error('Impossible de lire la dernière session :', error);
     return null;
@@ -601,21 +625,27 @@ async function loadCatalogueObject(request) {
   }
   const payload = await response.json();
   const { catalogues, objects } = parseCataloguePayload(payload);
-  catalogueDefinitions = catalogues;
+  const filteredCatalogues = filterCataloguesForPreferences(catalogues, storedCataloguePreferences);
+  catalogueDefinitions = Array.isArray(filteredCatalogues) ? filteredCatalogues : [];
   catalogueMetaMap.clear();
-  catalogues.forEach((catalogue) => {
-    if (catalogue?.id) {
-      catalogueMetaMap.set(catalogue.id, catalogue);
+  availableCatalogueIds.clear();
+  catalogueDefinitions.forEach((catalogue) => {
+    const normalizedId = normaliseCatalogueId(catalogue?.id);
+    if (normalizedId && isCatalogueAllowed(normalizedId)) {
+      availableCatalogueIds.add(normalizedId);
+      catalogueMetaMap.set(normalizedId, catalogue);
     }
   });
-  const enriched = enrichCatalogueData(objects);
+  const filteredObjects = filterObjectsForPreferences(objects, storedCataloguePreferences);
+  const enriched = enrichCatalogueData(filteredObjects);
   let target = null;
   if (request?.slug) {
     target = enriched.find((entry) => entry.slug === request.slug);
   }
-  if (!target && request?.catalogueId && Number.isFinite(request.number)) {
+  const requestedCatalogueId = normaliseCatalogueId(request?.catalogueId);
+  if (!target && requestedCatalogueId && Number.isFinite(request.number)) {
     target = enriched.find(
-      (entry) => entry.primaryCatalogueId === request.catalogueId && Number(entry.number) === Number(request.number)
+      (entry) => entry.primaryCatalogueId === requestedCatalogueId && Number(entry.number) === Number(request.number)
     );
   }
   if (!target && Number.isFinite(request?.number)) {
@@ -625,7 +655,7 @@ async function loadCatalogueObject(request) {
     const normalizedSlug = request.slug.toLowerCase();
     target = enriched.find((entry) => entry.slug === normalizedSlug);
   }
-  return { object: target || null, catalogues, objects: enriched };
+  return { object: target || null, catalogues: catalogueDefinitions, objects: enriched };
 }
 
 function normaliseEntry(entry) {
@@ -875,8 +905,17 @@ async function bootstrap() {
     ]);
 
     if (!object) {
-      message.textContent =
-        "Impossible de trouver cette cible dans les catalogues chargés. Vérifie ta sélection depuis la page principale.";
+      const requestedId = normaliseCatalogueId(request?.catalogueId);
+      if (preferredCatalogueIds.size === 0) {
+        message.textContent =
+          'Aucun catalogue n’est activé dans tes préférences. Active au moins un catalogue pour consulter une fiche détaillée.';
+      } else if (requestedId && !isCatalogueAllowed(requestedId)) {
+        message.textContent =
+          'Cette cible appartient à un catalogue désactivé. Réactive le catalogue dans les préférences pour accéder à la fiche.';
+      } else {
+        message.textContent =
+          "Impossible de trouver cette cible dans les catalogues chargés. Vérifie ta sélection depuis la page principale.";
+      }
       article.hidden = true;
       resetSummary();
       return;

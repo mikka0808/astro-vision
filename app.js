@@ -34,12 +34,37 @@ import {
   getCatalogueSourceSummary
 } from './catalogue-data.js';
 import { loadScorePreferencesFromCookie } from './score-preferences.js';
-import { getDefaultCatalogueSelections, loadCataloguePreferences } from './catalogue-preferences.js';
+import {
+  filterCataloguesForPreferences,
+  filterObjectsForPreferences,
+  flattenCataloguePreferences,
+  getCatalogueModes,
+  getDefaultCatalogueSelections,
+  loadCataloguePreferences
+} from './catalogue-preferences.js';
 
 loadScorePreferencesFromCookie();
 
 const defaultCatalogueSelections = getDefaultCatalogueSelections();
 const storedCataloguePreferences = loadCataloguePreferences();
+const catalogueModeOrder = getCatalogueModes();
+const allowedCatalogueIds = flattenCataloguePreferences(storedCataloguePreferences);
+const allowedCatalogueSet = new Set(allowedCatalogueIds);
+const catalogueAvailability = new Map();
+
+function isCatalogueAllowed(catalogueId) {
+  if (allowedCatalogueSet.size === 0) {
+    return false;
+  }
+  if (typeof catalogueId !== 'string') {
+    return false;
+  }
+  const normalized = catalogueId.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+  return allowedCatalogueSet.has(normalized);
+}
 
 const sessionForm = document.getElementById('sessionForm');
 const addressInput = document.getElementById('addressLookup');
@@ -140,6 +165,9 @@ let skyMapOverlay = null;
 const skyMapState = { context: null, targets: [], selectedISO: null, ready: false };
 const catalogueCheckboxMap = new Map();
 const catalogueSelectionByMode = new Map();
+catalogueAvailability.forEach((selection, mode) => {
+  catalogueSelectionByMode.set(mode, [...selection]);
+});
 const catalogueMetaMap = new Map();
 let catalogueSources = new Map();
 const catalogueLoadPromises = new Map();
@@ -228,10 +256,13 @@ const OBSERVATION_MODES = {
   }
 };
 
-Object.entries(storedCataloguePreferences).forEach(([mode, selection]) => {
-  if (!OBSERVATION_MODES[mode]) return;
-  if (Array.isArray(selection)) {
-    OBSERVATION_MODES[mode].recommended = selection;
+catalogueModeOrder.forEach((mode) => {
+  const selection = Array.isArray(storedCataloguePreferences[mode])
+    ? [...storedCataloguePreferences[mode]]
+    : [];
+  catalogueAvailability.set(mode, selection);
+  if (OBSERVATION_MODES[mode]) {
+    OBSERVATION_MODES[mode].recommended = [...selection];
   }
 });
 let activeObservationMode = 'visual';
@@ -244,15 +275,17 @@ function registerCatalogueData(objects = []) {
   objectsCatalog = [];
   loadedCatalogueIds.clear();
   catalogueLoadPromises.clear();
-  appendCatalogueData(objects);
+  const filtered = filterObjectsForPreferences(objects, storedCataloguePreferences);
+  appendCatalogueData(filtered);
 }
 
 function appendCatalogueData(objects = []) {
   if (!Array.isArray(objects) || objects.length === 0) {
     return [];
   }
+  const scoped = filterObjectsForPreferences(objects, storedCataloguePreferences);
   const added = [];
-  objects.forEach((object) => {
+  scoped.forEach((object) => {
     if (!object || !object.slug) {
       return;
     }
@@ -271,15 +304,21 @@ function appendCatalogueData(objects = []) {
 
 function refreshCatalogueSelectionUI({ preserveSelection = true } = {}) {
   if (!catalogueSelection) return;
+  const mode = getActiveObservationMode();
+  const allowedList = catalogueAvailability.get(mode) || [];
+  const allowedSet = new Set(allowedList);
   const currentSelection = preserveSelection ? getSelectedCatalogueIds() : [];
-  populateCatalogueSelection(catalogueDefinitions, objectsCatalog);
+  const availableCatalogues = allowedSet.size > 0
+    ? catalogueDefinitions.filter((catalogue) => allowedSet.has(catalogue.id))
+    : [];
+  populateCatalogueSelection(availableCatalogues, objectsCatalog, { mode });
   if (preserveSelection && currentSelection.length > 0) {
-    const applied = setSelectedCatalogueIds(currentSelection);
-    const mode = getActiveObservationMode();
+    const filteredSelection = currentSelection.filter((id) => allowedSet.has(id));
+    const applied = setSelectedCatalogueIds(filteredSelection);
     catalogueSelectionByMode.set(mode, applied);
   }
-  updateRecommendedStyles(getActiveObservationMode());
-  updateCatalogueHint(getActiveObservationMode());
+  updateRecommendedStyles(mode);
+  updateCatalogueHint(mode);
 }
 
 function buildCatalogueSourceHint(ids = []) {
@@ -294,7 +333,11 @@ function buildCatalogueSourceHint(ids = []) {
 }
 
 async function ensureCatalogueData(ids = [], { refreshUI = true } = {}) {
-  const requested = Array.isArray(ids) ? ids.filter(Boolean) : [];
+  const requested = Array.isArray(ids)
+    ? ids
+        .map((id) => (typeof id === 'string' ? id.trim().toLowerCase() : ''))
+        .filter((id) => id && isCatalogueAllowed(id))
+    : [];
   const toLoad = requested.filter((id) => {
     if (loadedCatalogueIds.has(id)) return false;
     if (catalogueLoadPromises.has(id)) return true;
@@ -499,8 +542,10 @@ function formatCatalogueList(ids = []) {
 }
 
 function getCatalogueDefinitionCount() {
-  if (Array.isArray(catalogueDefinitions) && catalogueDefinitions.length > 0) {
-    return catalogueDefinitions.length;
+  const mode = getActiveObservationMode();
+  const available = catalogueAvailability.get(mode);
+  if (Array.isArray(available)) {
+    return available.length;
   }
   return catalogueCheckboxMap.size;
 }
@@ -572,7 +617,13 @@ function updateCatalogueSelectionSummary() {
     clearCatalogueSelectionButton.disabled = total === 0;
   }
   if (total === 0) {
-    catalogueSelectionSummary.textContent = 'Aucun catalogue disponible pour le moment.';
+    const mode = getActiveObservationMode();
+    if ((catalogueAvailability.get(mode) || []).length === 0) {
+      catalogueSelectionSummary.textContent =
+        'Aucun catalogue activé pour ce mode. Utilise la page Préférences pour en sélectionner.';
+    } else {
+      catalogueSelectionSummary.textContent = 'Aucun catalogue disponible pour le moment.';
+    }
     return;
   }
   if (selected.length === 0) {
@@ -605,6 +656,12 @@ function updateRecommendedStyles(mode) {
 function updateCatalogueHint(mode = getActiveObservationMode()) {
   if (!catalogueHint) return;
   const profile = OBSERVATION_MODES[mode] || OBSERVATION_MODES.visual;
+  const available = catalogueAvailability.get(mode) || [];
+  if (available.length === 0) {
+    const icon = profile?.icon ? `${profile.icon} ` : '';
+    catalogueHint.textContent = `${icon}${profile?.label ?? 'Mode'} — aucun catalogue activé dans les préférences.`;
+    return;
+  }
   const selected = getSelectedCatalogueIds();
   const weights = getObservationWeights(mode);
   const counts = new Map();
@@ -663,12 +720,23 @@ function applyObservationModeContext(mode, options = {}) {
   if (!catalogueSelection || catalogueCheckboxMap.size === 0) return;
   const { selectionOverride = null } = options;
   updateRecommendedStyles(mode);
-  let selection = Array.isArray(selectionOverride) ? selectionOverride.filter(Boolean) : null;
-  if (!selection || selection.length === 0) {
-    selection = catalogueSelectionByMode.get(mode);
+  const allowedList = catalogueAvailability.get(mode) || [];
+  const allowedSet = new Set(allowedList);
+  if (allowedSet.size === 0) {
+    setSelectedCatalogueIds([]);
+    catalogueSelectionByMode.set(mode, []);
+    updateCatalogueHint(mode);
+    return;
+  }
+  let selection = Array.isArray(selectionOverride) ? selectionOverride.map((id) => id && id.toLowerCase()) : null;
+  if (Array.isArray(selection)) {
+    selection = selection.filter((id) => allowedSet.has(id));
   }
   if (!selection || selection.length === 0) {
-    selection = OBSERVATION_MODES[mode]?.recommended || [];
+    selection = (catalogueSelectionByMode.get(mode) || []).filter((id) => allowedSet.has(id));
+  }
+  if (!selection || selection.length === 0) {
+    selection = [...allowedList];
   }
   const applied = setSelectedCatalogueIds(selection);
   catalogueSelectionByMode.set(mode, applied);
@@ -740,14 +808,19 @@ function buildCatalogueWeightSnapshot(ids = [], mode) {
 }
 
 
-function populateCatalogueSelection(catalogues = [], objects = []) {
+function populateCatalogueSelection(catalogues = [], objects = [], { mode } = {}) {
   if (!catalogueSelection) return;
   catalogueSelection.innerHTML = '';
   catalogueCheckboxMap.clear();
   if (!Array.isArray(catalogues) || catalogues.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'help-text';
-    empty.textContent = 'Aucun catalogue disponible.';
+    if (mode && (catalogueAvailability.get(mode)?.length ?? 0) === 0) {
+      empty.textContent =
+        'Aucun catalogue n’est activé pour ce mode. Ouvre les préférences pour ajouter des catalogues disponibles.';
+    } else {
+      empty.textContent = 'Aucun catalogue disponible.';
+    }
     catalogueSelection.appendChild(empty);
     updateCatalogueSelectionSummary();
     return;
@@ -2555,16 +2628,49 @@ initNightMode();
 (async function bootstrap() {
   try {
     const { catalogues, objects, sources } = await loadCatalog();
-    catalogueDefinitions = Array.isArray(catalogues) ? catalogues : [];
-    catalogueSources = sources instanceof Map ? sources : new Map();
+    const filteredCatalogues = filterCataloguesForPreferences(catalogues, storedCataloguePreferences);
+    catalogueDefinitions = Array.isArray(filteredCatalogues) ? filteredCatalogues : [];
+    const knownCatalogues = new Set(catalogueDefinitions.map((catalogue) => catalogue.id));
+    catalogueSources = new Map();
+    if (sources instanceof Map) {
+      sources.forEach((value, key) => {
+        let id = '';
+        if (typeof key === 'string' && key.trim()) {
+          id = key.trim().toLowerCase();
+        } else if (value?.catalogueId) {
+          id = String(value.catalogueId).trim().toLowerCase();
+        }
+        if (id && knownCatalogues.has(id) && isCatalogueAllowed(id)) {
+          catalogueSources.set(id, { ...value, catalogueId: id });
+        }
+      });
+    }
     catalogueMetaMap.clear();
     catalogueDefinitions.forEach((catalogue) => {
       catalogueMetaMap.set(catalogue.id, catalogue);
     });
     catalogueSelectionByMode.clear();
-    registerCatalogueData(objects);
+    catalogueAvailability.forEach((selection, mode) => {
+      const filtered = selection.filter((id) => knownCatalogues.has(id));
+      catalogueAvailability.set(mode, filtered);
+      catalogueSelectionByMode.set(mode, [...filtered]);
+      if (OBSERVATION_MODES[mode]) {
+        OBSERVATION_MODES[mode].recommended = [...filtered];
+      }
+    });
+    allowedCatalogueSet.clear();
+    catalogueAvailability.forEach((selection) => {
+      selection.forEach((id) => allowedCatalogueSet.add(id));
+    });
+    const filteredObjects = filterObjectsForPreferences(objects, storedCataloguePreferences);
+    registerCatalogueData(filteredObjects);
     populateTypeFilter();
-    populateCatalogueSelection(catalogueDefinitions, objectsCatalog);
+    const initialMode = getActiveObservationMode();
+    const initialAllowed = new Set((catalogueAvailability.get(initialMode) || []).filter((id) => knownCatalogues.has(id)));
+    const initialCatalogues = initialAllowed.size > 0
+      ? catalogueDefinitions.filter((catalogue) => initialAllowed.has(catalogue.id))
+      : [];
+    populateCatalogueSelection(initialCatalogues, objectsCatalog, { mode: initialMode });
     initDefaults();
     await ensureCatalogueData(getSelectedCatalogueIds());
     prefetchRemainingCatalogueData();

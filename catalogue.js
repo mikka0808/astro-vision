@@ -28,8 +28,22 @@ import {
   countObjectsByCatalogue
 } from './catalogue-utils.js';
 import { loadScorePreferencesFromCookie } from './score-preferences.js';
+import {
+  filterCataloguesForPreferences,
+  filterObjectsForPreferences,
+  filterSnapshotForPreferences,
+  flattenCataloguePreferences,
+  loadCataloguePreferences
+} from './catalogue-preferences.js';
 
 loadScorePreferencesFromCookie();
+
+const storedCataloguePreferences = loadCataloguePreferences();
+const allowedCatalogueIds = new Set(flattenCataloguePreferences(storedCataloguePreferences));
+const catalogueAvailability = new Map();
+Object.entries(storedCataloguePreferences).forEach(([mode, list]) => {
+  catalogueAvailability.set(mode, Array.isArray(list) ? [...list] : []);
+});
 
 const catalogueGrid = document.getElementById('catalogueGrid');
 const cataloguePagination = document.getElementById('cataloguePagination');
@@ -65,6 +79,17 @@ const seasonFilterDetails = catalogueSeasonOptions ? catalogueSeasonOptions.clos
 const catalogueSelectionDetails = catalogueSelectionOptions ? catalogueSelectionOptions.closest('details') : null;
 
 let sessionContextPanelState = null;
+
+function isCatalogueAllowed(id) {
+  const normalized = normaliseCatalogueId(id);
+  if (!normalized) {
+    return false;
+  }
+  if (allowedCatalogueIds.size === 0) {
+    return false;
+  }
+  return allowedCatalogueIds.has(normalized);
+}
 
 function initSessionContextPanel() {
   if (!sessionContextToggle || !sessionContextBody) {
@@ -338,15 +363,17 @@ function registerInitialObjects(objects = []) {
   enrichedCatalogueObjects = [];
   catalogueObjectCounts.clear();
   if (!Array.isArray(objects)) return;
-  appendCatalogueObjects(objects);
+  const filtered = filterObjectsForPreferences(objects, storedCataloguePreferences);
+  appendCatalogueObjects(filtered);
 }
 
 function appendCatalogueObjects(objects = []) {
   if (!Array.isArray(objects) || objects.length === 0) {
     return [];
   }
+  const scoped = filterObjectsForPreferences(objects, storedCataloguePreferences);
   const added = [];
-  objects.forEach((object) => {
+  scoped.forEach((object) => {
     if (!object || !object.slug) return;
     if (objectSlugIndex.has(object.slug)) {
       return;
@@ -372,7 +399,7 @@ function recalculateCatalogueCounts() {
 }
 
 async function ensureCatalogueObjects(ids = [], { refreshUI = true } = {}) {
-  const requested = normaliseCatalogueIdList(ids);
+  const requested = normaliseCatalogueIdList(ids).filter((id) => isCatalogueAllowed(id));
   const toLoad = requested.filter((id) => {
     if (loadedCatalogueIds.has(id)) return false;
     if (catalogueLoadPromises.has(id)) return true;
@@ -434,7 +461,7 @@ function prefetchRemainingCatalogues() {
   }
   const remainingIds = catalogueDefinitions
     .map((catalogue) => normaliseCatalogueId(catalogue.id))
-    .filter((id) => id && !loadedCatalogueIds.has(id));
+    .filter((id) => id && !loadedCatalogueIds.has(id) && isCatalogueAllowed(id));
   if (remainingIds.length === 0) {
     return;
   }
@@ -637,7 +664,10 @@ function updateCatalogueSelectionControls() {
   if (!Array.isArray(catalogueDefinitions) || catalogueDefinitions.length === 0) {
     const info = document.createElement('p');
     info.className = 'help-text';
-    info.textContent = 'Aucun catalogue disponible pour le moment.';
+    info.textContent =
+      allowedCatalogueIds.size === 0
+        ? 'Aucun catalogue n’est activé dans les préférences. Rendez-vous sur la page dédiée pour en ajouter.'
+        : 'Aucun catalogue disponible pour le moment.';
     catalogueSelectionOptions.appendChild(info);
     if (selectAllCataloguesButton) {
       selectAllCataloguesButton.disabled = true;
@@ -1812,6 +1842,10 @@ function resolveCatalogueSelection(snapshot, catalogues = []) {
   if (defaults.length > 0) {
     return defaults;
   }
+  const allowedDefaults = Array.from(allowedCatalogueIds).filter((id) => knownIds.has(id));
+  if (allowedDefaults.length > 0) {
+    return allowedDefaults;
+  }
   if (catalogues.length > 0) {
     const first = normaliseCatalogueId(catalogues[0].id);
     return first ? [first] : [];
@@ -1822,29 +1856,45 @@ function resolveCatalogueSelection(snapshot, catalogues = []) {
 async function bootstrap() {
   try {
     setSessionContextPanelReady(false);
-    const [{ catalogues, objects, sources }, snapshot] = await Promise.all([
+    const [payload, rawSnapshot] = await Promise.all([
       loadCatalog(),
       Promise.resolve(readSessionSnapshot())
     ]);
-    catalogueDefinitions = Array.isArray(catalogues) ? catalogues : [];
+    const snapshot = filterSnapshotForPreferences(rawSnapshot, storedCataloguePreferences);
+    const filteredCatalogues = filterCataloguesForPreferences(payload.catalogues, storedCataloguePreferences);
+    catalogueDefinitions = Array.isArray(filteredCatalogues) ? filteredCatalogues : [];
     catalogueIdIndex = new Map();
+    const knownCatalogues = new Set();
     catalogueDefinitions.forEach((catalogue) => {
       const normalizedId = normaliseCatalogueId(catalogue.id);
-      if (normalizedId) {
-        catalogueIdIndex.set(normalizedId, catalogue);
-      }
-    });
-    const sourceEntries = sources instanceof Map ? sources : new Map();
-    catalogueSources = new Map();
-    sourceEntries.forEach((value, key) => {
-      const normalizedKey = normaliseCatalogueId(key || value?.catalogueId);
-      if (!normalizedKey) {
+      if (!normalizedId || !isCatalogueAllowed(normalizedId)) {
         return;
       }
-      catalogueSources.set(normalizedKey, { ...value, catalogueId: normalizedKey });
+      knownCatalogues.add(normalizedId);
+      catalogueIdIndex.set(normalizedId, catalogue);
     });
-    registerInitialObjects(objects);
-    activeCatalogueIds = resolveCatalogueSelection(snapshot, catalogues);
+    catalogueSources = new Map();
+    if (payload.sources instanceof Map) {
+      payload.sources.forEach((value, key) => {
+        const normalizedKey = normaliseCatalogueId(key || value?.catalogueId);
+        if (!normalizedKey || !knownCatalogues.has(normalizedKey)) {
+          return;
+        }
+        catalogueSources.set(normalizedKey, { ...value, catalogueId: normalizedKey });
+      });
+    }
+    catalogueAvailability.forEach((list, mode) => {
+      const filtered = (Array.isArray(list) ? list : [])
+        .map((id) => normaliseCatalogueId(id))
+        .filter((id) => id && knownCatalogues.has(id));
+      catalogueAvailability.set(mode, filtered);
+    });
+    allowedCatalogueIds.clear();
+    catalogueAvailability.forEach((list) => {
+      list.forEach((id) => allowedCatalogueIds.add(id));
+    });
+    registerInitialObjects(filterObjectsForPreferences(payload.objects, storedCataloguePreferences));
+    activeCatalogueIds = resolveCatalogueSelection(snapshot, catalogueDefinitions);
     if (!Array.isArray(activeCatalogueIds) || activeCatalogueIds.length === 0) {
       activeCatalogueIds = null;
     }
