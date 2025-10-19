@@ -35,6 +35,7 @@ import {
   flattenCataloguePreferences,
   loadCataloguePreferences
 } from './catalogue-preferences.js';
+import { Favoris } from './src/state/favoris.js';
 
 loadScorePreferencesFromCookie();
 
@@ -78,7 +79,174 @@ const difficultyFilterDetails = catalogueDifficultyOptions ? catalogueDifficulty
 const seasonFilterDetails = catalogueSeasonOptions ? catalogueSeasonOptions.closest('details') : null;
 const catalogueSelectionDetails = catalogueSelectionOptions ? catalogueSelectionOptions.closest('details') : null;
 
+const FAVORI_CARD_CLASS = 'catalogue-card--favori';
+
+function resolveObjectId(object) {
+  if (!object) return null;
+  if (typeof object.slug === 'string' && object.slug.trim().length > 0) {
+    return object.slug;
+  }
+  if (object.primaryCatalogueId && Number.isFinite(object.number)) {
+    return `${object.primaryCatalogueId}:${object.number}`;
+  }
+  if (typeof object.name === 'string' && object.name.trim().length > 0) {
+    return object.name.trim();
+  }
+  return null;
+}
+
+function updateFavoriButtonState(button, isActive, objectName) {
+  if (!button) return;
+  const labelName = objectName || 'cet objet';
+  button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  button.classList.toggle('favori-toggle--active', Boolean(isActive));
+  button.textContent = isActive ? '★ Favori' : '☆ Favori';
+  button.setAttribute(
+    'aria-label',
+    isActive ? `Retirer ${labelName} des favoris` : `Ajouter ${labelName} aux favoris`
+  );
+  button.title = isActive ? 'Retirer des favoris' : 'Ajouter aux favoris';
+}
+
+function sanitizeForId(value) {
+  return String(value || '').replace(/[^a-zA-Z0-9_-]+/g, '-');
+}
+
+function renderListPickerOptions(container, objectId) {
+  if (!container) return;
+  container.dataset.objectId = objectId || '';
+  container.innerHTML = '';
+  const listes = Favoris.getListes();
+  if (!Array.isArray(listes) || listes.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'list-picker__empty';
+    empty.textContent = 'Aucune liste enregistrée pour l’instant.';
+    container.appendChild(empty);
+    return;
+  }
+  listes.forEach((liste) => {
+    const label = document.createElement('label');
+    label.className = 'list-picker__option';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = liste.id;
+    checkbox.dataset.action = 'list-membership';
+    checkbox.dataset.listId = liste.id;
+    checkbox.dataset.objectId = objectId || '';
+    checkbox.checked = Array.isArray(liste.cibleIds) && liste.cibleIds.includes(objectId);
+    const span = document.createElement('span');
+    span.textContent = liste.nom;
+    label.appendChild(checkbox);
+    label.appendChild(span);
+    container.appendChild(label);
+  });
+}
+
+function refreshCardActions(card) {
+  if (!card) return;
+  const objectId = card.dataset.objectId || null;
+  const objectName = card.dataset.objectName || card.querySelector('h3')?.textContent || 'cet objet';
+  const isFavori = objectId ? Favoris.isFavori(objectId) : false;
+  card.classList.toggle(FAVORI_CARD_CLASS, Boolean(isFavori));
+  const toggle = card.querySelector('[data-action="toggle-favori"]');
+  updateFavoriButtonState(toggle, isFavori, objectName);
+  const optionsContainer = card.querySelector('.list-picker__options');
+  if (optionsContainer && objectId) {
+    const picker = optionsContainer.closest('details');
+    if (!optionsContainer.childElementCount || (picker && picker.open)) {
+      renderListPickerOptions(optionsContainer, objectId);
+    }
+  }
+}
+
+function refreshAllCardActions() {
+  if (!catalogueGrid) return;
+  const cards = catalogueGrid.querySelectorAll('.catalogue-card');
+  cards.forEach((card) => {
+    refreshCardActions(card);
+  });
+}
+
+function buildCardActions(object, objectId) {
+  if (!objectId) {
+    return null;
+  }
+  const container = document.createElement('div');
+  container.className = 'catalogue-card__actions';
+  container.dataset.objectId = objectId;
+  if (object?.name) {
+    container.dataset.objectName = object.name;
+  }
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'favori-toggle';
+  toggle.dataset.action = 'toggle-favori';
+  toggle.textContent = '☆ Favori';
+  toggle.setAttribute('aria-pressed', 'false');
+  toggle.setAttribute('aria-label', `Ajouter ${object?.name || 'cet objet'} aux favoris`);
+  container.appendChild(toggle);
+
+  const listPicker = document.createElement('details');
+  listPicker.className = 'list-picker';
+  const summary = document.createElement('summary');
+  summary.textContent = 'Ajouter à une liste…';
+  listPicker.appendChild(summary);
+
+  const content = document.createElement('div');
+  content.className = 'list-picker__content';
+
+  const form = document.createElement('form');
+  form.className = 'list-picker__form';
+  form.dataset.role = 'create-list-form';
+  form.dataset.objectId = objectId;
+  const field = document.createElement('div');
+  field.className = 'list-picker__field';
+  const label = document.createElement('label');
+  const inputId = `list-name-${sanitizeForId(objectId)}`;
+  label.setAttribute('for', inputId);
+  label.className = 'list-picker__label';
+  label.textContent = 'Créer une nouvelle liste';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.id = inputId;
+  input.name = 'nom';
+  input.placeholder = 'Nom de la liste';
+  input.required = true;
+  input.autocomplete = 'off';
+  const submit = document.createElement('button');
+  submit.type = 'submit';
+  submit.className = 'list-picker__submit';
+  submit.textContent = 'Créer';
+  field.appendChild(label);
+  field.appendChild(input);
+  field.appendChild(submit);
+  form.appendChild(field);
+
+  const options = document.createElement('div');
+  options.className = 'list-picker__options';
+  options.dataset.role = 'list-options';
+  options.dataset.objectId = objectId;
+
+  content.appendChild(form);
+  content.appendChild(options);
+  listPicker.appendChild(content);
+  container.appendChild(listPicker);
+
+  listPicker.addEventListener('toggle', () => {
+    if (listPicker.open) {
+      renderListPickerOptions(options, objectId);
+    }
+  });
+
+  return container;
+}
+
 let sessionContextPanelState = null;
+
+Favoris.subscribe(() => {
+  refreshAllCardActions();
+});
 
 function isCatalogueAllowed(id) {
   const normalized = normaliseCatalogueId(id);
@@ -1618,6 +1786,7 @@ function classifyScore(score) {
 }
 
 function buildCard(object, metrics) {
+  const objectId = resolveObjectId(object);
   const scoreRatio = Number.isFinite(metrics?.score) ? metrics.score : null;
   const score = scoreRatio ?? 0;
   const detailParams = new URLSearchParams();
@@ -1637,6 +1806,12 @@ function buildCard(object, metrics) {
   card.className = `catalogue-card tone-frame ${classifyScore(score)}`;
   card.setAttribute('role', 'listitem');
   card.dataset.href = destination;
+  if (objectId) {
+    card.dataset.objectId = objectId;
+  }
+  if (object?.name) {
+    card.dataset.objectName = object.name;
+  }
   if (Number.isFinite(object.number) && object.primaryCatalogueId === 'messier') {
     card.dataset.messier = `M${object.number}`;
   }
@@ -1731,6 +1906,16 @@ function buildCard(object, metrics) {
     </details>
   `;
 
+  const actions = buildCardActions(object, objectId);
+  if (actions) {
+    const header = text.querySelector('.catalogue-card__header');
+    if (header) {
+      header.insertAdjacentElement('afterend', actions);
+    } else {
+      text.insertBefore(actions, text.firstChild);
+    }
+  }
+
   const chartContainer = text.querySelector('.visibility-chart');
   if (chartContainer) {
     renderAltitudeSparkline(chartContainer, metrics?.track, {
@@ -1742,6 +1927,7 @@ function buildCard(object, metrics) {
 
   card.appendChild(previewWrapper);
   card.appendChild(text);
+  refreshCardActions(card);
   return card;
 }
 
@@ -1930,9 +2116,96 @@ async function bootstrap() {
 
 if (catalogueGrid) {
   catalogueGrid.addEventListener('click', (event) => {
+    const toggleButton = event.target.closest('[data-action="toggle-favori"]');
+    if (toggleButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === 'function') {
+        event.stopImmediatePropagation();
+      }
+      const card = toggleButton.closest('.catalogue-card');
+      if (!card) {
+        return;
+      }
+      const objectId = card.dataset.objectId || null;
+      const objectName = card.dataset.objectName || card.querySelector('h3')?.textContent || 'cet objet';
+      if (!objectId) {
+        return;
+      }
+      const isActive = Favoris.toggle(objectId);
+      updateFavoriButtonState(toggleButton, isActive, objectName);
+      card.classList.toggle(FAVORI_CARD_CLASS, Boolean(isActive));
+      return;
+    }
+  });
+
+  catalogueGrid.addEventListener('change', (event) => {
+    const checkbox = event.target.closest('input[data-action="list-membership"]');
+    if (!checkbox) {
+      return;
+    }
+    event.stopPropagation();
+    const listId = checkbox.dataset.listId || '';
+    const objectId = checkbox.dataset.objectId || '';
+    if (!listId || !objectId) {
+      return;
+    }
+    const checked = checkbox.checked;
+    const updated = checked
+      ? Favoris.addToListe(listId, objectId)
+      : Favoris.removeFromListe(listId, objectId);
+    if (!updated) {
+      checkbox.checked = !checked;
+      return;
+    }
+    if (checked) {
+      Favoris.add(objectId);
+    }
+    const options = checkbox.closest('.list-picker__options');
+    if (options) {
+      renderListPickerOptions(options, objectId);
+    }
+  });
+
+  catalogueGrid.addEventListener('submit', (event) => {
+    const form = event.target.closest('form[data-role="create-list-form"]');
+    if (!form) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (typeof event.stopImmediatePropagation === 'function') {
+      event.stopImmediatePropagation();
+    }
+    const objectId = form.dataset.objectId || '';
+    const input = form.querySelector('input[name="nom"]');
+    if (!input) {
+      return;
+    }
+    const name = input.value.trim();
+    if (!name) {
+      input.focus();
+      return;
+    }
+    const created = Favoris.creerListe(name);
+    if (objectId && created?.id) {
+      Favoris.addToListe(created.id, objectId);
+      Favoris.add(objectId);
+    }
+    input.value = '';
+    const options = form.parentElement?.querySelector('.list-picker__options');
+    if (options && objectId) {
+      renderListPickerOptions(options, objectId);
+    }
+  });
+
+  catalogueGrid.addEventListener('click', (event) => {
     const card = event.target.closest('.catalogue-card');
     if (!card) return;
     if (event.target.closest('.card-fold')) {
+      return;
+    }
+    if (event.target.closest('.catalogue-card__actions')) {
       return;
     }
     const directLink = event.target.closest('a');

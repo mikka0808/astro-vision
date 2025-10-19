@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Astro Soir — Mes listes personnalisées</title>
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body class="catalogue-page">
+  <header class="hero hero--compact">
+    <div class="hero-content">
+      <div class="hero-bar">
+        <a class="site-brand" href="../../index.html">
+          <span class="site-brand__logo" aria-hidden="true">🪐</span>
+          <span class="site-brand__text">
+            <span class="site-brand__word">Astro</span>
+            <span class="site-brand__accent" aria-hidden="true">✶</span>
+            <span class="site-brand__word site-brand__word--evening">Soir</span>
+          </span>
+        </a>
+        <a class="nav-link" href="../../catalogue.html">← Retour au catalogue</a>
+      </div>
+      <div class="hero-heading">
+        <h1>Mes listes personnalisées</h1>
+        <p>Classe et prépare les cibles observées grâce aux favoris et listes thématiques.</p>
+        <nav class="top-nav" aria-label="Navigation principale">
+          <a class="nav-link" href="../../index.html">Page principale</a>
+          <a class="nav-link" href="../../catalogue.html">Catalogue</a>
+          <a class="nav-link" href="../../dashboard.html">Tableau de bord</a>
+          <a class="nav-link" href="../../catalogue-settings.html">Préférences</a>
+          <a class="nav-link" href="../../star-map.html">Carte du ciel</a>
+          <a class="nav-link" href="../../score-settings.html">Réglage du score</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+  <main>
+    <section class="panel" id="listesPanel" aria-live="polite">
+      <div class="panel-header">
+        <div class="panel-heading">
+          <h2>Gestion des listes</h2>
+          <p id="listesHint">Retrouve ici toutes tes listes favorites. Renomme-les, supprime-les ou exporte-les en CSV.</p>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="listes-actions">
+          <button type="button" class="link-button link-button--accent" id="createQuickList">Nouvelle liste rapide</button>
+        </div>
+        <div id="listesContainer" class="listes-grid" aria-live="polite"></div>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <nav class="footer-nav">
+      <a class="nav-link" href="../../index.html">Page principale</a>
+      <a class="nav-link" href="../../catalogue.html">Catalogue</a>
+      <a class="nav-link" href="../../dashboard.html">Tableau de bord</a>
+      <a class="nav-link" href="../../star-map.html">Carte du ciel</a>
+      <a class="nav-link" href="../../catalogue-settings.html">Préférences de catalogue</a>
+    </nav>
+    <small>Export CSV : compatible avec les tableurs courants et logiciels de planification.</small>
+  </footer>
+  <script type="module" src="./mes-listes.js"></script>
+</body>
+</html>
