@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Astro Soir — Préférences de catalogue</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="catalogue-settings-page">
+  <header class="page-header simple-page-header">
+    <a class="page-header__back" href="index.html">← Retour</a>
+    <div class="page-header__content">
+      <h1>Préférences de catalogue</h1>
+      <p>Sélectionne les catalogues proposés par défaut pour chaque usage. Les choix sont mémorisés pendant un an.</p>
+    </div>
+    <button type="button" id="nightModeToggle" class="night-toggle" aria-pressed="false">🔦 Mode nuit</button>
+  </header>
+  <main>
+    <section class="panel simple-settings" aria-labelledby="catalogue-preferences-heading">
+      <div class="simple-settings__header">
+        <div>
+          <h2 id="catalogue-preferences-heading">Catalogues disponibles</h2>
+          <p>Sélectionne les catalogues qui resteront accessibles dans l’application. Les badges indiquent la pertinence selon l’usage.</p>
+        </div>
+        <button type="button" id="resetCataloguePreferences" class="secondary">Réinitialiser</button>
+      </div>
+      <div class="simple-settings__body simple-settings__body--stack" id="cataloguePreferencesPanel">
+        <div class="catalogue-settings__legend" id="catalogueUsageLegend" aria-live="polite"></div>
+        <div class="catalogue-settings__list" id="cataloguePreferenceList" aria-live="polite"></div>
+      </div>
+    </section>
+  </main>
+  <footer class="simple-page-footer">
+    <small>Préférences enregistrées localement pendant un an.</small>
+  </footer>
+  <script type="module" src="catalogue-settings.js"></script>
+</body>
+</html>
