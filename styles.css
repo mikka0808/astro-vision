@@ -68,10 +68,10 @@ body.nav-open {
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-soft);
   padding: clamp(0.85rem, 2.5vw, 1.2rem) clamp(1.1rem, 4vw, 1.8rem);
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  display: flex;
   align-items: center;
   gap: clamp(0.75rem, 3vw, 1.4rem);
+  flex-wrap: wrap;
 }
 
 .site-brand {
@@ -83,6 +83,7 @@ body.nav-open {
   font-size: clamp(1.25rem, 3.5vw, 1.5rem);
   letter-spacing: 0.02em;
   text-decoration: none;
+  flex-shrink: 0;
 }
 
 .site-brand__text {
@@ -113,6 +114,7 @@ body.nav-open {
   align-items: center;
   justify-content: flex-end;
   gap: clamp(0.5rem, 2vw, 0.9rem);
+  flex-shrink: 0;
 }
 
 .site-header__toggle {
@@ -148,9 +150,13 @@ body.nav-open {
   gap: 0.55rem;
   background: var(--color-surface-quiet);
   border-radius: 999px;
-  padding: 0.4rem;
+  padding: 0.4rem clamp(0.4rem, 1.8vw, 0.85rem);
   border: 1px solid var(--color-border-soft);
   transition: box-shadow 0.2s ease, background 0.2s ease;
+  flex: 1 1 420px;
+  min-width: 0;
+  row-gap: 0.35rem;
+  flex-wrap: wrap;
 }
 
 .site-nav.is-open {
@@ -164,6 +170,18 @@ body.nav-open {
 
 .site-nav:focus-within {
   box-shadow: 0 0 0 2px rgba(130, 183, 255, 0.28);
+}
+
+@media (min-width: 901px) {
+  .site-header__inner {
+    flex-wrap: nowrap;
+  }
+
+  .site-nav {
+    flex-wrap: nowrap;
+    row-gap: 0;
+    justify-content: center;
+  }
 }
 
 .footer-nav {
@@ -184,6 +202,7 @@ body.night-mode .footer-nav .nav-link {
 
 @media (max-width: 900px) {
   .site-header__inner {
+    display: grid;
     grid-template-columns: 1fr auto;
     grid-template-areas:
       'brand actions'
@@ -204,6 +223,7 @@ body.night-mode .footer-nav .nav-link {
     gap: 0.5rem;
     padding: 0.85rem;
     border-radius: var(--radius-lg);
+    width: 100%;
   }
 
   .site-nav.is-open {
@@ -1666,6 +1686,10 @@ main {
   gap: clamp(0.85rem, 2.4vw, 1.4rem);
 }
 
+.form-grid > * {
+  min-width: 0;
+}
+
 @media (min-width: 720px) {
   .form-grid {
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -1676,6 +1700,7 @@ main {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+  min-width: 0;
 }
 
 .field-group--toggle,
@@ -1996,16 +2021,19 @@ button.secondary:hover,
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem;
+  width: 100%;
 }
 
 .with-action input {
   flex: 1 1 200px;
+  min-width: 0;
 }
 
 input,
 select,
 textarea {
   width: 100%;
+  max-width: 100%;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border-soft);
   background: var(--color-surface-quiet);
