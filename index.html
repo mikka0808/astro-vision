@@ -37,9 +37,17 @@
         <div class="field-group">
           <label for="addressLookup">Adresse (France)</label>
           <div class="with-action">
-            <input id="addressLookup" name="addressLookup" type="search" placeholder="Ex. 10 rue de Rivoli, Paris">
+            <input
+              id="addressLookup"
+              name="addressLookup"
+              type="search"
+              placeholder="Ex. 10 rue de Rivoli, Paris"
+              list="addressSuggestions"
+              autocomplete="street-address"
+            >
             <button type="button" id="resolveAddress" class="secondary">🔎</button>
           </div>
+          <datalist id="addressSuggestions"></datalist>
           <small class="help-text">Renseigne une adresse française pour remplir automatiquement les coordonnées.</small>
         </div>
         <div class="field-group">
