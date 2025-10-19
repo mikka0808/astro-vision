@@ -26,6 +26,12 @@
   --container-wide: 1080px;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html {
   font-size: 16px;
 }
