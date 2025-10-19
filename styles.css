@@ -1911,6 +1911,34 @@ legend {
   color: var(--color-accent);
   font-weight: 600;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.link-button--accent {
+  background: linear-gradient(135deg, var(--color-accent-strong), var(--color-accent));
+  color: #04112a;
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  box-shadow: var(--shadow-soft);
+  border: none;
+  text-decoration: none;
+}
+
+.link-button--accent:hover,
+.link-button--accent:focus-visible {
+  color: #04112a;
+  transform: translateY(-1px);
+}
+
+.link-button--danger {
+  color: var(--color-bad);
+}
+
+.link-button--danger:hover,
+.link-button--danger:focus-visible {
+  color: #ffb0b0;
 }
 
 button,
@@ -2156,6 +2184,272 @@ small {
 
 .catalogue-card .card-fold {
   cursor: default;
+}
+
+.catalogue-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.4rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--color-border-soft);
+  flex-wrap: wrap;
+}
+
+.catalogue-card__actions .list-picker {
+  margin-left: auto;
+}
+
+.catalogue-card--favori {
+  border-color: var(--color-accent-strong);
+  box-shadow: 0 0 0 1px rgba(130, 183, 255, 0.35);
+}
+
+body.night-mode .catalogue-card--favori {
+  box-shadow: 0 0 0 1px rgba(255, 154, 139, 0.35);
+}
+
+.favori-toggle {
+  border: 1px solid var(--color-border-soft);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text);
+  font-weight: 600;
+  padding: 0.3rem 0.85rem;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.favori-toggle:hover,
+.favori-toggle:focus-visible {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.favori-toggle--active {
+  background: rgba(130, 183, 255, 0.18);
+  border-color: var(--color-accent);
+  color: var(--color-accent-strong);
+}
+
+body.night-mode .favori-toggle--active {
+  background: rgba(255, 154, 139, 0.22);
+  border-color: var(--color-accent);
+  color: var(--color-accent-strong);
+}
+
+.list-picker {
+  position: relative;
+}
+
+.list-picker > summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.95rem;
+  color: var(--color-text-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.25rem;
+  border-radius: var(--radius-sm);
+}
+
+.list-picker > summary::marker,
+.list-picker > summary::-webkit-details-marker {
+  display: none;
+}
+
+.list-picker > summary::after {
+  content: '▾';
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
+}
+
+.list-picker[open] > summary::after {
+  transform: rotate(180deg);
+}
+
+.list-picker > summary:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.list-picker__content {
+  margin-top: 0.5rem;
+  display: grid;
+  gap: 0.65rem;
+  background: rgba(12, 20, 44, 0.65);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.75rem;
+  min-width: 220px;
+}
+
+.list-picker__field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.list-picker__label {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.list-picker__form input[type='text'] {
+  padding: 0.35rem 0.55rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-soft);
+  background: rgba(6, 11, 24, 0.82);
+  color: var(--color-text);
+}
+
+.list-picker__form input[type='text']:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.list-picker__submit {
+  justify-self: start;
+  background: var(--color-accent);
+  color: #04112a;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.list-picker__submit:hover,
+.list-picker__submit:focus-visible {
+  background: var(--color-accent-strong);
+  transform: translateY(-1px);
+}
+
+.list-picker__options {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 12rem;
+  overflow-y: auto;
+  padding-right: 0.2rem;
+}
+
+.list-picker__option {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.95rem;
+  color: var(--color-text-soft);
+}
+
+.list-picker__option input[type='checkbox'] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.list-picker__empty {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.listes-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.25rem;
+}
+
+.listes-grid {
+  display: grid;
+  gap: clamp(1rem, 3vw, 1.6rem);
+}
+
+@media (min-width: 900px) {
+  .listes-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+}
+
+.liste-card {
+  display: grid;
+  gap: 0.75rem;
+  padding: clamp(1rem, 2.2vw, 1.3rem);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius);
+  background: var(--color-surface-soft);
+  box-shadow: var(--shadow-soft);
+}
+
+.liste-card__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.liste-card__header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.liste-card__count {
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+}
+
+.liste-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.liste-card__body {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.liste-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.liste-item {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-sm);
+  background: rgba(12, 20, 44, 0.55);
+  padding: 0.6rem 0.8rem;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.liste-item__meta {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.liste-item__catalogue {
+  font-size: 0.85rem;
+  color: var(--color-text-soft);
+}
+
+.listes-empty {
+  text-align: center;
+  padding: 2rem 1.5rem;
+  border: 1px dashed var(--color-border-soft);
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  background: rgba(12, 20, 44, 0.35);
 }
 
 .catalogue-grid {

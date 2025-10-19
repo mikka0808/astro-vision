@@ -3,6 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "build:ts": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
   }
 }
