@@ -256,6 +256,32 @@ const OBSERVATION_MODES = {
   }
 };
 
+function resolveObservationMode(preferredMode = 'visual') {
+  const normalized = typeof preferredMode === 'string' ? preferredMode.trim().toLowerCase() : '';
+  const isKnownMode = (mode) => typeof mode === 'string' && OBSERVATION_MODES[mode];
+  const modes = catalogueModeOrder.filter((mode) => isKnownMode(mode));
+  const hasCatalogues = (mode) => (catalogueAvailability.get(mode) || []).length > 0;
+
+  if (isKnownMode(normalized) && hasCatalogues(normalized)) {
+    return normalized;
+  }
+
+  const firstWithCatalogues = modes.find((mode) => hasCatalogues(mode));
+  if (firstWithCatalogues) {
+    return firstWithCatalogues;
+  }
+
+  if (isKnownMode(normalized)) {
+    return normalized;
+  }
+
+  if (modes.length > 0) {
+    return modes[0];
+  }
+
+  return 'visual';
+}
+
 catalogueModeOrder.forEach((mode) => {
   const selection = Array.isArray(storedCataloguePreferences[mode])
     ? [...storedCataloguePreferences[mode]]
@@ -265,7 +291,7 @@ catalogueModeOrder.forEach((mode) => {
     OBSERVATION_MODES[mode].recommended = [...selection];
   }
 });
-let activeObservationMode = 'visual';
+let activeObservationMode = resolveObservationMode('visual');
 
 const sunTimesCache = new Map();
 
@@ -1343,25 +1369,17 @@ function initDefaults() {
 
   const storedMode = typeof context.observationMode === 'string' ? context.observationMode : null;
   const storedCatalogueIds = Array.isArray(context.catalogueIds) ? context.catalogueIds.filter(Boolean) : [];
+  activeObservationMode = resolveObservationMode(storedMode || activeObservationMode);
   if (observationModeInputs && observationModeInputs.length > 0) {
-    if (storedMode && OBSERVATION_MODES[storedMode]) {
-      observationModeInputs.forEach((input) => {
-        input.checked = input.value === storedMode;
-      });
-      activeObservationMode = storedMode;
-    } else {
-      activeObservationMode = getActiveObservationMode() || activeObservationMode;
-    }
-    if (catalogueSelection && catalogueCheckboxMap.size > 0) {
-      if (storedCatalogueIds.length > 0) {
-        const applied = setSelectedCatalogueIds(storedCatalogueIds);
-        catalogueSelectionByMode.set(activeObservationMode, applied);
-        updateRecommendedStyles(activeObservationMode);
-        updateCatalogueHint(activeObservationMode);
-      } else {
-        applyObservationModeContext(activeObservationMode);
-      }
-    }
+    observationModeInputs.forEach((input) => {
+      input.checked = input.value === activeObservationMode;
+    });
+  }
+  if (catalogueSelection && catalogueCheckboxMap.size > 0) {
+    const selectionOverride = storedCatalogueIds.length > 0 ? storedCatalogueIds : null;
+    applyObservationModeContext(activeObservationMode, { selectionOverride });
+  } else {
+    updateCatalogueHint(activeObservationMode);
   }
 
   triggerCoordinateUpdates();
