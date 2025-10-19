@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Astro Soir — Fiche catalogue interactive</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="detail-page detail-page--catalogue">
+  <header class="hero hero--compact">
+    <div class="hero-content">
+      <div class="hero-heading">
+        <h1 id="objectHeading">Fiche catalogue</h1>
+        <p id="objectBaseline">Choisis un objet du ciel profond pour dévoiler sa carte d'identité interactive.</p>
+        <nav class="top-nav" aria-label="Navigation principale">
+          <a class="nav-link" href="catalogue.html">← Retour au catalogue</a>
+          <a class="nav-link" href="index.html">Préparer une nouvelle session</a>
+          <a class="nav-link" href="star-map.html">Carte du ciel</a>
+          <a class="nav-link" href="score-settings.html">Réglage du score</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main id="objectMain" aria-live="polite">
+    <article id="objectArticle" class="catalogue-sheet" hidden>
+      <header class="catalogue-sheet__header">
+        <div class="catalogue-sheet__intro">
+          <div class="catalogue-sheet__title">
+            <p class="object-label" id="objectLabel"></p>
+            <h2 id="objectTitle"></h2>
+            <p class="object-subtitle" id="objectSubtitle"></p>
+          </div>
+          <ul class="object-highlights" id="objectHighlights" aria-label="Informations clés"></ul>
+          <div class="object-summary" aria-live="polite">
+            <div class="summary-card" data-summary="magnitude">
+              <span class="summary-card__label">Magnitude</span>
+              <span class="summary-card__value" id="objectSummaryMagnitude">—</span>
+            </div>
+            <div class="summary-card" data-summary="distance">
+              <span class="summary-card__label">Distance</span>
+              <span class="summary-card__value" id="objectSummaryDistance">—</span>
+            </div>
+            <div class="summary-card" data-summary="window">
+              <span class="summary-card__label">Fenêtre idéale</span>
+              <span class="summary-card__value" id="objectSummaryWindow">—</span>
+            </div>
+          </div>
+        </div>
+        <div class="catalogue-sheet__media">
+          <div class="object-media" id="objectMedia" aria-label="Visuel astronomique"></div>
+          <div class="object-media-meta" id="objectMediaMeta" hidden>
+            <p id="objectMediaCredit"></p>
+            <a id="objectMediaSource" class="object-media-link" target="_blank" rel="noreferrer"></a>
+          </div>
+          <section class="object-media-sources" id="objectMediaSources" hidden aria-label="Sources visuelles disponibles">
+            <h3>Explorer les visuels</h3>
+            <p class="help-text">Sélectionne une source pour ouvrir l'image originale dans un nouvel onglet.</p>
+            <ul class="media-source-list" id="objectMediaCandidates"></ul>
+          </section>
+        </div>
+      </header>
+
+      <div class="catalogue-sheet__layout">
+        <aside class="catalogue-sheet__sidebar">
+          <details class="object-panel object-panel--facts" id="objectFactsSection" open>
+            <summary>Carte d’identité</summary>
+            <div class="object-panel__body">
+              <dl class="object-facts" id="objectFacts"></dl>
+            </div>
+          </details>
+
+          <details class="object-panel object-panel--sources" id="objectSourcesSection" open>
+            <summary>Sources &amp; crédits</summary>
+            <div class="object-panel__body">
+              <ul id="objectSources" class="object-source-list"></ul>
+            </div>
+          </details>
+        </aside>
+
+        <div class="catalogue-sheet__main">
+          <details class="object-panel object-panel--story" id="objectStorySection" open>
+            <summary>Histoire &amp; singularités</summary>
+            <div class="object-panel__body">
+              <p id="objectStory"></p>
+              <p id="objectObservation"></p>
+            </div>
+          </details>
+
+          <details class="object-panel object-panel--usage" id="objectUsageSection" open>
+            <summary>Profils d’observation</summary>
+            <div class="object-panel__body">
+              <ul id="objectUsage" class="object-usage-list"></ul>
+            </div>
+          </details>
+
+          <details class="object-panel object-panel--session" id="objectSessionSection" open>
+            <summary>Contexte de ta session</summary>
+            <div class="object-panel__body">
+              <p class="help-text" id="objectSessionSummary"></p>
+              <dl class="object-session-facts" id="objectSessionFacts"></dl>
+            </div>
+          </details>
+        </div>
+      </div>
+    </article>
+    <p id="objectMessage" class="help-text"></p>
+  </main>
+
+  <footer>
+    <nav class="footer-nav">
+      <a class="nav-link" href="catalogue.html">Catalogue d’observation</a>
+      <a class="nav-link" href="index.html">Préparer la session</a>
+      <a class="nav-link" href="star-map.html">Carte du ciel</a>
+    </nav>
+    <small>Astro Soir consolide les données météo Open‑Meteo et plusieurs catalogues d’observation.</small>
+  </footer>
+  <script type="module" src="catalogue-detail.js"></script>
+</body>
+</html>
