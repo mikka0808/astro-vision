@@ -950,6 +950,7 @@ main {
   border-radius: var(--radius);
   padding: clamp(1rem, 3vw, 1.3rem);
   box-shadow: var(--shadow-soft);
+  overflow: hidden;
 }
 
 .mini-target[data-tone='good'] {
@@ -969,12 +970,16 @@ main {
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
+  flex-wrap: wrap;
+  row-gap: 0.5rem;
 }
 
 .mini-target__heading {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .mini-target__rank {
@@ -994,6 +999,11 @@ main {
 .mini-target__header h3 {
   margin: 0;
   font-size: clamp(1.05rem, 3vw, 1.3rem);
+  word-break: break-word;
+}
+
+.mini-target__header .score-chip {
+  flex-shrink: 0;
 }
 
 .score-chip {
@@ -1035,6 +1045,7 @@ main {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .mini-target__metrics dt {
