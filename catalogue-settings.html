@@ -7,13 +7,43 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="catalogue-settings-page">
-  <header class="page-header simple-page-header">
-    <a class="page-header__back" href="index.html">← Retour</a>
-    <div class="page-header__content">
-      <h1>Préférences de catalogue</h1>
-      <p>Sélectionne les catalogues proposés par défaut pour chaque usage. Les choix sont mémorisés pendant un an.</p>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="site-brand" href="index.html">
+        <span class="site-brand__logo" aria-hidden="true">🪐</span>
+        <span class="site-brand__text">Astro Soir</span>
+      </a>
+      <nav id="siteNav" class="site-nav" aria-label="Navigation principale">
+        <a class="site-nav__link nav-link" href="index.html">Accueil</a>
+        <a class="site-nav__link nav-link" href="dashboard.html">Tableau de bord</a>
+        <a class="site-nav__link nav-link" href="catalogue.html">Catalogue d’observation</a>
+        <a class="site-nav__link nav-link" href="fiche-catalogue.html">Fiches interactives</a>
+        <a class="site-nav__link nav-link" href="catalogue-settings.html">Préférences de catalogue</a>
+        <a class="site-nav__link nav-link" href="star-map.html">Carte du ciel</a>
+        <a class="site-nav__link nav-link" href="score-settings.html">Réglage du score</a>
+      </nav>
+      <div class="site-header__actions">
+        <button
+          type="button"
+          class="site-header__toggle"
+          data-nav-toggle
+          aria-expanded="false"
+          aria-controls="siteNav"
+        >
+          <span class="site-header__toggle-icon" aria-hidden="true">☰</span>
+          <span>Menu</span>
+        </button>
+        <button type="button" id="nightModeToggle" class="night-toggle" aria-pressed="false">🔦 Mode nuit</button>
+      </div>
     </div>
-    <button type="button" id="nightModeToggle" class="night-toggle" aria-pressed="false">🔦 Mode nuit</button>
+  </header>
+  <header class="hero hero--compact">
+    <div class="hero-content">
+      <div class="hero-heading">
+        <h1>Préférences de catalogue</h1>
+        <p>Sélectionne les catalogues proposés par défaut pour chaque usage. Les choix sont mémorisés pendant un an.</p>
+      </div>
+    </div>
   </header>
   <main>
     <section class="panel simple-settings" aria-labelledby="catalogue-preferences-heading">
@@ -31,8 +61,18 @@
     </section>
   </main>
   <footer class="simple-page-footer">
+    <nav class="footer-nav" aria-label="Navigation secondaire">
+      <a class="nav-link" href="index.html">Accueil</a>
+      <a class="nav-link" href="dashboard.html">Tableau de bord</a>
+      <a class="nav-link" href="catalogue.html">Catalogue d’observation</a>
+      <a class="nav-link" href="fiche-catalogue.html">Fiches interactives</a>
+      <a class="nav-link" href="catalogue-settings.html">Préférences de catalogue</a>
+      <a class="nav-link" href="star-map.html">Carte du ciel</a>
+      <a class="nav-link" href="score-settings.html">Réglage du score</a>
+    </nav>
     <small>Préférences enregistrées localement pendant un an.</small>
   </footer>
+  <script type="module" src="navigation.js"></script>
   <script type="module" src="catalogue-settings.js"></script>
 </body>
 </html>
