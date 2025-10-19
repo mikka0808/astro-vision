@@ -33,6 +33,21 @@ const MONTH_NAMES = [
   'décembre'
 ];
 
+const MONTH_SHORT_NAMES = [
+  'janv.',
+  'févr.',
+  'mars',
+  'avr.',
+  'mai',
+  'juin',
+  'juil.',
+  'août',
+  'sept.',
+  'oct.',
+  'nov.',
+  'déc.'
+];
+
 const article = document.getElementById('objectArticle');
 const message = document.getElementById('objectMessage');
 const heading = document.getElementById('objectHeading');
@@ -50,9 +65,18 @@ const storySection = document.getElementById('objectStorySection');
 const sessionSection = document.getElementById('objectSessionSection');
 const sessionSummary = document.getElementById('objectSessionSummary');
 const sessionFacts = document.getElementById('objectSessionFacts');
+const highlightsList = document.getElementById('objectHighlights');
+const usageSection = document.getElementById('objectUsageSection');
+const usageList = document.getElementById('objectUsage');
+const mediaMeta = document.getElementById('objectMediaMeta');
+const mediaCreditLine = document.getElementById('objectMediaCredit');
+const mediaLink = document.getElementById('objectMediaSource');
 
 const catalogueMetaMap = new Map();
 let catalogueDefinitions = [];
+let mediaCandidateSources = null;
+let currentMediaDetail = null;
+let mediaSourceItem = null;
 
 function slugify(value) {
   return String(value || '')
@@ -238,6 +262,217 @@ function formatMonths(months) {
   return names.join(' • ');
 }
 
+function formatHighlightMonths(months) {
+  if (!Array.isArray(months) || months.length === 0) {
+    return null;
+  }
+  const seen = new Set();
+  const ordered = [];
+  months.forEach((value) => {
+    const numeric = Number(value);
+    if (Number.isInteger(numeric) && numeric >= 1 && numeric <= 12 && !seen.has(numeric)) {
+      seen.add(numeric);
+      ordered.push(numeric);
+    }
+  });
+  if (ordered.length === 0) {
+    return null;
+  }
+  if (ordered.length === 12) {
+    return 'Toute l’année';
+  }
+  const first = ordered[0];
+  const last = ordered[ordered.length - 1];
+  const start = MONTH_SHORT_NAMES[first - 1] || null;
+  const end = MONTH_SHORT_NAMES[last - 1] || null;
+  if (!start || !end) {
+    return null;
+  }
+  if (first === last || ordered.length === 1) {
+    return start;
+  }
+  return `${start} – ${end}`;
+}
+
+function renderHighlights(object, dossier) {
+  if (!highlightsList) return;
+  highlightsList.innerHTML = '';
+  const items = [];
+  const typeLabel = object.category || object.type;
+  if (typeLabel) {
+    items.push({ icon: '🔭', text: typeLabel });
+  }
+  if (object.constellation) {
+    items.push({ icon: '✴️', text: object.constellation });
+  }
+  if (Number.isFinite(object.magnitude)) {
+    items.push({ icon: '💡', text: `Mag ${object.magnitude.toFixed(1)}` });
+  }
+  const angularSizeText = formatAngularSize(dossier?.angularSize, object.angularSizeArcmin ?? object.angularSize);
+  if (angularSizeText && angularSizeText !== '—') {
+    items.push({ icon: '📏', text: angularSizeText });
+  }
+  const monthsHighlight = formatHighlightMonths(object.bestMonths);
+  if (monthsHighlight) {
+    items.push({ icon: '🗓️', text: `Saison ${monthsHighlight}` });
+  }
+  const distanceText = formatDistance(dossier?.distanceLy ?? object.distanceLy);
+  if (distanceText && distanceText !== '—') {
+    items.push({ icon: '🌌', text: distanceText });
+  }
+  const limited = items.slice(0, 6);
+  limited.forEach((item) => {
+    const li = document.createElement('li');
+    if (item.icon) {
+      const iconSpan = document.createElement('span');
+      iconSpan.setAttribute('aria-hidden', 'true');
+      iconSpan.textContent = item.icon;
+      li.appendChild(iconSpan);
+    }
+    const textSpan = document.createElement('span');
+    textSpan.textContent = item.text;
+    li.appendChild(textSpan);
+    highlightsList.appendChild(li);
+  });
+  highlightsList.hidden = limited.length === 0;
+}
+
+function renderUsage(object) {
+  if (!usageSection || !usageList) return;
+  usageList.innerHTML = '';
+  const weights = object?.observationWeights || {};
+  const entries = [
+    { key: 'visual', label: 'Observation visuelle', icon: '👁️' },
+    { key: 'astrophoto', label: 'Astrophotographie', icon: '📷' },
+    { key: 'research', label: 'Recherche & CROA', icon: '🔬' }
+  ]
+    .map((entry) => {
+      const value = Number(weights[entry.key]);
+      if (!Number.isFinite(value)) return null;
+      return { ...entry, value: Math.max(0, Math.min(1.5, value)) };
+    })
+    .filter(Boolean);
+
+  if (entries.length === 0) {
+    usageSection.hidden = true;
+    return;
+  }
+
+  const maxWeight = entries.reduce((acc, entry) => Math.max(acc, entry.value), 0);
+
+  entries.forEach((entry) => {
+    const li = document.createElement('li');
+    li.className = 'object-usage-item';
+    if (maxWeight > 0 && Math.abs(entry.value - maxWeight) < 0.05) {
+      li.classList.add('object-usage-item--best');
+    }
+
+    const label = document.createElement('div');
+    label.className = 'object-usage-label';
+    if (entry.icon) {
+      const iconSpan = document.createElement('span');
+      iconSpan.setAttribute('aria-hidden', 'true');
+      iconSpan.textContent = entry.icon;
+      label.appendChild(iconSpan);
+    }
+    const textSpan = document.createElement('span');
+    textSpan.textContent = entry.label;
+    label.appendChild(textSpan);
+    li.appendChild(label);
+
+    const bar = document.createElement('div');
+    bar.className = 'object-usage-bar';
+    const meter = document.createElement('div');
+    meter.className = 'object-usage-meter';
+    const fill = document.createElement('span');
+    const fillValue = Math.max(0, Math.min(1, entry.value / 1.5));
+    fill.style.setProperty('--fill', fillValue.toFixed(3));
+    meter.appendChild(fill);
+    bar.appendChild(meter);
+
+    const score = document.createElement('div');
+    score.className = 'object-usage-score';
+    const percent = Math.round(fillValue * 100);
+    score.textContent = `Score ${percent}% • indice ${entry.value.toFixed(2)}`;
+    bar.appendChild(score);
+
+    li.appendChild(bar);
+    usageList.appendChild(li);
+  });
+
+  usageSection.hidden = false;
+}
+
+function updateMediaMeta(detail) {
+  if (!mediaMeta || !mediaCreditLine) return;
+  if (!detail) {
+    mediaMeta.hidden = true;
+    mediaCreditLine.textContent = '';
+    if (mediaLink) {
+      mediaLink.hidden = true;
+      mediaLink.removeAttribute('href');
+      mediaLink.textContent = '';
+    }
+    return;
+  }
+  mediaMeta.hidden = false;
+  mediaCreditLine.textContent = detail.credit || 'Visuel généré par Astro Soir';
+  if (mediaLink) {
+    if (detail.url) {
+      mediaLink.hidden = false;
+      mediaLink.href = detail.url;
+      mediaLink.textContent = detail.provider ? `Source : ${detail.provider}` : 'Voir la source';
+    } else {
+      mediaLink.hidden = true;
+      mediaLink.removeAttribute('href');
+      mediaLink.textContent = '';
+    }
+  }
+}
+
+function updateMediaSourceList(detail) {
+  if (!mediaSourceItem) return;
+  mediaSourceItem.innerHTML = '';
+  if (!detail) {
+    const pending = document.createElement('span');
+    pending.textContent =
+      mediaCandidateSources && Array.isArray(mediaCandidateSources.sources) && mediaCandidateSources.sources.length > 0
+        ? 'Crédit visuel : vérification en cours…'
+        : 'Visuel : chargement en cours…';
+    mediaSourceItem.appendChild(pending);
+    return;
+  }
+  if (detail.isFallback) {
+    const strong = document.createElement('strong');
+    strong.textContent = 'Visuel :';
+    mediaSourceItem.appendChild(strong);
+    mediaSourceItem.append(
+      ' Visualisation générée par Astro Soir — aucune source photographique confirmée.'
+    );
+    return;
+  }
+  const strong = document.createElement('strong');
+  strong.textContent = 'Crédit visuel :';
+  mediaSourceItem.appendChild(strong);
+  mediaSourceItem.append(' ');
+  mediaSourceItem.append(detail.credit || 'Source télescopique');
+  if (detail.url) {
+    mediaSourceItem.append(' — ');
+    const link = document.createElement('a');
+    link.href = detail.url;
+    link.target = '_blank';
+    link.rel = 'noreferrer';
+    link.textContent = detail.provider || 'Voir la source';
+    mediaSourceItem.appendChild(link);
+  }
+}
+
+function applyMediaDetail(detail) {
+  currentMediaDetail = detail || null;
+  updateMediaMeta(currentMediaDetail);
+  updateMediaSourceList(currentMediaDetail);
+}
+
 function createFact(term, detail) {
   const container = document.createElement('div');
   const dt = document.createElement('dt');
@@ -375,8 +610,13 @@ function findMetrics(snapshot, object) {
 
 function renderMedia(object) {
   mediaContainer.innerHTML = '';
-  const preview = createObservationPreview(object);
+  mediaCandidateSources = resolveImageSources(object);
+  applyMediaDetail(null);
+  const preview = createObservationPreview(object, { sourcesOverride: mediaCandidateSources });
   preview.classList.add('object-preview');
+  preview.addEventListener('preview:resolved', (event) => {
+    applyMediaDetail(event.detail);
+  });
   mediaContainer.appendChild(preview);
 }
 
@@ -433,7 +673,10 @@ function renderNarrative(object, dossier) {
 
 function renderSources(object, dossier) {
   sourcesList.innerHTML = '';
-  const items = [];
+  mediaSourceItem = document.createElement('li');
+  mediaSourceItem.className = 'object-source-list__media';
+
+  const documentation = [];
   if (Array.isArray(dossier?.sources)) {
     dossier.sources.forEach((source) => {
       if (source && source.label) {
@@ -448,38 +691,23 @@ function renderSources(object, dossier) {
         } else {
           li.textContent = source.label;
         }
-        items.push(li);
+        documentation.push(li);
       }
     });
   }
-  const mediaSources = resolveImageSources(object);
-  if (mediaSources) {
-    const li = document.createElement('li');
-    li.innerHTML = `<strong>Crédit visuel :</strong> ${mediaSources.credit || 'Source télescopique'}`;
-    if (Array.isArray(mediaSources.sources) && mediaSources.sources.length > 0) {
-      const nested = document.createElement('ul');
-      mediaSources.sources.forEach((url) => {
-        if (!url) return;
-        const nestedItem = document.createElement('li');
-        const link = document.createElement('a');
-        link.href = url;
-        link.target = '_blank';
-        link.rel = 'noreferrer';
-        link.textContent = url;
-        nestedItem.appendChild(link);
-        nested.appendChild(nestedItem);
-      });
-      li.appendChild(nested);
-    }
-    items.push(li);
-  }
-  if (items.length === 0) {
+
+  if (documentation.length === 0) {
     const empty = document.createElement('li');
-    empty.textContent = 'Aucune source documentée pour le moment.';
-    items.push(empty);
+    empty.textContent = 'Aucune source documentaire ajoutée pour le moment.';
+    documentation.push(empty);
   }
-  items.forEach((node) => sourcesList.appendChild(node));
-  sourcesSection.hidden = false;
+
+  sourcesList.appendChild(mediaSourceItem);
+  documentation.forEach((item) => sourcesList.appendChild(item));
+  updateMediaSourceList(currentMediaDetail);
+  if (sourcesSection) {
+    sourcesSection.hidden = false;
+  }
 }
 
 function renderSessionMetrics(metrics) {
@@ -592,8 +820,10 @@ async function bootstrap() {
     subtitle.textContent = subtitleParts.filter(Boolean).join(' • ');
     document.title = `Astro Soir — ${object.name}`;
 
+    renderHighlights(object, dossier);
     renderMedia(object);
     renderFacts(object, dossier);
+    renderUsage(object);
     renderNarrative(object, dossier);
     renderSources(object, dossier);
     renderSession(snapshot, metrics);

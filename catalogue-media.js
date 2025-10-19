@@ -167,6 +167,16 @@ function drawOther(ctx, random) {
   }
 }
 
+function resolveProviderFromUrl(url) {
+  if (!url) return null;
+  try {
+    const { hostname } = new URL(url);
+    return hostname.replace(/^www\./i, '');
+  } catch (error) {
+    return null;
+  }
+}
+
 export function resolveImageSources(object) {
   const number = Number(object?.number);
   if (!Number.isFinite(number)) {
@@ -208,14 +218,62 @@ export function createCanvasPreview(object) {
   return canvas;
 }
 
-export function createObservationPreview(object) {
-  const sources = resolveImageSources(object);
-  if (!sources || !Array.isArray(sources.sources) || sources.sources.length === 0) {
-    return createCanvasPreview(object);
-  }
+export function createObservationPreview(object, options = {}) {
+  const { sourcesOverride } = options || {};
+  const sources = sourcesOverride || resolveImageSources(object);
 
   const figure = document.createElement('figure');
   figure.className = 'preview-figure';
+
+  const credit = document.createElement('figcaption');
+  credit.className = 'preview-credit';
+
+  const emitDetail = (detail) => {
+    credit.innerHTML = '';
+    if (detail.isFallback) {
+      credit.textContent = detail.credit || 'Visuel généré par Astro Soir';
+    } else {
+      const strong = document.createElement('strong');
+      strong.textContent = 'Crédit visuel :';
+      credit.appendChild(strong);
+      credit.append(' ');
+      const textSpan = document.createElement('span');
+      textSpan.textContent = detail.credit || 'Source télescopique';
+      credit.appendChild(textSpan);
+      if (detail.url) {
+        credit.append(' • ');
+        const link = document.createElement('a');
+        link.href = detail.url;
+        link.target = '_blank';
+        link.rel = 'noreferrer';
+        link.textContent = detail.provider ? `Source : ${detail.provider}` : 'Voir la source';
+        credit.appendChild(link);
+      }
+    }
+    figure.dispatchEvent(
+      new CustomEvent('preview:resolved', {
+        bubbles: true,
+        detail
+      })
+    );
+  };
+
+  if (!sources || !Array.isArray(sources.sources) || sources.sources.length === 0) {
+    const canvas = createCanvasPreview(object);
+    figure.appendChild(canvas);
+    credit.textContent = 'Visuel généré par Astro Soir';
+    figure.appendChild(credit);
+    queueMicrotask(() =>
+      emitDetail({
+        credit: 'Visuel généré par Astro Soir',
+        url: null,
+        provider: 'Astro Soir',
+        isFallback: true,
+        candidates: []
+      })
+    );
+    return figure;
+  }
 
   const img = document.createElement('img');
   img.loading = 'lazy';
@@ -224,9 +282,7 @@ export function createObservationPreview(object) {
   img.alt = `Observation télescopique monochrome de ${object.name}`;
   img.referrerPolicy = 'no-referrer';
 
-  const credit = document.createElement('figcaption');
-  credit.className = 'preview-credit';
-  credit.textContent = sources.credit ? `Crédit : ${sources.credit}` : 'Crédit : Source télescopique';
+  credit.textContent = 'Chargement du visuel…';
 
   figure.appendChild(img);
   figure.appendChild(credit);
@@ -234,13 +290,23 @@ export function createObservationPreview(object) {
   const candidates = Array.from(new Set(sources.sources.filter(Boolean)));
   let index = 0;
 
+  const showFallback = () => {
+    img.removeEventListener('error', loadNextCandidate);
+    img.remove();
+    const fallback = createCanvasPreview(object);
+    figure.insertBefore(fallback, credit);
+    emitDetail({
+      credit: 'Visuel généré par Astro Soir',
+      url: null,
+      provider: 'Astro Soir',
+      isFallback: true,
+      candidates
+    });
+  };
+
   const loadNextCandidate = () => {
     if (index >= candidates.length) {
-      img.removeEventListener('error', loadNextCandidate);
-      img.remove();
-      const fallback = createCanvasPreview(object);
-      figure.insertBefore(fallback, credit);
-      credit.textContent = 'Visualisation générée par Astro Soir';
+      showFallback();
       return;
     }
     const candidate = candidates[index];
@@ -255,6 +321,16 @@ export function createObservationPreview(object) {
   img.addEventListener('error', loadNextCandidate);
   img.addEventListener('load', () => {
     img.removeEventListener('error', loadNextCandidate);
+    const url = img.currentSrc || img.src;
+    const provider = resolveProviderFromUrl(url);
+    const creditLabel = sources.credit || provider || 'Source télescopique';
+    emitDetail({
+      credit: creditLabel,
+      url,
+      provider,
+      isFallback: false,
+      candidates
+    });
   });
 
   loadNextCandidate();
