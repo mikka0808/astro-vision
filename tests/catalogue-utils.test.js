@@ -62,3 +62,20 @@ test('filterObjectsByCatalogue inclut au moins les membres principaux de chaque 
   });
 });
 
+test('les objets multi-catalogues sont fusionnés sans doublon', async () => {
+  const { objects } = await datasetPromise;
+  const andromedaMatches = objects.filter((object) => object.designation === 'M31');
+  assert.equal(andromedaMatches.length, 1, 'M31 doit être présent une seule fois');
+  const andromeda = andromedaMatches[0];
+  assert.ok(andromeda.catalogueRefs.includes('messier'));
+  assert.ok(andromeda.catalogueRefs.includes('pgc'));
+  assert.ok(
+    Array.isArray(andromeda.alternateDesignations) && andromeda.alternateDesignations.includes('PGC 2557'),
+    'Les désignations alternatives doivent inclure PGC 2557'
+  );
+  const pgcOccurrences = objects.filter((object) =>
+    typeof object.name === 'string' && object.name.includes('PGC 2557')
+  );
+  assert.equal(pgcOccurrences.length, 1, 'PGC 2557 ne doit apparaître qu’une seule fois');
+});
+
