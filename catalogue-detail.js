@@ -1,5 +1,6 @@
 import {
   SESSION_STORAGE_KEY,
+  NIGHT_MODE_STORAGE_KEY,
   applyWeather,
   computeMoonPhase,
   describeAzimuth,
@@ -99,6 +100,7 @@ const usageList = document.getElementById('objectUsage');
 const mediaMeta = document.getElementById('objectMediaMeta');
 const mediaCreditLine = document.getElementById('objectMediaCredit');
 const mediaLink = document.getElementById('objectMediaSource');
+const nightModeToggle = document.getElementById('nightModeToggle');
 
 const catalogueMetaMap = new Map();
 let catalogueDefinitions = [];
@@ -960,6 +962,42 @@ async function bootstrap() {
     article.hidden = true;
     resetSummary();
   }
+}
+
+function applyNightMode(enabled, { persist = true } = {}) {
+  document.body.classList.toggle('night-mode', enabled);
+  if (nightModeToggle) {
+    nightModeToggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+    nightModeToggle.classList.toggle('is-active', enabled);
+    nightModeToggle.textContent = enabled ? '🌅 Mode jour' : '🔦 Mode nuit';
+  }
+  if (!persist) {
+    return;
+  }
+  try {
+    localStorage.setItem(NIGHT_MODE_STORAGE_KEY, enabled ? '1' : '0');
+  } catch (error) {
+    console.warn('Impossible de sauvegarder le mode nuit :', error);
+  }
+}
+
+function initNightMode() {
+  let stored = null;
+  try {
+    stored = localStorage.getItem(NIGHT_MODE_STORAGE_KEY);
+  } catch (error) {
+    stored = null;
+  }
+  const enabled = stored === '1' || stored === 'true';
+  applyNightMode(enabled, { persist: false });
+}
+
+initNightMode();
+if (nightModeToggle) {
+  nightModeToggle.addEventListener('click', () => {
+    const next = !document.body.classList.contains('night-mode');
+    applyNightMode(next);
+  });
 }
 
 bootstrap();

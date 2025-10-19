@@ -7,18 +7,41 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="detail-page detail-page--catalogue">
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="site-brand" href="index.html">
+        <span class="site-brand__logo" aria-hidden="true">🪐</span>
+        <span class="site-brand__text">Astro Soir</span>
+      </a>
+      <nav id="siteNav" class="site-nav" aria-label="Navigation principale">
+        <a class="site-nav__link nav-link" href="index.html">Accueil</a>
+        <a class="site-nav__link nav-link" href="dashboard.html">Tableau de bord</a>
+        <a class="site-nav__link nav-link" href="catalogue.html">Catalogue d’observation</a>
+        <a class="site-nav__link nav-link" href="fiche-catalogue.html">Fiches interactives</a>
+        <a class="site-nav__link nav-link" href="catalogue-settings.html">Préférences de catalogue</a>
+        <a class="site-nav__link nav-link" href="star-map.html">Carte du ciel</a>
+        <a class="site-nav__link nav-link" href="score-settings.html">Réglage du score</a>
+      </nav>
+      <div class="site-header__actions">
+        <button
+          type="button"
+          class="site-header__toggle"
+          data-nav-toggle
+          aria-expanded="false"
+          aria-controls="siteNav"
+        >
+          <span class="site-header__toggle-icon" aria-hidden="true">☰</span>
+          <span>Menu</span>
+        </button>
+        <button type="button" id="nightModeToggle" class="night-toggle" aria-pressed="false">🔦 Mode nuit</button>
+      </div>
+    </div>
+  </header>
   <header class="hero hero--compact">
     <div class="hero-content">
       <div class="hero-heading">
         <h1 id="objectHeading">Fiche catalogue</h1>
         <p id="objectBaseline">Choisis un objet du ciel profond pour dévoiler sa carte d'identité interactive.</p>
-        <nav class="top-nav" aria-label="Navigation principale">
-          <a class="nav-link" href="catalogue.html">← Retour au catalogue</a>
-          <a class="nav-link" href="index.html">Préparer une nouvelle session</a>
-          <a class="nav-link" href="catalogue-settings.html">Préférences de catalogue</a>
-          <a class="nav-link" href="star-map.html">Carte du ciel</a>
-          <a class="nav-link" href="score-settings.html">Réglage du score</a>
-        </nav>
       </div>
     </div>
   </header>
@@ -109,14 +132,18 @@
   </main>
 
   <footer>
-    <nav class="footer-nav">
+    <nav class="footer-nav" aria-label="Navigation secondaire">
+      <a class="nav-link" href="index.html">Accueil</a>
+      <a class="nav-link" href="dashboard.html">Tableau de bord</a>
       <a class="nav-link" href="catalogue.html">Catalogue d’observation</a>
-      <a class="nav-link" href="index.html">Préparer la session</a>
+      <a class="nav-link" href="fiche-catalogue.html">Fiches interactives</a>
       <a class="nav-link" href="catalogue-settings.html">Préférences de catalogue</a>
       <a class="nav-link" href="star-map.html">Carte du ciel</a>
+      <a class="nav-link" href="score-settings.html">Réglage du score</a>
     </nav>
     <small>Astro Soir consolide les données météo Open‑Meteo et plusieurs catalogues d’observation.</small>
   </footer>
+  <script type="module" src="navigation.js"></script>
   <script type="module" src="catalogue-detail.js"></script>
 </body>
 </html>
