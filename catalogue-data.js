@@ -99,6 +99,484 @@ const DEFAULT_CATALOGUE_SOURCES = {
 const payloadCache = new Map();
 const objectsCache = new Map();
 
+const CATALOGUE_PRIORITY = [
+  'messier',
+  'caldwell',
+  'ngc',
+  'ic',
+  'ugc',
+  'pgc',
+  'arp',
+  'sharpless',
+  'vdb',
+  'ldn',
+  'gaia'
+];
+
+const CATALOGUE_LABELS = new Map(
+  CATALOGUE_PRIORITY.map((id) => {
+    switch (id) {
+      case 'messier':
+        return [id, { prefix: 'M', separator: '' }];
+      case 'caldwell':
+        return [id, { prefix: 'C', separator: '' }];
+      case 'ngc':
+        return [id, { prefix: 'NGC', separator: ' ' }];
+      case 'ic':
+        return [id, { prefix: 'IC', separator: ' ' }];
+      case 'ugc':
+        return [id, { prefix: 'UGC', separator: ' ' }];
+      case 'pgc':
+        return [id, { prefix: 'PGC', separator: ' ' }];
+      case 'arp':
+        return [id, { prefix: 'ARP', separator: ' ' }];
+      case 'sharpless':
+        return [id, { prefix: 'Sh2', separator: '-' }];
+      case 'vdb':
+        return [id, { prefix: 'vdB', separator: ' ' }];
+      case 'ldn':
+        return [id, { prefix: 'LDN', separator: ' ' }];
+      case 'gaia':
+        return [id, { prefix: 'Gaia', separator: ' ' }];
+      default:
+        return [id, { prefix: id.toUpperCase(), separator: ' ' }];
+    }
+  })
+);
+
+const CATALOGUE_REGEX_PATTERNS = [
+  { id: 'messier', patterns: [/\bM\s*(\d{1,3})\b/gi] },
+  { id: 'caldwell', patterns: [/\bC\s*(\d{1,3})\b/gi, /\bCALDWELL\s*(\d{1,3})\b/gi] },
+  { id: 'ngc', patterns: [/\bNGC\s*(\d{1,4})\b/gi] },
+  { id: 'ic', patterns: [/\bIC\s*(\d{1,4})\b/gi] },
+  { id: 'ugc', patterns: [/\bUGC\s*(\d{1,5})\b/gi] },
+  { id: 'pgc', patterns: [/\bPGC\s*(\d{1,6})\b/gi] },
+  { id: 'arp', patterns: [/\bARP\s*(\d{1,4})\b/gi] },
+  { id: 'sharpless', patterns: [/\bSH(?:2)?[-\s]*(\d{1,3})\b/gi] },
+  { id: 'ldn', patterns: [/\bLDN\s*(\d{1,4})\b/gi] },
+  { id: 'vdb', patterns: [/\bVDB\s*(\d{1,3})\b/gi] }
+];
+
+function normaliseLocalCatalogueId(id) {
+  if (typeof id !== 'string') return '';
+  return id.trim().toLowerCase();
+}
+
+function cataloguePriority(id) {
+  const normalized = normaliseLocalCatalogueId(id);
+  const index = CATALOGUE_PRIORITY.indexOf(normalized);
+  return index === -1 ? CATALOGUE_PRIORITY.length : index;
+}
+
+function normaliseCatalogueNumber(value) {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? String(Math.round(value)) : '';
+  }
+  const text = String(value).trim();
+  if (!text) return '';
+  const match = text.match(/(\d+)/);
+  if (!match) return '';
+  return String(Number.parseInt(match[1], 10));
+}
+
+function formatCatalogueDesignation(id, number) {
+  const normalizedId = normaliseLocalCatalogueId(id);
+  const formattedNumber = normaliseCatalogueNumber(number);
+  if (!normalizedId || !formattedNumber) return '';
+  const meta = CATALOGUE_LABELS.get(normalizedId) || { prefix: normalizedId.toUpperCase(), separator: ' ' };
+  if (normalizedId === 'sharpless') {
+    return `${meta.prefix}${meta.separator}${formattedNumber}`;
+  }
+  if (normalizedId === 'gaia') {
+    return `${meta.prefix}${meta.separator}DR3 ${formattedNumber}`;
+  }
+  return `${meta.prefix}${meta.separator}${formattedNumber}`.trim();
+}
+
+function ensureSet(map, key) {
+  if (!map.has(key)) {
+    map.set(key, new Set());
+  }
+  return map.get(key);
+}
+
+function stripCatalogueParentheses(value) {
+  if (!value) return value;
+  return value.replace(/\(([^)]+)\)/g, (match, inner) => {
+    const content = inner.trim();
+    if (!content) return '';
+    let hasCatalogue = false;
+    CATALOGUE_REGEX_PATTERNS.forEach(({ patterns }) => {
+      patterns.forEach((pattern) => {
+        if (hasCatalogue) return;
+        const clone = new RegExp(pattern);
+        if (clone.test(content)) {
+          hasCatalogue = true;
+        }
+      });
+    });
+    return hasCatalogue ? '' : match;
+  });
+}
+
+function collectBaseNames(value) {
+  if (typeof value !== 'string') return [];
+  const text = stripCatalogueParentheses(value).trim();
+  if (!text) return [];
+  const delimiters = [' — ', ' – ', ' - '];
+  for (const delimiter of delimiters) {
+    const index = text.indexOf(delimiter);
+    if (index !== -1) {
+      const base = text.slice(index + delimiter.length).trim();
+      if (base) {
+        return [base.replace(/\s+/g, ' ')];
+      }
+    }
+  }
+  return [text.replace(/\s+/g, ' ')];
+}
+
+function collectCatalogueNumbersFromText(text) {
+  if (!text) return [];
+  const value = String(text);
+  const results = [];
+  CATALOGUE_REGEX_PATTERNS.forEach(({ id, patterns }) => {
+    patterns.forEach((pattern) => {
+      const clone = new RegExp(pattern);
+      let match = clone.exec(value);
+      while (match) {
+        const number = normaliseCatalogueNumber(match[1] ?? match[2]);
+        if (number) {
+          results.push({ id, number });
+        }
+        match = clone.exec(value);
+      }
+    });
+  });
+  return results;
+}
+
+function collectObjectIdentity(entry = {}) {
+  const membershipKeys = new Set();
+  const numbersByCatalogue = new Map();
+  const baseNames = new Set();
+
+  function registerCatalogue(id, number) {
+    const normalizedId = normaliseLocalCatalogueId(id);
+    const normalizedNumber = normaliseCatalogueNumber(number);
+    if (!normalizedId || !normalizedNumber) {
+      return;
+    }
+    membershipKeys.add(`${normalizedId}:${normalizedNumber}`);
+    const bucket = ensureSet(numbersByCatalogue, normalizedId);
+    bucket.add(normalizedNumber);
+  }
+
+  if (entry.primaryCatalogueId && Number.isFinite(entry.number)) {
+    registerCatalogue(entry.primaryCatalogueId, entry.number);
+  }
+
+  const texts = [];
+  if (entry.designation) texts.push(entry.designation);
+  if (entry.name) texts.push(entry.name);
+  if (entry.slug) texts.push(entry.slug.replace(/-/g, ' '));
+  if (Array.isArray(entry.aliases)) texts.push(...entry.aliases);
+  if (Array.isArray(entry.altNames)) texts.push(...entry.altNames);
+  if (Array.isArray(entry.alternateDesignations)) texts.push(...entry.alternateDesignations);
+  if (Array.isArray(entry.alternateNames)) texts.push(...entry.alternateNames);
+  if (typeof entry.catalogueNumber === 'string') texts.push(entry.catalogueNumber);
+
+  texts.forEach((text) => {
+    collectCatalogueNumbersFromText(text).forEach(({ id, number }) => {
+      registerCatalogue(id, number);
+    });
+  });
+
+  const baseCandidates = [];
+  if (entry.name) baseCandidates.push(...collectBaseNames(entry.name));
+  if (Array.isArray(entry.aliases)) {
+    entry.aliases.forEach((alias) => {
+      collectBaseNames(alias).forEach((base) => baseCandidates.push(base));
+    });
+  }
+
+  baseCandidates
+    .map((name) => name.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .forEach((name) => baseNames.add(name));
+
+  return { membershipKeys, numbersByCatalogue, baseNames };
+}
+
+function mergeNumericValue(current, incoming, reducer = (a, b) => b) {
+  const a = Number.isFinite(current) ? current : null;
+  const b = Number.isFinite(incoming) ? incoming : null;
+  if (a === null && b === null) return null;
+  if (a === null) return b;
+  if (b === null) return a;
+  if (reducer === Math.min) {
+    return Math.min(a, b);
+  }
+  if (reducer === Math.max) {
+    return Math.max(a, b);
+  }
+  return reducer(a, b);
+}
+
+function mergeObjectEntries(target, source) {
+  if (!target._identity) {
+    target._identity = collectObjectIdentity(target);
+  }
+  const identity = target._identity;
+  const sourceIdentity = source._identity || collectObjectIdentity(source);
+
+  sourceIdentity.membershipKeys.forEach((key) => identity.membershipKeys.add(key));
+  sourceIdentity.numbersByCatalogue.forEach((set, id) => {
+    const bucket = ensureSet(identity.numbersByCatalogue, id);
+    set.forEach((value) => bucket.add(value));
+  });
+  sourceIdentity.baseNames.forEach((name) => identity.baseNames.add(name));
+
+  const refs = new Set();
+  if (Array.isArray(target.catalogueRefs)) {
+    target.catalogueRefs.forEach((id) => {
+      const normalized = normaliseLocalCatalogueId(id);
+      if (normalized) refs.add(normalized);
+    });
+  }
+  if (Array.isArray(source.catalogueRefs)) {
+    source.catalogueRefs.forEach((id) => {
+      const normalized = normaliseLocalCatalogueId(id);
+      if (normalized) refs.add(normalized);
+    });
+  }
+  identity.numbersByCatalogue.forEach((_, id) => refs.add(id));
+  target.catalogueRefs = Array.from(refs);
+
+  const monthSet = new Set();
+  if (Array.isArray(target.bestMonths)) {
+    target.bestMonths.forEach((month) => {
+      if (Number.isFinite(month)) monthSet.add(month);
+    });
+  }
+  if (Array.isArray(source.bestMonths)) {
+    source.bestMonths.forEach((month) => {
+      if (Number.isFinite(month)) monthSet.add(month);
+    });
+  }
+  target.bestMonths = monthSet.size > 0 ? Array.from(monthSet).sort((a, b) => a - b) : target.bestMonths;
+
+  target.raHours = mergeNumericValue(target.raHours, source.raHours, (a, b) => (Number.isFinite(a) ? a : b));
+  target.decDeg = mergeNumericValue(target.decDeg, source.decDeg, (a, b) => (Number.isFinite(a) ? a : b));
+  target.magnitude = mergeNumericValue(target.magnitude, source.magnitude, (a, b) => (Number.isFinite(a) ? a : b));
+  target.angularSizeArcmin = mergeNumericValue(
+    target.angularSizeArcmin,
+    source.angularSizeArcmin,
+    (a, b) => (Number.isFinite(a) ? a : b)
+  );
+  target.surfaceBrightness = mergeNumericValue(
+    target.surfaceBrightness,
+    source.surfaceBrightness,
+    (a, b) => (Number.isFinite(a) ? a : b)
+  );
+  target.distanceLy = mergeNumericValue(target.distanceLy, source.distanceLy, (a, b) => (Number.isFinite(a) ? a : b));
+  target.minBortle = mergeNumericValue(target.minBortle, source.minBortle, Math.min);
+
+  if (!target.type && source.type) {
+    target.type = source.type;
+  }
+  if (!target.constellation && source.constellation) {
+    target.constellation = source.constellation;
+  }
+
+  const targetDescription = typeof target.description === 'string' ? target.description.trim() : '';
+  const sourceDescription = typeof source.description === 'string' ? source.description.trim() : '';
+  if (!targetDescription || sourceDescription.length > targetDescription.length) {
+    target.description = sourceDescription || target.description;
+  }
+
+  if (source.name && source.name !== target.name) {
+    if (!target.alternateNames) {
+      target.alternateNames = [];
+    }
+    const cleanSource = source.name.trim();
+    if (cleanSource && !target.alternateNames.includes(cleanSource)) {
+      target.alternateNames.push(cleanSource);
+    }
+  }
+
+  if (source.designation && source.designation !== target.designation) {
+    if (!target.alternateDesignations) {
+      target.alternateDesignations = [];
+    }
+    const cleanDesignation = source.designation.trim();
+    if (cleanDesignation && !target.alternateDesignations.includes(cleanDesignation)) {
+      target.alternateDesignations.push(cleanDesignation);
+    }
+  }
+
+  if (Number.isFinite(source.distanceLy) && !Number.isFinite(target.distanceLy)) {
+    target.distanceLy = source.distanceLy;
+  }
+
+  return target;
+}
+
+function selectPrimaryFromIdentity(identity, fallbackId, fallbackNumber) {
+  let bestId = normaliseLocalCatalogueId(fallbackId) || '';
+  let bestPriority = cataloguePriority(bestId);
+  let bestNumber = Number.isFinite(fallbackNumber) ? Number(fallbackNumber) : null;
+
+  identity.numbersByCatalogue.forEach((numbers, id) => {
+    if (!numbers || numbers.size === 0) {
+      return;
+    }
+    const priority = cataloguePriority(id);
+    const firstNumber = Number.parseInt(Array.from(numbers)[0], 10);
+    if (!bestId) {
+      bestId = id;
+      bestPriority = priority;
+      bestNumber = Number.isFinite(firstNumber) ? firstNumber : bestNumber;
+      return;
+    }
+    if (priority < bestPriority) {
+      bestId = id;
+      bestPriority = priority;
+      bestNumber = Number.isFinite(firstNumber) ? firstNumber : bestNumber;
+      return;
+    }
+    if (priority === bestPriority && !Number.isFinite(bestNumber) && Number.isFinite(firstNumber)) {
+      bestId = id;
+      bestNumber = firstNumber;
+    }
+  });
+
+  return {
+    id: bestId || (fallbackId ? normaliseLocalCatalogueId(fallbackId) : null),
+    number: Number.isFinite(bestNumber) ? bestNumber : Number.isFinite(fallbackNumber) ? fallbackNumber : null
+  };
+}
+
+function buildDesignationList(identity) {
+  const list = [];
+  identity.numbersByCatalogue.forEach((numbers, id) => {
+    numbers.forEach((number) => {
+      const label = formatCatalogueDesignation(id, number);
+      if (label) {
+        list.push({
+          id,
+          number: Number.parseInt(number, 10),
+          label,
+          priority: cataloguePriority(id)
+        });
+      }
+    });
+  });
+  list.sort((a, b) => {
+    if (a.priority !== b.priority) return a.priority - b.priority;
+    if (Number.isFinite(a.number) && Number.isFinite(b.number)) {
+      return a.number - b.number;
+    }
+    return a.label.localeCompare(b.label);
+  });
+  return list;
+}
+
+function selectBaseName(identity, entry) {
+  if (identity.baseNames.size > 0) {
+    return Array.from(identity.baseNames)[0];
+  }
+  if (typeof entry.name === 'string') {
+    return entry.name;
+  }
+  return null;
+}
+
+function finalizeMergedEntry(entry) {
+  const identity = entry._identity || collectObjectIdentity(entry);
+  const { id: primaryId, number } = selectPrimaryFromIdentity(identity, entry.primaryCatalogueId, entry.number);
+
+  entry.primaryCatalogueId = primaryId || entry.primaryCatalogueId || null;
+  entry.number = Number.isFinite(number) ? number : entry.number;
+
+  const designationList = buildDesignationList(identity);
+  if (designationList.length > 0) {
+    const primaryDesignation = designationList[0];
+    entry.designation = primaryDesignation.label;
+    const altLabels = designationList.slice(1).map((item) => item.label);
+    if (altLabels.length > 0) {
+      entry.alternateDesignations = altLabels;
+    } else {
+      delete entry.alternateDesignations;
+    }
+    const baseName = selectBaseName(identity, entry);
+    if (baseName) {
+      const designationText = designationList.map((item) => item.label).join(' • ');
+      entry.name = `${designationText} — ${baseName}`;
+      entry.commonName = baseName;
+    } else {
+      entry.name = designationList.map((item) => item.label).join(' • ');
+      delete entry.commonName;
+    }
+  } else {
+    delete entry.alternateDesignations;
+    delete entry.commonName;
+  }
+
+  if (identity.baseNames.size > 0) {
+    const alternatives = Array.from(identity.baseNames).filter((name) => name !== entry.commonName);
+    if (alternatives.length > 0) {
+      entry.alternateNames = alternatives;
+    } else {
+      delete entry.alternateNames;
+    }
+  } else {
+    delete entry.alternateNames;
+  }
+
+  const refs = new Set(Array.isArray(entry.catalogueRefs) ? entry.catalogueRefs.map(normaliseLocalCatalogueId) : []);
+  designationList.forEach((item) => refs.add(item.id));
+  entry.catalogueRefs = Array.from(refs).filter(Boolean);
+
+  delete entry._identity;
+
+  return normalizeObjectEntry(entry, entry.primaryCatalogueId);
+}
+
+function deduplicateObjects(objects = []) {
+  if (!Array.isArray(objects) || objects.length === 0) {
+    return [];
+  }
+  const merged = [];
+  const index = new Map();
+
+  objects.forEach((object) => {
+    const clone = { ...object };
+    clone._identity = collectObjectIdentity(clone);
+    const keys = Array.from(clone._identity.membershipKeys);
+    let target = null;
+    for (const key of keys) {
+      if (index.has(key)) {
+        target = index.get(key);
+        break;
+      }
+    }
+    if (!target) {
+      merged.push(clone);
+      target = clone;
+    } else {
+      mergeObjectEntries(target, clone);
+    }
+    const identity = target._identity;
+    Array.from(identity.membershipKeys).forEach((key) => {
+      index.set(key, target);
+    });
+  });
+
+  return merged.map((entry) => finalizeMergedEntry(entry));
+}
+
 function slugify(value) {
   return String(value || '')
     .normalize('NFD')
@@ -196,13 +674,13 @@ export function parseCataloguePayload(payload) {
   let catalogues = [];
   let objects = [];
   if (Array.isArray(payload)) {
-    objects = payload.map((entry) => normalizeObjectEntry(entry));
+    objects = deduplicateObjects(payload.map((entry) => normalizeObjectEntry(entry)));
   } else {
     const rawCatalogues = Array.isArray(payload?.catalogues) ? payload.catalogues : [];
     catalogues = rawCatalogues.map((entry) => normalizeCatalogueEntry(entry));
     const fallbackCatalogueId = catalogues.find((item) => item.defaultSelected)?.id || catalogues[0]?.id || null;
     const rawObjects = Array.isArray(payload?.objects) ? payload.objects : [];
-    objects = rawObjects.map((entry) => normalizeObjectEntry(entry, fallbackCatalogueId));
+    objects = deduplicateObjects(rawObjects.map((entry) => normalizeObjectEntry(entry, fallbackCatalogueId)));
   }
   if (catalogues.length === 0) {
     const fallback = normalizeCatalogueEntry({
