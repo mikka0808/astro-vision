@@ -20,12 +20,13 @@
       <div class="simple-settings__header">
         <div>
           <h2 id="catalogue-preferences-heading">Catalogues disponibles</h2>
-          <p>Active uniquement les catalogues utiles pour chaque mode. Tu pourras toujours affiner plus tard dans l’application.</p>
+          <p>Choisis un usage, puis coche les catalogues que tu souhaites voir dans l’application. Les réglages s’appliquent à toutes les pages.</p>
         </div>
         <button type="button" id="resetCataloguePreferences" class="secondary">Réinitialiser</button>
       </div>
-      <div class="simple-settings__body" id="cataloguePreferencesPanel">
-        <div class="catalogue-settings__grid" id="cataloguePreferenceModes" aria-live="polite"></div>
+      <div class="simple-settings__body simple-settings__body--stack" id="cataloguePreferencesPanel">
+        <nav class="catalogue-settings__tabs" id="cataloguePreferenceTabs" aria-label="Modes d’observation"></nav>
+        <div class="catalogue-settings__mode-shell" id="cataloguePreferenceModeShell" aria-live="polite"></div>
       </div>
     </section>
   </main>
