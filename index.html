@@ -162,9 +162,6 @@
             <ul id="astrophotoGuidanceChecklist" class="astrophoto-guidance__checklist" hidden></ul>
           </div>
         </fieldset>
-        <div class="field-group submit">
-          <button type="submit" id="compute">🔭 Lancer l'analyse</button>
-        </div>
       </form>
       <p class="help-text">Astuce : vise un ciel aussi sombre que possible (Bortle bas), planifie proche de la nouvelle lune et contrôle la météo quelques heures avant de sortir.</p>
     </section>
@@ -316,6 +313,16 @@
         </details>
       </div>
       <div id="targets" class="targets-grid" role="list"></div>
+    </section>
+
+    <section class="panel panel--cta" aria-labelledby="section-launch">
+      <div class="panel-header">
+        <h2 id="section-launch">Prêt à lancer l'analyse ?</h2>
+        <p>Tu as tout réglé pour ta session. Envoie le calcul pour obtenir les recommandations personnalisées.</p>
+      </div>
+      <div class="panel-body">
+        <button type="submit" form="sessionForm" id="compute" class="cta-button">🔭 Lancer l'analyse</button>
+      </div>
     </section>
   </main>
   <footer>
