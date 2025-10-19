@@ -12,30 +12,27 @@ const MODE_METADATA = {
   visual: {
     icon: '🌙',
     title: 'Observation visuelle directe',
-    description: 'Messier, Caldwell et une sélection NGC lumineuse pour le ciel urbain/périurbain.'
+    description: 'Messier, Caldwell et NGC lumineux adaptés au ciel urbain.'
   },
   research: {
     icon: '🛰️',
-    title: 'Visuel assisté / Live stacking (EAA)',
-    description: 'Messier, Caldwell, NGC et nébuleuses Sharpless/LDN/vdB pour le stacking rapide.'
+    title: 'Visuel assisté (EAA)',
+    description: 'Messier, Caldwell, NGC et nébuleuses Sharpless pour le live stacking.'
   },
   astrophoto: {
     icon: '📸',
     title: 'Astrophotographie',
-    description: 'Messier, Caldwell, NGC/IC et extensions Sharpless, LDN, vdB, Arp, PGC pour la photo longue pose.'
+    description: 'Messier, Caldwell, NGC/IC et catalogues étendus pour la longue pose.'
   }
 };
 
 const modesContainer = document.getElementById('cataloguePreferenceModes');
-const statusOutput = document.getElementById('cataloguePreferencesStatus');
 const resetButton = document.getElementById('resetCataloguePreferences');
 const nightModeToggle = document.getElementById('nightModeToggle');
 
 const defaultSelections = getDefaultCatalogueSelections();
 let preferenceState = loadCataloguePreferences();
-const modeSummaries = new Map();
 const catalogueMeta = new Map();
-let statusTimeout = null;
 
 getCatalogueModes().forEach((mode) => {
   if (!Array.isArray(preferenceState[mode])) {
@@ -70,22 +67,6 @@ function initNightMode() {
   applyNightMode(enabled, { persist: false });
 }
 
-function showStatus(message, { persist = false } = {}) {
-  if (!statusOutput) return;
-  if (statusTimeout) {
-    clearTimeout(statusTimeout);
-    statusTimeout = null;
-  }
-  statusOutput.textContent = message || '';
-  statusOutput.dataset.visible = message ? 'true' : 'false';
-  if (!persist && message) {
-    statusTimeout = setTimeout(() => {
-      statusOutput.textContent = '';
-      delete statusOutput.dataset.visible;
-    }, 3200);
-  }
-}
-
 function formatCatalogueLabel(catalogue) {
   if (!catalogue) return '';
   const prefix = catalogue.abbreviation ? `${catalogue.abbreviation} — ` : '';
@@ -104,20 +85,6 @@ function formatCatalogueMeta(catalogue) {
   return details.join(' · ');
 }
 
-function updateModeSummary(modeId) {
-  const summary = modeSummaries.get(modeId);
-  if (!summary) return;
-  const selections = Array.isArray(preferenceState[modeId]) ? preferenceState[modeId] : [];
-  if (selections.length === 0) {
-    summary.textContent = 'Aucun catalogue sélectionné pour ce mode.';
-    return;
-  }
-  const labels = selections
-    .map((id) => catalogueMeta.get(id)?.abbreviation || catalogueMeta.get(id)?.name || id.toUpperCase())
-    .filter(Boolean);
-  summary.textContent = `Sélection actuelle : ${labels.join(' • ')}.`;
-}
-
 function handleCatalogueToggle(modeId, catalogueId, checked) {
   const current = new Set(Array.isArray(preferenceState[modeId]) ? preferenceState[modeId] : []);
   if (checked) {
@@ -127,8 +94,6 @@ function handleCatalogueToggle(modeId, catalogueId, checked) {
   }
   preferenceState[modeId] = Array.from(current);
   persistCataloguePreferences(preferenceState);
-  updateModeSummary(modeId);
-  showStatus('Préférences sauvegardées.');
 }
 
 function buildModeFieldset(modeId, catalogues) {
@@ -197,19 +162,12 @@ function buildModeFieldset(modeId, catalogues) {
     options.appendChild(label);
   });
 
-  const summary = document.createElement('p');
-  summary.className = 'help-text catalogue-settings__summary';
-  fieldset.appendChild(summary);
-  modeSummaries.set(modeId, summary);
-  updateModeSummary(modeId);
-
   return fieldset;
 }
 
 function renderModes(catalogues) {
   if (!modesContainer) return;
   modesContainer.innerHTML = '';
-  modeSummaries.clear();
   const orderedModes = getCatalogueModes();
   orderedModes.forEach((modeId) => {
     const fieldset = buildModeFieldset(modeId, catalogues);
@@ -237,10 +195,8 @@ async function loadCatalogues() {
     if (resetButton) {
       resetButton.disabled = false;
     }
-    showStatus('Préférences chargées.', { persist: true });
   } catch (error) {
     console.error(error);
-    showStatus('Erreur : impossible de charger les catalogues.', { persist: true });
     if (resetButton) {
       resetButton.disabled = true;
     }
@@ -252,7 +208,6 @@ if (resetButton) {
     preferenceState = resetCataloguePreferences();
     persistCataloguePreferences(preferenceState);
     renderModes(Array.from(catalogueMeta.values()));
-    showStatus('Recommandations par défaut rétablies.', { persist: true });
   });
 }
 

@@ -7,46 +7,30 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="catalogue-settings-page">
-  <header class="hero hero--compact">
-    <div class="hero-content">
-      <div class="hero-heading">
-        <h1>Préférences de catalogue</h1>
-        <p>Choisis les catalogues chargés par défaut selon ton usage : observation visuelle, visuel assisté (EAA) ou astrophotographie.</p>
-        <nav class="top-nav" aria-label="Navigation principale">
-          <a class="nav-link" href="index.html">← Retour à l'analyse</a>
-          <a class="nav-link" href="dashboard.html">Tableau de bord</a>
-          <a class="nav-link" href="catalogue.html">Catalogue d’observation</a>
-          <a class="nav-link" href="star-map.html">Carte du ciel</a>
-          <a class="nav-link" href="score-settings.html">Réglage du score</a>
-        </nav>
-      </div>
-      <button type="button" id="nightModeToggle" class="night-toggle" aria-pressed="false">🔦 Mode nuit</button>
+  <header class="page-header simple-page-header">
+    <a class="page-header__back" href="index.html">← Retour</a>
+    <div class="page-header__content">
+      <h1>Préférences de catalogue</h1>
+      <p>Sélectionne les catalogues proposés par défaut pour chaque usage. Les choix sont mémorisés pendant un an.</p>
     </div>
+    <button type="button" id="nightModeToggle" class="night-toggle" aria-pressed="false">🔦 Mode nuit</button>
   </header>
   <main>
-    <section class="panel" aria-labelledby="catalogue-preferences-heading">
-      <div class="panel-header">
-        <h2 id="catalogue-preferences-heading">Adapter les catalogues à ton ciel</h2>
-        <p>Les sélections ci-dessous reflètent la hiérarchie recommandée pour l’Europe de l’Ouest : elles privilégient les catalogues les plus utiles par type de pratique, du ciel urbain au site semi-sombre.</p>
-      </div>
-      <div class="panel-body catalogue-settings" id="cataloguePreferencesPanel">
-        <p class="help-text">Les changements sont enregistrés automatiquement dans un cookie (1 an). Tu pourras ensuite affiner la sélection sur chaque page si besoin.</p>
-        <p class="catalogue-settings__status" id="cataloguePreferencesStatus" role="status" aria-live="polite"></p>
-        <div class="catalogue-settings__grid" id="cataloguePreferenceModes" aria-live="polite"></div>
-        <div class="catalogue-settings__actions">
-          <button type="button" id="resetCataloguePreferences" class="secondary">Réinitialiser les recommandations par défaut</button>
+    <section class="panel simple-settings" aria-labelledby="catalogue-preferences-heading">
+      <div class="simple-settings__header">
+        <div>
+          <h2 id="catalogue-preferences-heading">Catalogues disponibles</h2>
+          <p>Active uniquement les catalogues utiles pour chaque mode. Tu pourras toujours affiner plus tard dans l’application.</p>
         </div>
+        <button type="button" id="resetCataloguePreferences" class="secondary">Réinitialiser</button>
+      </div>
+      <div class="simple-settings__body" id="cataloguePreferencesPanel">
+        <div class="catalogue-settings__grid" id="cataloguePreferenceModes" aria-live="polite"></div>
       </div>
     </section>
   </main>
-  <footer>
-    <nav class="footer-nav">
-      <a class="nav-link" href="index.html">Page principale</a>
-      <a class="nav-link" href="catalogue.html">Catalogue d’observation</a>
-      <a class="nav-link" href="dashboard.html">Tableau de bord</a>
-      <a class="nav-link" href="star-map.html">Carte du ciel</a>
-    </nav>
-    <small>Préférences stockées localement pendant un an. Pense à réinitialiser si tu changes radicalement de pratique ou de ciel.</small>
+  <footer class="simple-page-footer">
+    <small>Préférences enregistrées localement pendant un an.</small>
   </footer>
   <script type="module" src="catalogue-settings.js"></script>
 </body>
