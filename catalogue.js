@@ -203,7 +203,7 @@ function formatObservationModeLabel(mode) {
   const normalized = mode.toLowerCase();
   if (normalized === 'visual') return 'Observation visuelle';
   if (normalized === 'astrophoto') return 'Astrophotographie';
-  if (normalized === 'research') return 'Recherche scientifique';
+  if (normalized === 'research') return 'Visuel assisté (EAA)';
   return mode;
 }
 

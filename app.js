@@ -34,8 +34,12 @@ import {
   getCatalogueSourceSummary
 } from './catalogue-data.js';
 import { loadScorePreferencesFromCookie } from './score-preferences.js';
+import { getDefaultCatalogueSelections, loadCataloguePreferences } from './catalogue-preferences.js';
 
 loadScorePreferencesFromCookie();
+
+const defaultCatalogueSelections = getDefaultCatalogueSelections();
+const storedCataloguePreferences = loadCataloguePreferences();
 
 const sessionForm = document.getElementById('sessionForm');
 const addressInput = document.getElementById('addressLookup');
@@ -208,21 +212,28 @@ const OBSERVATION_MODES = {
     id: 'visual',
     icon: '🌙',
     label: 'Observation visuelle',
-    recommended: ['messier', 'caldwell', 'ngc']
+    recommended: defaultCatalogueSelections.visual
   },
   astrophoto: {
     id: 'astrophoto',
     icon: '📸',
     label: 'Astrophotographie',
-    recommended: ['ngc', 'ic', 'sharpless', 'ldn', 'vdb']
+    recommended: defaultCatalogueSelections.astrophoto
   },
   research: {
     id: 'research',
-    icon: '🔭',
-    label: 'Recherche scientifique',
-    recommended: ['gaia', 'ugc', 'arp', 'pgc']
+    icon: '🛰️',
+    label: 'Visuel assisté (EAA)',
+    recommended: defaultCatalogueSelections.research
   }
 };
+
+Object.entries(storedCataloguePreferences).forEach(([mode, selection]) => {
+  if (!OBSERVATION_MODES[mode]) return;
+  if (Array.isArray(selection)) {
+    OBSERVATION_MODES[mode].recommended = selection;
+  }
+});
 let activeObservationMode = 'visual';
 
 const sunTimesCache = new Map();

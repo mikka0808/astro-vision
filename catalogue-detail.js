@@ -380,7 +380,7 @@ function renderUsage(object) {
   const entries = [
     { key: 'visual', label: 'Observation visuelle', icon: '👁️' },
     { key: 'astrophoto', label: 'Astrophotographie', icon: '📷' },
-    { key: 'research', label: 'Recherche & CROA', icon: '🔬' }
+    { key: 'research', label: 'Visuel assisté (EAA)', icon: '🛰️' }
   ]
     .map((entry) => {
       const value = Number(weights[entry.key]);

@@ -2675,6 +2675,127 @@ blockquote {
   }
 }
 
+.catalogue-settings {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1rem, 2vw, 1.75rem);
+}
+
+.catalogue-settings__status {
+  margin: 0;
+  min-height: 1.2rem;
+  font-size: 0.95rem;
+  color: var(--color-text-soft);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.catalogue-settings__status[data-visible='true'] {
+  opacity: 1;
+}
+
+.catalogue-settings__grid {
+  display: grid;
+  gap: clamp(1rem, 2vw, 1.5rem);
+}
+
+@media (min-width: 880px) {
+  .catalogue-settings__grid {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+}
+
+.catalogue-settings__mode {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-quiet);
+  padding: clamp(1rem, 2vw, 1.35rem);
+  display: grid;
+  gap: 0.9rem;
+}
+
+.catalogue-settings__legend {
+  margin: 0;
+  padding: 0 0.35rem;
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.catalogue-settings__mode-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.catalogue-settings__mode-hint {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.catalogue-settings__options {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.catalogue-settings__option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-soft);
+  background: var(--color-surface-soft);
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.catalogue-settings__option input {
+  margin-top: 0.2rem;
+}
+
+.catalogue-settings__option-content {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.catalogue-settings__option-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.catalogue-settings__option-meta {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.catalogue-settings__option:hover,
+.catalogue-settings__option:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(130, 183, 255, 0.2);
+}
+
+.catalogue-settings__option--recommended {
+  border-color: rgba(130, 183, 255, 0.45);
+  background: rgba(130, 183, 255, 0.08);
+}
+
+body.night-mode .catalogue-settings__option--recommended {
+  border-color: rgba(255, 154, 139, 0.45);
+  background: rgba(255, 154, 139, 0.08);
+}
+
+.catalogue-settings__summary {
+  margin: 0;
+}
+
+.catalogue-settings__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .score-summary {
   list-style: none;
   padding: 0;
