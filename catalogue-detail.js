@@ -53,10 +53,15 @@ const message = document.getElementById('objectMessage');
 const heading = document.getElementById('objectHeading');
 const baseline = document.getElementById('objectBaseline');
 const mediaContainer = document.getElementById('objectMedia');
+const mediaSourcesSection = document.getElementById('objectMediaSources');
+const mediaCandidatesList = document.getElementById('objectMediaCandidates');
 const label = document.getElementById('objectLabel');
 const title = document.getElementById('objectTitle');
 const subtitle = document.getElementById('objectSubtitle');
 const facts = document.getElementById('objectFacts');
+const summaryMagnitude = document.getElementById('objectSummaryMagnitude');
+const summaryDistance = document.getElementById('objectSummaryDistance');
+const summaryWindow = document.getElementById('objectSummaryWindow');
 const storyParagraph = document.getElementById('objectStory');
 const observationParagraph = document.getElementById('objectObservation');
 const sourcesList = document.getElementById('objectSources');
@@ -178,6 +183,37 @@ function formatCatalogueList(ids = []) {
       return catalogue.abbreviation || catalogue.name || id.toUpperCase();
     })
     .join(' • ');
+}
+
+function extractProvider(url) {
+  if (!url) return null;
+  try {
+    const { hostname } = new URL(url);
+    return hostname.replace(/^www\./i, '');
+  } catch (error) {
+    return null;
+  }
+}
+
+function buildCandidateLabel(url, index) {
+  const provider = extractProvider(url);
+  if (provider) {
+    return provider;
+  }
+  return `Visuel ${index + 1}`;
+}
+
+function resetSummary() {
+  if (summaryMagnitude) summaryMagnitude.textContent = '—';
+  if (summaryDistance) summaryDistance.textContent = '—';
+  if (summaryWindow) summaryWindow.textContent = '—';
+}
+
+function updateSummary(values = {}) {
+  const { magnitude = '—', distance = '—', window = '—' } = values;
+  if (summaryMagnitude) summaryMagnitude.textContent = magnitude;
+  if (summaryDistance) summaryDistance.textContent = distance;
+  if (summaryWindow) summaryWindow.textContent = window;
 }
 
 function buildObjectLabel(object) {
@@ -471,6 +507,50 @@ function applyMediaDetail(detail) {
   currentMediaDetail = detail || null;
   updateMediaMeta(currentMediaDetail);
   updateMediaSourceList(currentMediaDetail);
+  updateMediaCandidates(currentMediaDetail);
+}
+
+function updateMediaCandidates(detail) {
+  if (!mediaCandidatesList || !mediaSourcesSection) return;
+  mediaCandidatesList.innerHTML = '';
+  const fallbackCandidates =
+    Array.isArray(mediaCandidateSources?.sources) && mediaCandidateSources.sources.length > 0
+      ? mediaCandidateSources.sources
+      : [];
+  const detailCandidates = Array.isArray(detail?.candidates) ? detail.candidates : [];
+  const combined = detail ? [...detailCandidates, ...fallbackCandidates] : fallbackCandidates;
+  const candidates = Array.from(new Set(combined.filter(Boolean)));
+
+  if (candidates.length === 0) {
+    mediaSourcesSection.hidden = true;
+    return;
+  }
+
+  mediaSourcesSection.hidden = false;
+  const activeUrl = detail?.url || null;
+
+  candidates.forEach((url, index) => {
+    const li = document.createElement('li');
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noreferrer';
+    const labelText = buildCandidateLabel(url, index);
+    link.title = `Ouvrir ${labelText}`;
+    link.setAttribute('aria-label', `Ouvrir le visuel ${labelText} dans un nouvel onglet`);
+    const icon = document.createElement('span');
+    icon.setAttribute('aria-hidden', 'true');
+    const isActive = activeUrl && activeUrl === url;
+    icon.textContent = isActive ? '★' : '🔭';
+    link.append(icon);
+    link.append(document.createTextNode(` ${labelText}`));
+    if (isActive) {
+      link.classList.add('is-active');
+      link.setAttribute('aria-current', 'true');
+    }
+    li.appendChild(link);
+    mediaCandidatesList.appendChild(li);
+  });
 }
 
 function createFact(term, detail) {
@@ -659,6 +739,8 @@ function renderFacts(object, dossier) {
   ].forEach(([term, detail]) => {
     facts.appendChild(createFact(term, detail));
   });
+
+  updateSummary({ magnitude: magnitudeText, distance: distanceText, window: monthsText });
 }
 
 function renderNarrative(object, dossier) {
@@ -777,6 +859,8 @@ function renderSession(snapshot, metrics) {
 
 async function bootstrap() {
   const request = parseObjectRequest();
+  resetSummary();
+  updateMediaCandidates(null);
   if (!request.slug && !Number.isFinite(request.number)) {
     message.textContent =
       'Aucun identifiant de catalogue valide fourni. Retourne au catalogue pour sélectionner une cible.';
@@ -794,6 +878,7 @@ async function bootstrap() {
       message.textContent =
         "Impossible de trouver cette cible dans les catalogues chargés. Vérifie ta sélection depuis la page principale.";
       article.hidden = true;
+      resetSummary();
       return;
     }
 
@@ -834,6 +919,7 @@ async function bootstrap() {
     console.error(error);
     message.textContent = "Impossible de charger cette fiche pour le moment. Vérifie ta connexion ou réessaie plus tard.";
     article.hidden = true;
+    resetSummary();
   }
 }
 

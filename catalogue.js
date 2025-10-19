@@ -1602,7 +1602,7 @@ function buildCard(object, metrics) {
   } else if (Number.isFinite(object.number)) {
     detailParams.set('number', object.number);
   }
-  const destination = `messier.html?${detailParams.toString()}`;
+  const destination = `fiche-catalogue.html?${detailParams.toString()}`;
   const card = document.createElement('article');
   card.className = `catalogue-card tone-frame ${classifyScore(score)}`;
   card.setAttribute('role', 'listitem');

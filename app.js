@@ -39,6 +39,7 @@ loadScorePreferencesFromCookie();
 
 const sessionForm = document.getElementById('sessionForm');
 const addressInput = document.getElementById('addressLookup');
+const addressSuggestionList = document.getElementById('addressSuggestions');
 const resolveAddressBtn = document.getElementById('resolveAddress');
 const useGeolocBtn = document.getElementById('useGeoloc');
 const latitudeInput = document.getElementById('latitude');
@@ -145,6 +146,9 @@ let computedNightDurationHours = null;
 let computedNightSessionSlots = null;
 let computedNightStartDate = null;
 let computedNightEndDate = null;
+let addressSuggestionFetchTimeout = null;
+let addressSuggestionAbortController = null;
+let addressSuggestionsData = [];
 
 function applyGlobalScoreTone(scoreValue) {
   const tone = resolveScoreTone(scoreValue, { scale: 100 });
@@ -2427,9 +2431,14 @@ const handleSessionTimeChange = () => {
 timeInput.addEventListener('change', handleSessionTimeChange);
 timeInput.addEventListener('input', handleSessionTimeChange);
 resolveAddressBtn.addEventListener('click', resolveAddress);
+addressInput.addEventListener('input', (event) => {
+  scheduleAddressSuggestions(event.target.value);
+});
+addressInput.addEventListener('change', handleAddressSuggestionSelection);
 addressInput.addEventListener('keydown', (event) => {
   if (event.key === 'Enter') {
     event.preventDefault();
+    handleAddressSuggestionSelection();
     resolveAddress();
   }
 });
@@ -2555,6 +2564,95 @@ initNightMode();
   }
 })();
 
+const ADDRESS_SUGGESTION_MIN_LENGTH = 3;
+const ADDRESS_SUGGESTION_LIMIT = 5;
+const ADDRESS_SUGGESTION_DEBOUNCE = 220;
+
+function clearAddressSuggestions() {
+  addressSuggestionsData = [];
+  if (addressSuggestionList) {
+    addressSuggestionList.innerHTML = '';
+  }
+}
+
+function findAddressSuggestionByLabel(label) {
+  if (!label) return null;
+  const normalized = label.trim().toLowerCase();
+  return addressSuggestionsData.find((feature) => {
+    const candidate = feature?.properties?.label;
+    return typeof candidate === 'string' && candidate.trim().toLowerCase() === normalized;
+  }) || null;
+}
+
+function applyAddressSuggestion(feature) {
+  if (!feature) return false;
+  const coordinates = feature?.geometry?.coordinates;
+  if (!Array.isArray(coordinates) || coordinates.length < 2) {
+    return false;
+  }
+  const [lon, lat] = coordinates;
+  fillCoordinates(lat, lon);
+  autoFetchBortle();
+  return true;
+}
+
+async function requestAddressSuggestions(query) {
+  if (!addressSuggestionList) return;
+  if (addressSuggestionAbortController) {
+    addressSuggestionAbortController.abort();
+  }
+  addressSuggestionAbortController = new AbortController();
+  try {
+    const response = await fetch(
+      `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=${ADDRESS_SUGGESTION_LIMIT}&autocomplete=1`,
+      { signal: addressSuggestionAbortController.signal }
+    );
+    if (!response.ok) {
+      throw new Error('Adresse introuvable');
+    }
+    const data = await response.json();
+    const features = Array.isArray(data?.features) ? data.features.slice(0, ADDRESS_SUGGESTION_LIMIT) : [];
+    addressSuggestionsData = features;
+    addressSuggestionList.innerHTML = '';
+    features.forEach((feature) => {
+      const option = document.createElement('option');
+      const label = feature?.properties?.label || feature?.properties?.name;
+      if (!label) return;
+      option.value = label;
+      addressSuggestionList.appendChild(option);
+    });
+  } catch (error) {
+    if (error.name === 'AbortError') return;
+    console.error('Impossible de proposer des adresses :', error);
+    clearAddressSuggestions();
+  } finally {
+    addressSuggestionAbortController = null;
+  }
+}
+
+function scheduleAddressSuggestions(query) {
+  if (!addressSuggestionList) return;
+  if (addressSuggestionFetchTimeout) {
+    clearTimeout(addressSuggestionFetchTimeout);
+  }
+  if (!query || query.trim().length < ADDRESS_SUGGESTION_MIN_LENGTH) {
+    clearAddressSuggestions();
+    return;
+  }
+  addressSuggestionFetchTimeout = setTimeout(() => {
+    requestAddressSuggestions(query.trim());
+  }, ADDRESS_SUGGESTION_DEBOUNCE);
+}
+
+function handleAddressSuggestionSelection() {
+  const value = addressInput ? addressInput.value.trim() : '';
+  if (!value) return;
+  const suggestion = findAddressSuggestionByLabel(value);
+  if (applyAddressSuggestion(suggestion)) {
+    clearAddressSuggestions();
+  }
+}
+
 async function resolveAddress() {
   const query = addressInput.value.trim();
   if (!query) {
@@ -2564,6 +2662,10 @@ async function resolveAddress() {
   resolveAddressBtn.disabled = true;
   resolveAddressBtn.textContent = '…';
   try {
+    const suggestion = findAddressSuggestionByLabel(query);
+    if (applyAddressSuggestion(suggestion)) {
+      return;
+    }
     const response = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=1`);
     if (!response.ok) {
       throw new Error('Adresse introuvable');
