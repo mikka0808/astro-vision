@@ -18,6 +18,18 @@
             <span class="site-brand__word site-brand__word--evening">Soir</span>
           </span>
         </a>
+        <div class="hero-tools">
+          <div class="equipment-switcher" data-equipment-switcher hidden>
+            <label for="headerEquipmentSelect">Équipement actif</label>
+            <div class="equipment-switcher__controls">
+              <select id="headerEquipmentSelect" data-equipment-select aria-label="Sélection rapide d’équipement">
+                <option>Chargement…</option>
+              </select>
+              <a class="link-button equipment-switcher__manage" href="mes-equipements.html">Gérer</a>
+            </div>
+            <p class="equipment-switcher__summary" data-equipment-summary>Chargement des profils…</p>
+          </div>
+        </div>
       </div>
       <div class="hero-heading">
         <h1 id="objectHeading">Fiche catalogue</h1>
@@ -25,6 +37,7 @@
         <nav class="top-nav" aria-label="Navigation principale">
           <a class="nav-link" href="catalogue.html">← Retour au catalogue</a>
           <a class="nav-link" href="index.html">Préparer une nouvelle session</a>
+          <a class="nav-link" href="mes-equipements.html">Mes équipements</a>
           <a class="nav-link" href="catalogue-settings.html">Préférences de catalogue</a>
           <a class="nav-link" href="src/pages/mes-listes.html">Mes listes</a>
           <a class="nav-link" href="star-map.html">Carte du ciel</a>
@@ -123,12 +136,14 @@
     <nav class="footer-nav">
       <a class="nav-link" href="catalogue.html">Catalogue d’observation</a>
       <a class="nav-link" href="index.html">Préparer la session</a>
+      <a class="nav-link" href="mes-equipements.html">Mes équipements</a>
       <a class="nav-link" href="catalogue-settings.html">Préférences de catalogue</a>
       <a class="nav-link" href="src/pages/mes-listes.html">Mes listes</a>
       <a class="nav-link" href="star-map.html">Carte du ciel</a>
     </nav>
     <small>Astro Soir consolide les données météo Open‑Meteo et plusieurs catalogues d’observation.</small>
   </footer>
+  <script type="module" src="src/state/equipement-header.js"></script>
   <script type="module" src="catalogue-detail.js"></script>
 </body>
 </html>

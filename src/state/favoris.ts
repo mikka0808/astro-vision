@@ -1,4 +1,4 @@
-import { readStorage, writeStorage } from '../utils/storage';
+import { readStorage, writeStorage } from '../utils/storage.js';
 
 export interface Liste {
   id: string;

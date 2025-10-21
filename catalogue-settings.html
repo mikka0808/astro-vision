@@ -23,7 +23,19 @@
       <h1>Préférences de catalogue</h1>
       <p>Sélectionne les catalogues proposés par défaut pour chaque usage. Les choix sont mémorisés pendant un an.</p>
     </div>
-    <button type="button" id="nightModeToggle" class="night-toggle" aria-pressed="false">🔦 Mode nuit</button>
+    <div class="hero-tools">
+      <div class="equipment-switcher" data-equipment-switcher hidden>
+        <label for="headerEquipmentSelect">Équipement actif</label>
+        <div class="equipment-switcher__controls">
+          <select id="headerEquipmentSelect" data-equipment-select aria-label="Sélection rapide d’équipement">
+            <option>Chargement…</option>
+          </select>
+          <a class="link-button equipment-switcher__manage" href="mes-equipements.html">Gérer</a>
+        </div>
+        <p class="equipment-switcher__summary" data-equipment-summary>Chargement des profils…</p>
+      </div>
+      <button type="button" id="nightModeToggle" class="night-toggle" aria-pressed="false">🔦 Mode nuit</button>
+    </div>
   </header>
   <main>
     <section class="panel simple-settings" aria-labelledby="catalogue-preferences-heading">
@@ -43,6 +55,7 @@
   <footer class="simple-page-footer">
     <small>Préférences enregistrées localement pendant un an.</small>
   </footer>
+  <script type="module" src="src/state/equipement-header.js"></script>
   <script type="module" src="catalogue-settings.js"></script>
 </body>
 </html>

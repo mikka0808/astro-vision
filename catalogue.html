@@ -18,7 +18,19 @@
             <span class="site-brand__word site-brand__word--evening">Soir</span>
           </span>
         </a>
-        <button type="button" id="nightModeToggle" class="night-toggle" aria-pressed="false">🔦 Mode nuit</button>
+        <div class="hero-tools">
+          <div class="equipment-switcher" data-equipment-switcher hidden>
+            <label for="headerEquipmentSelect">Équipement actif</label>
+            <div class="equipment-switcher__controls">
+              <select id="headerEquipmentSelect" data-equipment-select aria-label="Sélection rapide d’équipement">
+                <option>Chargement…</option>
+              </select>
+              <a class="link-button equipment-switcher__manage" href="mes-equipements.html">Gérer</a>
+            </div>
+            <p class="equipment-switcher__summary" data-equipment-summary>Chargement des profils…</p>
+          </div>
+          <button type="button" id="nightModeToggle" class="night-toggle" aria-pressed="false">🔦 Mode nuit</button>
+        </div>
       </div>
       <div class="hero-heading">
         <h1 id="catalogueTitle">Catalogue d’observation</h1>
@@ -26,6 +38,7 @@
         <nav class="top-nav" aria-label="Navigation principale">
           <a class="nav-link" href="index.html">← Retour à l'analyse</a>
           <a class="nav-link" href="dashboard.html">Tableau de bord</a>
+          <a class="nav-link" href="mes-equipements.html">Mes équipements</a>
           <a class="nav-link" href="catalogue-settings.html">Préférences de catalogue</a>
           <a class="nav-link" href="star-map.html">Carte du ciel</a>
           <a class="nav-link" href="src/pages/mes-listes.html">Mes listes</a>
@@ -141,12 +154,14 @@
     <nav class="footer-nav">
       <a class="nav-link" href="index.html">Page principale</a>
       <a class="nav-link" href="dashboard.html">Tableau de bord</a>
+      <a class="nav-link" href="mes-equipements.html">Mes équipements</a>
       <a class="nav-link" href="catalogue-settings.html">Préférences de catalogue</a>
       <a class="nav-link" href="star-map.html">Carte du ciel</a>
       <a class="nav-link" href="src/pages/mes-listes.html">Mes listes</a>
     </nav>
     <small>Sources météo : <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open‑Meteo</a>. Catalogues et métadonnées consolidés par Astro Soir.</small>
   </footer>
+  <script type="module" src="src/state/equipement-header.js"></script>
   <script type="module" src="catalogue.js"></script>
 </body>
 </html>

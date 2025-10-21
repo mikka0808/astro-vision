@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Astro Soir — Mes équipements</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="equipment-page">
+  <header class="hero hero--compact">
+    <div class="hero-content">
+      <div class="hero-bar">
+        <a class="site-brand" href="index.html">
+          <span class="site-brand__logo" aria-hidden="true">🪐</span>
+          <span class="site-brand__text">
+            <span class="site-brand__word">Astro</span>
+            <span class="site-brand__accent" aria-hidden="true">✶</span>
+            <span class="site-brand__word site-brand__word--evening">Soir</span>
+          </span>
+        </a>
+        <div class="hero-tools">
+          <div class="equipment-switcher" data-equipment-switcher hidden>
+            <label for="headerEquipmentSelect">Équipement actif</label>
+            <div class="equipment-switcher__controls">
+              <select id="headerEquipmentSelect" data-equipment-select aria-label="Sélection rapide d’équipement">
+                <option>Chargement…</option>
+              </select>
+              <a class="link-button equipment-switcher__manage" href="mes-equipements.html">Gérer</a>
+            </div>
+            <p class="equipment-switcher__summary" data-equipment-summary>Chargement des profils…</p>
+          </div>
+          <button type="button" id="nightModeToggle" class="night-toggle" aria-pressed="false">🔦 Mode nuit</button>
+        </div>
+      </div>
+      <div class="hero-heading">
+        <h1>Mes équipements</h1>
+        <p>Ajoute tes configurations photo réelles pour calculer instantanément le champ de vision et l’échantillonnage.</p>
+        <nav class="top-nav" aria-label="Navigation principale">
+          <a class="nav-link" href="index.html">Page principale</a>
+          <a class="nav-link" href="dashboard.html">Tableau de bord</a>
+          <a class="nav-link" href="catalogue.html">Catalogue d’observation</a>
+          <a class="nav-link" href="mes-equipements.html" aria-current="page">Mes équipements</a>
+          <a class="nav-link" href="catalogue-settings.html">Préférences de catalogue</a>
+          <a class="nav-link" href="src/pages/mes-listes.html">Mes listes</a>
+          <a class="nav-link" href="star-map.html">Carte du ciel</a>
+          <a class="nav-link" href="score-settings.html">Réglage du score</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+  <main class="equipment-main">
+    <section class="panel" id="equipmentPanel">
+      <div class="panel-header">
+        <div class="panel-heading">
+          <h2>Profils d’équipement</h2>
+          <p>Enregistre ton matériel pour retrouver automatiquement le champ de vision, l’échantillonnage et la focale effective.</p>
+        </div>
+        <button type="button" id="createEquipmentProfile" class="link-button link-button--accent">➕ Nouveau profil</button>
+      </div>
+      <div class="panel-body">
+        <div class="equipment-layout">
+          <aside class="equipment-list-panel">
+            <h3>Profils enregistrés</h3>
+            <p id="equipmentListHint" class="equipment-list__hint">Chargement des profils…</p>
+            <div id="equipmentList" class="equipment-list" role="list"></div>
+          </aside>
+          <form id="equipmentForm" class="equipment-form" novalidate>
+            <div class="equipment-form__header">
+              <h3 id="equipmentFormTitle">Modifier le profil</h3>
+              <p id="equipmentStatus" class="equipment-status" hidden></p>
+            </div>
+            <div class="form-grid">
+              <div class="field-group">
+                <label for="equipmentName">Nom du profil</label>
+                <input type="text" id="equipmentName" name="equipmentName" placeholder="Ex. Newton 200 + ASI2600" required>
+              </div>
+              <div class="field-group">
+                <label for="equipmentFocale">Focale (mm)</label>
+                <input type="number" id="equipmentFocale" name="equipmentFocale" min="1" step="0.1" required>
+              </div>
+              <div class="field-group">
+                <label for="equipmentOuverture">Ouverture (mm)</label>
+                <input type="number" id="equipmentOuverture" name="equipmentOuverture" min="1" step="0.1" required>
+              </div>
+              <div class="field-group">
+                <label for="equipmentReducteur">Réducteur / Barlow</label>
+                <input type="number" id="equipmentReducteur" name="equipmentReducteur" min="0.1" step="0.01" placeholder="1.0">
+                <small class="help-text">Laisse vide pour une focale native.</small>
+              </div>
+              <div class="field-group">
+                <label for="equipmentBin">Binning</label>
+                <input type="number" id="equipmentBin" name="equipmentBin" min="1" step="1" value="1">
+              </div>
+              <div class="field-group">
+                <label for="equipmentRotation">Rotation du capteur (°)</label>
+                <input type="number" id="equipmentRotation" name="equipmentRotation" step="0.1" value="0">
+              </div>
+              <div class="field-group">
+                <label for="equipmentSensorWidth">Largeur du capteur (mm)</label>
+                <input type="number" id="equipmentSensorWidth" name="equipmentSensorWidth" min="1" step="0.1" required>
+              </div>
+              <div class="field-group">
+                <label for="equipmentSensorHeight">Hauteur du capteur (mm)</label>
+                <input type="number" id="equipmentSensorHeight" name="equipmentSensorHeight" min="1" step="0.1" required>
+              </div>
+              <div class="field-group">
+                <label for="equipmentPixel">Taille des pixels (µm)</label>
+                <input type="number" id="equipmentPixel" name="equipmentPixel" min="0.1" step="0.01" required>
+              </div>
+              <div class="field-group field-group--toggle equipment-checkbox-group">
+                <p class="equipment-checkbox-group__title">Orientation du capteur</p>
+                <label class="equipment-checkbox">
+                  <input type="checkbox" id="equipmentMirrorX" name="equipmentMirrorX">
+                  <span>Inverser l’axe horizontal</span>
+                </label>
+                <label class="equipment-checkbox">
+                  <input type="checkbox" id="equipmentMirrorY" name="equipmentMirrorY">
+                  <span>Inverser l’axe vertical</span>
+                </label>
+              </div>
+              <div class="field-group field-group--toggle equipment-checkbox-group">
+                <label class="equipment-checkbox equipment-checkbox--single">
+                  <input type="checkbox" id="equipmentSetActive" name="equipmentSetActive">
+                  <span>Définir comme profil actif</span>
+                </label>
+                <p class="help-text">Le profil actif est affiché dans le sélecteur rapide de l’en-tête.</p>
+              </div>
+            </div>
+            <section class="equipment-preview" aria-live="polite">
+              <h4>Calculs en direct</h4>
+              <dl class="equipment-preview__grid">
+                <div>
+                  <dt>Focale effective</dt>
+                  <dd id="previewFocale">—</dd>
+                </div>
+                <div>
+                  <dt>Champ (°)</dt>
+                  <dd id="previewFov">—</dd>
+                </div>
+                <div>
+                  <dt>Échantillonnage</dt>
+                  <dd id="previewSampling">—</dd>
+                </div>
+                <div>
+                  <dt>Rapport focal</dt>
+                  <dd id="previewRatio">—</dd>
+                </div>
+              </dl>
+              <p class="help-text">Ces valeurs se mettent à jour en fonction des dimensions de ton capteur et de ta focale.</p>
+            </section>
+            <div class="equipment-form__actions">
+              <button type="submit" id="saveEquipmentProfile">Enregistrer les modifications</button>
+              <button type="button" class="link-button link-button--danger" id="deleteEquipmentProfile">Supprimer</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <nav class="footer-nav">
+      <a class="nav-link" href="index.html">Page principale</a>
+      <a class="nav-link" href="dashboard.html">Tableau de bord</a>
+      <a class="nav-link" href="catalogue.html">Catalogue d’observation</a>
+      <a class="nav-link" href="catalogue-settings.html">Préférences de catalogue</a>
+      <a class="nav-link" href="src/pages/mes-listes.html">Mes listes</a>
+      <a class="nav-link" href="star-map.html">Carte du ciel</a>
+    </nav>
+    <small>Configure ton matériel pour adapter les recommandations photo d’Astro Soir.</small>
+  </footer>
+  <script type="module" src="src/state/equipement-header.js"></script>
+  <script type="module" src="src/pages/mes-equipements.js"></script>
+</body>
+</html>
