@@ -19,21 +19,11 @@
           </span>
         </a>
         <div class="hero-tools">
-          <div class="equipment-switcher" data-equipment-switcher hidden>
-            <label for="headerEquipmentSelect">Équipement actif</label>
-            <div class="equipment-switcher__controls">
-              <select id="headerEquipmentSelect" data-equipment-select aria-label="Sélection rapide d’équipement">
-                <option>Chargement…</option>
-              </select>
-              <a class="link-button equipment-switcher__manage" href="mes-equipements.html">Gérer</a>
-            </div>
-            <p class="equipment-switcher__summary" data-equipment-summary>Chargement des profils…</p>
-          </div>
         </div>
       </div>
-      <div class="hero-heading">
-        <h1 id="objectHeading">Fiche catalogue</h1>
-        <p id="objectBaseline">Choisis un objet du ciel profond pour dévoiler sa carte d'identité interactive.</p>
+      <h1 id="objectHeading" class="sr-only">Fiche catalogue</h1>
+      <p id="objectBaseline" class="sr-only">Choisis un objet du ciel profond pour dévoiler sa carte d'identité interactive.</p>
+      <div class="hero-navigation">
         <nav class="top-nav" aria-label="Navigation principale">
           <a class="nav-link" href="catalogue.html">← Retour au catalogue</a>
           <a class="nav-link" href="index.html">Préparer une nouvelle session</a>
@@ -43,6 +33,16 @@
           <a class="nav-link" href="star-map.html">Carte du ciel</a>
           <a class="nav-link" href="score-settings.html">Réglage du score</a>
         </nav>
+        <div class="equipment-switcher" data-equipment-switcher hidden>
+          <label for="headerEquipmentSelect">Équipement actif</label>
+          <div class="equipment-switcher__controls">
+            <select id="headerEquipmentSelect" data-equipment-select aria-label="Sélection rapide d’équipement">
+              <option>Chargement…</option>
+            </select>
+            <a class="link-button equipment-switcher__manage" href="mes-equipements.html">Gérer</a>
+          </div>
+          <p class="equipment-switcher__summary" data-equipment-summary>Chargement des profils…</p>
+        </div>
       </div>
     </div>
   </header>

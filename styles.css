@@ -187,25 +187,25 @@ footer {
   flex-shrink: 0;
 }
 
-.hero-heading {
+.hero-navigation {
   display: grid;
-  gap: clamp(0.8rem, 2vw, 1.35rem);
+  gap: clamp(0.8rem, 2vw, 1.25rem);
 }
 
-.hero-heading .top-nav {
-  margin-top: clamp(0.25rem, 1.5vw, 0.75rem);
+.hero-navigation .equipment-switcher {
+  justify-self: stretch;
 }
 
-.hero h1 {
-  margin: 0;
-  font-size: clamp(2.2rem, 7vw, 3.2rem);
-  line-height: 1.1;
-}
+@media (min-width: 900px) {
+  .hero-navigation {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
 
-.hero p {
-  margin: 0;
-  color: var(--color-text-soft);
-  font-size: clamp(1.05rem, 3.5vw, 1.25rem);
+  .hero-navigation .equipment-switcher {
+    justify-self: end;
+    min-width: min(320px, 100%);
+  }
 }
 
 .site-brand {
