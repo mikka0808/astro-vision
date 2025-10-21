@@ -22,7 +22,7 @@
           <button type="button" id="nightModeToggle" class="night-toggle" aria-pressed="false">🔦 Mode nuit</button>
         </div>
       </div>
-      <h1 id="catalogueTitle" class="sr-only">Catalogue d’observation</h1>
+      <h1 id="catalogueTitle" class="hero-title">Catalogue d’observation</h1>
       <p id="catalogueSubtitle" class="sr-only">Consulte les catalogues sélectionnés et leurs scores de visibilité.</p>
       <div class="hero-navigation">
         <nav class="top-nav" aria-label="Navigation principale">
@@ -34,19 +34,23 @@
           <a class="nav-link" href="src/pages/mes-listes.html">Mes listes</a>
           <a class="nav-link" href="score-settings.html">Réglage du score</a>
         </nav>
-        <div class="equipment-switcher" data-equipment-switcher hidden>
-          <label for="headerEquipmentSelect">Équipement actif</label>
-          <div class="equipment-switcher__controls">
-            <select id="headerEquipmentSelect" data-equipment-select aria-label="Sélection rapide d’équipement">
-              <option>Chargement…</option>
-            </select>
-            <a class="link-button equipment-switcher__manage" href="mes-equipements.html">Gérer</a>
-          </div>
-          <p class="equipment-switcher__summary" data-equipment-summary>Chargement des profils…</p>
-        </div>
       </div>
     </div>
   </header>
+  <section class="page-toolbar" aria-label="Équipement actif">
+    <div class="page-toolbar__inner">
+      <div class="equipment-switcher" data-equipment-switcher hidden>
+        <label for="headerEquipmentSelect">Équipement actif</label>
+        <div class="equipment-switcher__controls">
+          <select id="headerEquipmentSelect" data-equipment-select aria-label="Sélection rapide d’équipement">
+            <option>Chargement…</option>
+          </select>
+          <a class="link-button equipment-switcher__manage" href="mes-equipements.html">Gérer</a>
+        </div>
+        <p class="equipment-switcher__summary" data-equipment-summary>Chargement des profils…</p>
+      </div>
+    </div>
+  </section>
   <main>
     <section class="panel" id="sessionPanel" aria-live="polite">
       <div class="panel-header">
