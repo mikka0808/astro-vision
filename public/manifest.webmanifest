@@ -1,0 +1,12 @@
+{
+  "name": "Astro-Vision",
+  "short_name": "Astro-Vision",
+  "display": "standalone",
+  "start_url": "/astro-vision/",
+  "background_color": "#0B0C10",
+  "theme_color": "#0B0C10",
+  "orientation": "any",
+  "icons": [
+    // TODO: ces entrées seront injectées par `npm run gen:icons` après génération des PNG
+  ]
+}

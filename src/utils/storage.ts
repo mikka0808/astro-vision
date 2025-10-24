@@ -1,78 +1,47 @@
-const STORAGE_TEST_KEY = 'astro:storage-test';
+const STORAGE_PREFIX = "astro-vision";
+const CONSENT_COOKIE_NAME = "astro-vision-consent";
 
-function canUseLocalStorage(): boolean {
+function getScopedKey(key: string) {
+  return `${STORAGE_PREFIX}:${key}`;
+}
+
+export function getLocalValue<T>(key: string, defaultValue: T): T {
   try {
-    if (typeof window === 'undefined' || !window.localStorage) {
-      return false;
-    }
-    const storage = window.localStorage;
-    storage.setItem(STORAGE_TEST_KEY, '1');
-    storage.removeItem(STORAGE_TEST_KEY);
-    return true;
+    const item = window.localStorage.getItem(getScopedKey(key));
+    if (!item) return defaultValue;
+    return JSON.parse(item) as T;
   } catch (error) {
-    return false;
+    console.warn("Lecture localStorage impossible", error);
+    return defaultValue;
   }
 }
 
-const hasLocalStorage = canUseLocalStorage();
-
-type JsonValue = unknown;
-
-type ReadOptions<T> = {
-  fallback?: T;
-};
-
-type WriteOptions = {
-  removeOnNull?: boolean;
-};
-
-export function readStorage<T = JsonValue>(key: string, options: ReadOptions<T | null> = {}): T | null {
-  const fallback = Object.prototype.hasOwnProperty.call(options, 'fallback') ? options.fallback ?? null : null;
-  if (!hasLocalStorage || !key) {
-    return fallback;
-  }
+export function setLocalValue<T>(key: string, value: T) {
   try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) {
-      return fallback;
-    }
-    return JSON.parse(raw) as T;
+    window.localStorage.setItem(getScopedKey(key), JSON.stringify(value));
   } catch (error) {
-    console.warn(`Lecture de la clé ${key} impossible :`, error);
-    return fallback;
+    console.warn("Écriture localStorage impossible", error);
   }
 }
 
-export function writeStorage(key: string, value: JsonValue, options: WriteOptions = {}): boolean {
-  if (!hasLocalStorage || !key) {
-    return false;
-  }
+export function removeLocalValue(key: string) {
   try {
-    if (value === null && options.removeOnNull) {
-      window.localStorage.removeItem(key);
-      return true;
-    }
-    window.localStorage.setItem(key, JSON.stringify(value));
-    return true;
+    window.localStorage.removeItem(getScopedKey(key));
   } catch (error) {
-    console.warn(`Écriture de la clé ${key} impossible :`, error);
-    return false;
+    console.warn("Suppression localStorage impossible", error);
   }
 }
 
-export function removeStorage(key: string): boolean {
-  if (!hasLocalStorage || !key) {
-    return false;
-  }
-  try {
-    window.localStorage.removeItem(key);
-    return true;
-  } catch (error) {
-    console.warn(`Suppression de la clé ${key} impossible :`, error);
-    return false;
-  }
+export function hasCookieConsent(): boolean {
+  return document.cookie.split(";").some((cookie) => cookie.trim().startsWith(`${CONSENT_COOKIE_NAME}=`));
 }
 
-export function storageAvailable(): boolean {
-  return hasLocalStorage;
+export function setCookieConsent(days = 365) {
+  const expires = new Date();
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+  document.cookie = `${CONSENT_COOKIE_NAME}=granted; path=/; max-age=${days * 24 * 60 * 60}; expires=${expires.toUTCString()}`;
+}
+
+export function revokeCookieConsent() {
+  document.cookie = `${CONSENT_COOKIE_NAME}=; Max-Age=0; path=/;`;
 }

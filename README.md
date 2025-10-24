@@ -1,63 +1,30 @@
-# astro-vision
+# Astro-Vision
 
-propose ce qui est visible la nuit
+Interface PWA d'astrophotographie construite avec Vite + React + TypeScript. Cette refonte propose un thème sombre inspiré des nuits claires, optimisé pour iOS (portrait/paysage) et prêt pour un déploiement sur GitHub Pages sous `/astro-vision/`.
 
-## Schéma de données des catalogues
+## Pourquoi pas de binaires dans cette PR ?
 
-Le fichier `objects.json` décrit désormais une collection de catalogues et leurs objets associés :
+Pour respecter les contraintes de l'environnement automatisé, aucun fichier binaire (PNG, ICO, WOFF, etc.) n'est versionné. L'interface utilise uniquement des ressources textuelles (SVG, CSS, JS). Les icônes nécessaires à la PWA seront générées plus tard à l'aide de `pwa-asset-generator` lorsque vous disposerez d'un environnement local.
 
-```json
-{
-  "catalogues": [
-    {
-      "id": "messier",
-      "name": "Catalogue Messier",
-      "abbreviation": "M",
-      "type": "catalogue visuel",
-      "description": "110 objets compilés par Charles Messier…",
-      "observationWeights": {
-        "visual": 1.0,
-        "astrophoto": 0.85,
-        "research": 0.5
-      },
-      "defaultSelected": true
-    }
-  ],
-  "objects": [
-    {
-      "number": 1,
-      "name": "M1 - Nébuleuse du Crabe",
-      "type": "Reste de supernova",
-      "constellation": "Taureau",
-      "raHours": 5.575,
-      "decDeg": 22.0167,
-      "magnitude": 8.4,
-      "angularSizeArcmin": null,
-      "surfaceBrightness": null,
-      "bestMonths": [11, 12, 1, 2],
-      "minBortle": 5,
-      "description": "Vestige de supernova…",
-      "primaryCatalogueId": "messier",
-      "catalogueRefs": ["messier"]
-    }
-  ]
-}
-```
+## Générer les icônes plus tard
 
-- Chaque entrée `catalogues` fournit des métadonnées, un acronyme et des pondérations par type d'observation (`visual`, `astrophoto`, `research`).
-- Les objets peuvent être associés à plusieurs catalogues via `catalogueRefs`, tout en conservant un catalogue principal (`primaryCatalogueId`).
-- Les attributs complémentaires (`angularSizeArcmin`, `surfaceBrightness`, etc.) permettent d'étendre facilement les métadonnées disponibles dans l'application.
+1. `npm install`
+2. Vérifiez que votre logo SVG est bien dans `src/assets/logo.svg` (déjà fourni dans cette refonte).
+3. `npm run gen:icons` — génère les PNG dans `public/icons/*.png` et injecte les références dans `public/manifest.webmanifest` ainsi que dans `public/index.html`.
+4. Commitez manuellement les PNG générés (hors Codex) ou uploadez-les via l'interface GitHub.
 
-## Sources de données externes
-
-- Les objets du catalogue IC sont téléchargés à la demande via le service [SIMBAD TAP](https://simbad.u-strasbg.fr/simbad/sim-tap), en interrogeant uniquement les colonnes essentielles (position, magnitude, type). Cela permet d'intégrer l'ensemble des 5 387 entrées sans charger un fichier massif dans le navigateur.
-
-## Tests
-
-L'application dispose d'un petit ensemble de tests Node.js pour vérifier la cohérence des fonctions de normalisation et de filtrage des catalogues. Pour les exécuter :
+## Développement
 
 ```bash
-npm test
+npm install
+npm run dev
 ```
 
-Le moteur de tests intégré (`node --test`) valide notamment que les objets comptabilisés pour un catalogue correspondent bien à ceux affichés lors du filtrage.
+## Build & déploiement
+
+```bash
+npm run build
+npm run deploy
+```
+
+Le déploiement publie le dossier `dist` sur la branche `gh-pages` pour une mise en ligne automatique sous `https://<utilisateur>.github.io/astro-vision/`.
