@@ -13,6 +13,12 @@ Pour respecter les contraintes de l'environnement automatisé, aucun fichier bin
 3. `npm run gen:icons` — génère les PNG dans `public/icons/*.png` et injecte les références dans `public/manifest.webmanifest` ainsi que dans `public/index.html`.
 4. Commitez manuellement les PNG générés (hors Codex) ou uploadez-les via l'interface GitHub.
 
+## PWA & iOS
+
+- Par défaut aucune icône n'est incluse afin d'éviter les binaires. Après génération locale, ajoutez manuellement `icon-192.png`, `icon-512.png` et `ios-180.png` dans `public/icons/` puis référencez-les dans `public/manifest.webmanifest` et réactivez la balise `<link rel="apple-touch-icon">` déjà commentée dans `public/index.html`.
+- Le fichier `vite.config.ts` définit `base = "/astro-vision/"` pour que les assets soient servis correctement sur GitHub Pages.
+- Les métas `viewport-fit=cover` et les classes utilitaires `safe-pt`, `safe-pb`, `safe-px` garantissent une expérience stable sur iPhone en portrait comme en paysage.
+
 ## Développement
 
 ```bash

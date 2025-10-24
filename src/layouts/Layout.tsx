@@ -30,8 +30,8 @@ type LayoutProps = {
 
 export default function Layout({ routes, activeRouteKey, onNavigate, children }: LayoutProps) {
   return (
-    <div className="flex min-h-screen flex-col bg-background/95 text-text">
-      <header className="blurred safe-pt safe-px sticky top-0 z-50 flex flex-col gap-4 pb-4">
+    <div className="flex min-h-screen flex-col bg-[#0B0C10] text-text">
+      <header className="blurred safe-pt safe-px sticky top-0 z-50 flex flex-col gap-4 border-b border-white/10 bg-[#0B0C10]/80 px-4 pb-4 pt-4 sm:px-6">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-secondary/70">Observatoire</p>
@@ -98,11 +98,11 @@ export default function Layout({ routes, activeRouteKey, onNavigate, children }:
             <span>Optimisez vos nuits</span>
           </div>
         </aside>
-        <main className="flex-1 safe-px pb-32 pt-6 lg:pb-12">
+        <main className="flex-1 safe-px px-4 pb-32 pt-6 sm:px-6 lg:pb-12">
           <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
         </main>
       </div>
-      <nav className="safe-pb safe-px fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between gap-2 border-t border-white/5 bg-background/90 py-3 backdrop-blur lg:hidden">
+      <nav className="blurred safe-pb safe-px fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-2 border-t border-white/10 bg-[#0B0C10]/80 px-4 py-3 lg:hidden">
         {routes.map((route) => {
           const Icon = NAV_ICONS[route.key];
           const isActive = route.key === activeRouteKey;
@@ -124,10 +124,10 @@ export default function Layout({ routes, activeRouteKey, onNavigate, children }:
       </nav>
       <button
         type="button"
-        className="safe-pb fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-background shadow-lg shadow-secondary/40 transition hover:bg-secondary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-secondary sm:bottom-6"
-        aria-label="Analyser la prochaine cible"
+        className="safe-pb fixed right-4 bottom-20 z-40 flex items-center gap-2 rounded-full bg-[#4B5FEA] px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-[#3f52d1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#3AE8B8] active:scale-95 sm:bottom-6"
       >
-        <Telescope className="h-6 w-6" />
+        <Telescope className="h-5 w-5" />
+        Analyser
       </button>
     </div>
   );

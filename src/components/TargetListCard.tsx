@@ -55,9 +55,9 @@ export default function TargetListCard({
         </span>
       </div>
       {moonSafe ? (
-        <p className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs text-white/70">
-          🌙 Lune &lt; 25° — cible protégée des reflets
-        </p>
+        <span className="w-fit rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-white/80">
+          🌙 Lune &lt; 25°
+        </span>
       ) : null}
       {altitudeSamples ? (
         <div className="rounded-lg border border-white/10 bg-black/20 p-3">

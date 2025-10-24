@@ -26,6 +26,8 @@ if ("serviceWorker" in navigator && !window.__ASTRO_VISION_SW_REGISTERED__) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register(`/astro-vision/sw.js`)
-      .catch((error) => console.error("Échec d'enregistrement du service worker", error));
+      .catch(() => {
+        // Ignorer les erreurs silencieusement : l'app reste fonctionnelle même sans cache hors-ligne.
+      });
   });
 }

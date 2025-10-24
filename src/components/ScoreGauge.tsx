@@ -9,9 +9,13 @@ import {
 } from "chart.js";
 
 Chart.register(ArcElement, Tooltip, Legend);
+Chart.defaults.color = "#E5E5E5";
+Chart.defaults.font.family = "Inter, system-ui, -apple-system, sans-serif";
+Chart.defaults.font.size = 12;
 
 const BASE_OPTIONS: ChartOptions<"doughnut"> = {
   responsive: true,
+  maintainAspectRatio: false,
   cutout: "78%",
   plugins: {
     legend: { display: false },
@@ -75,8 +79,13 @@ export default function ScoreGauge({ score, label, subLabel }: ScoreGaugeProps) 
   }, [score]);
 
   return (
-    <div className="relative flex flex-col items-center justify-center">
-      <canvas ref={canvasRef} aria-label={`Score global: ${score}/100`} role="img" />
+    <div className="relative flex h-56 w-full flex-col items-center justify-center sm:h-64 md:h-72">
+      <canvas
+        ref={canvasRef}
+        aria-label={`Score global: ${score}/100`}
+        role="img"
+        className="h-full w-full"
+      />
       <div className="absolute flex flex-col items-center justify-center text-center">
         <span className="text-4xl font-semibold text-secondary">{score}</span>
         <span className="mt-1 text-sm text-white/70">{label}</span>

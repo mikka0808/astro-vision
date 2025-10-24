@@ -12,9 +12,12 @@ import {
 } from "chart.js";
 
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler);
+Chart.defaults.color = "#E5E5E5";
+Chart.defaults.font.family = "Inter, system-ui, -apple-system, sans-serif";
 
 const OPTIONS: ChartOptions<"line"> = {
   responsive: true,
+  maintainAspectRatio: false,
   plugins: {
     legend: { display: false },
     tooltip: { enabled: false },
@@ -83,5 +86,5 @@ export default function AltitudeMini({ samples }: AltitudeMiniProps) {
     };
   }, [samples]);
 
-  return <canvas ref={canvasRef} className="h-20 w-full" aria-hidden />;
+  return <canvas ref={canvasRef} className="h-24 w-full sm:h-28 md:h-32" aria-hidden />;
 }

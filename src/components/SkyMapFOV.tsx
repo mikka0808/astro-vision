@@ -24,10 +24,27 @@ type SkyMapFOVProps = {
 
 export default function SkyMapFOV({ label = "Champ simulé" }: SkyMapFOVProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const overlayRef = useRef<SVGSVGElement | null>(null);
   const [rotation, setRotation] = useState(0);
   const [mirrored, setMirrored] = useState(false);
   const [scale, setScale] = useState(1);
   const stars = useMemo(() => generateStars(180), []);
+
+  const rotationRef = useRef(rotation);
+  const mirroredRef = useRef(mirrored);
+  const scaleRef = useRef(scale);
+
+  useEffect(() => {
+    rotationRef.current = rotation;
+  }, [rotation]);
+
+  useEffect(() => {
+    mirroredRef.current = mirrored;
+  }, [mirrored]);
+
+  useEffect(() => {
+    scaleRef.current = scale;
+  }, [scale]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -56,8 +73,9 @@ export default function SkyMapFOV({ label = "Champ simulé" }: SkyMapFOVProps) {
 
       context.save();
       context.translate(width / 2, height / 2);
-      context.rotate((rotation * Math.PI) / 180);
-      context.scale(mirrored ? -scale : scale, scale);
+      context.rotate((rotationRef.current * Math.PI) / 180);
+      const effectiveScale = scaleRef.current;
+      context.scale(mirroredRef.current ? -effectiveScale : effectiveScale, effectiveScale);
 
       stars.forEach((star) => {
         const x = (star.x - 0.5) * width;
@@ -96,9 +114,36 @@ export default function SkyMapFOV({ label = "Champ simulé" }: SkyMapFOVProps) {
       cancelAnimationFrame(frameId);
       window.removeEventListener("resize", handleResize);
     };
-  }, [mirrored, rotation, scale, stars]);
+  }, [stars]);
 
-  const fovSize = 220 / scale;
+  useEffect(() => {
+    const overlay = overlayRef.current;
+    if (!overlay) return undefined;
+
+    const values = { rotation: 0, scale: 1, mirror: 1 };
+    const targets = { rotation, scale, mirror: mirrored ? -1 : 1 };
+
+    let frameId: number;
+
+    const animate = () => {
+      targets.rotation = rotationRef.current;
+      targets.scale = scaleRef.current;
+      targets.mirror = mirroredRef.current ? -1 : 1;
+
+      values.rotation += (targets.rotation - values.rotation) * 0.2;
+      values.scale += (targets.scale - values.scale) * 0.2;
+      values.mirror += (targets.mirror - values.mirror) * 0.2;
+
+      overlay.style.transform = `translateZ(0) rotate(${values.rotation.toFixed(2)}deg) scale(${(
+        values.scale * values.mirror
+      ).toFixed(3)}, ${values.scale.toFixed(3)})`;
+
+      frameId = requestAnimationFrame(animate);
+    };
+
+    animate();
+    return () => cancelAnimationFrame(frameId);
+  }, []);
 
   return (
     <div className="flex flex-col gap-4">
@@ -110,20 +155,26 @@ export default function SkyMapFOV({ label = "Champ simulé" }: SkyMapFOVProps) {
         <span>Mise à l'échelle : {(scale * 100).toFixed(0)}%</span>
         <span>Mirroir : {mirrored ? "activé" : "désactivé"}</span>
       </div>
-      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-white/10 bg-black/40">
-        <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
-        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 600 450" role="presentation">
+      <div className="relative overflow-hidden rounded-xl border border-white/10 bg-[#0e1630]">
+        <canvas ref={canvasRef} className="h-[50dvh] w-full sm:h-[60dvh]" />
+        <svg
+          ref={overlayRef}
+          className="pointer-events-none absolute inset-0 h-full w-full will-change-transform"
+          viewBox="0 0 600 450"
+          role="presentation"
+          style={{ transformOrigin: "50% 50%" }}
+        >
           <rect
-            x={(600 - fovSize) / 2}
-            y={(450 - fovSize * 0.75) / 2}
-            width={fovSize}
-            height={fovSize * 0.75}
-            rx={20}
-            ry={20}
+            x="190"
+            y="135"
+            width="220"
+            height="165"
+            rx="20"
+            ry="20"
             fill="none"
             stroke="rgba(74, 95, 234, 0.9)"
             strokeDasharray="18 14"
-            strokeWidth={4}
+            strokeWidth="4"
           />
           <circle
             cx="300"

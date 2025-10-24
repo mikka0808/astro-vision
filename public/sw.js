@@ -1,8 +1,16 @@
 const CACHE_NAME = "astro-vision-cache-v1";
+const PRECACHE_URLS = [
+  "/astro-vision/",
+  "/astro-vision/index.html",
+  "/astro-vision/manifest.webmanifest",
+];
+
 const TEXTUAL_EXTENSIONS = [".js", ".css", ".html", ".json", ".svg", ".webmanifest"];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(self.skipWaiting());
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS)).then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener("activate", (event) => {
@@ -25,7 +33,9 @@ self.addEventListener("fetch", (event) => {
   }
 
   const url = new URL(request.url);
-  const shouldCache = TEXTUAL_EXTENSIONS.some((ext) => url.pathname.endsWith(ext));
+  const shouldCache =
+    PRECACHE_URLS.includes(url.pathname) ||
+    TEXTUAL_EXTENSIONS.some((ext) => url.pathname.endsWith(ext));
 
   if (!shouldCache) {
     return;
@@ -47,5 +57,5 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
-// Note: iOS Safari ignores the install event while in standalone mode until the page is reloaded.
-// Ensure the app prompts users to refresh after deployment to pick up the latest cache.
+// TODO: ajouter les icônes PNG dans PRECACHE_URLS après leur génération locale pour les servir hors ligne.
+// Note: iOS Safari ignore l'événement install en mode standalone jusqu'au prochain rechargement.
