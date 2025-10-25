@@ -88,6 +88,8 @@ navs.forEach((nav) => {
     scrim.hidden = true;
   }
 
+  nav.classList.add('app-nav--ready');
+
   toggle.addEventListener('click', () => {
     if (isDesktop()) {
       return;
