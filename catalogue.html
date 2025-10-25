@@ -30,7 +30,7 @@
             class="app-nav__toggle"
             type="button"
             aria-expanded="false"
-            aria-controls="primaryNavList"
+            aria-controls="primaryNavDrawer"
             data-app-nav-toggle
           >
             <span class="app-nav__toggle-label">Menu</span>
@@ -38,12 +38,14 @@
               <span></span>
             </span>
           </button>
-          <div class="app-nav__list" id="primaryNavList" data-app-nav-list>
-            <a class="app-nav__link" href="index.html">
-              <span class="app-nav__icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                  <path d="M12 3.5l2 4.2 4.6.7-3.3 3.2.78 4.6L12 14.9l-4.08 2.3.78-4.6-3.3-3.2 4.6-.7z" />
-                </svg>
+          <div class="app-nav__scrim" data-app-nav-scrim hidden></div>
+          <div class="app-nav__drawer" id="primaryNavDrawer" data-app-nav-list hidden tabindex="-1">
+            <div class="app-nav__list">
+              <a class="app-nav__link" href="index.html">
+                <span class="app-nav__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                    <path d="M12 3.5l2 4.2 4.6.7-3.3 3.2.78 4.6L12 14.9l-4.08 2.3.78-4.6-3.3-3.2 4.6-.7z" />
+                  </svg>
               </span>
               <span class="app-nav__label">Cibles</span>
             </a>
@@ -114,19 +116,20 @@
               </span>
               <span class="app-nav__label">Carte</span>
             </a>
-            <a class="app-nav__link" href="score-settings.html">
-              <span class="app-nav__icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                  <circle cx="12" cy="12" r="6.5" />
-                  <circle cx="12" cy="12" r="2.5" />
-                  <line x1="12" y1="4" x2="12" y2="6.5" />
-                  <line x1="12" y1="17.5" x2="12" y2="20" />
-                  <line x1="4" y1="12" x2="6.5" y2="12" />
-                  <line x1="17.5" y1="12" x2="20" y2="12" />
-                </svg>
-              </span>
-              <span class="app-nav__label">Score</span>
-            </a>
+              <a class="app-nav__link" href="score-settings.html">
+                <span class="app-nav__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                    <circle cx="12" cy="12" r="6.5" />
+                    <circle cx="12" cy="12" r="2.5" />
+                    <line x1="12" y1="4" x2="12" y2="6.5" />
+                    <line x1="12" y1="17.5" x2="12" y2="20" />
+                    <line x1="4" y1="12" x2="6.5" y2="12" />
+                    <line x1="17.5" y1="12" x2="20" y2="12" />
+                  </svg>
+                </span>
+                <span class="app-nav__label">Score</span>
+              </a>
+            </div>
           </div>
         </nav>
       </div>
