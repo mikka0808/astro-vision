@@ -23,185 +23,82 @@
         </div>
       </div>
       <h1 class="hero-title">Réglage du score</h1>
-      <div class="hero-navigation primary-navigation">
-        <nav class="app-nav" aria-label="Navigation principale" data-app-nav>
+            <div class="hero-navigation primary-navigation">
+        <nav class="app-menu" aria-label="Navigation principale" data-app-menu>
           <button
-            class="app-nav__toggle"
+            class="app-menu__toggle"
             type="button"
             aria-expanded="false"
-            aria-controls="primaryNavDrawer"
-            data-app-nav-toggle
+            aria-controls="appMenuPanel"
+            data-app-menu-toggle
           >
-            <span class="app-nav__toggle-label">Menu</span>
-            <span class="app-nav__toggle-icon" aria-hidden="true">
-              <span></span>
-            </span>
+            <span class="app-menu__toggle-icon" aria-hidden="true"></span>
+            <span class="app-menu__toggle-label">Menu</span>
           </button>
-          <div class="app-nav__scrim" data-app-nav-scrim hidden></div>
-          <div class="app-nav__drawer" id="primaryNavDrawer" data-app-nav-list tabindex="-1">
-            <header class="app-nav__header">
-              <div class="app-nav__profile">
-                <span class="app-nav__avatar" aria-hidden="true">🛰️</span>
-                <div class="app-nav__profile-info">
-                  <span class="app-nav__profile-name">Observateur·rice</span>
-                  <span class="app-nav__profile-status">Les étoiles t’attendent</span>
-                </div>
-                <a class="app-nav__profile-settings" href="catalogue-settings.html" aria-label="Ouvrir les préférences catalogue">
-                  <span aria-hidden="true">⚙️</span>
-                </a>
-              </div>
-              <div class="app-nav__actions">
-                <a class="app-nav__action" href="index.html#sessionForm">
-                  <span class="app-nav__action-icon" aria-hidden="true">🕒</span>
-                  <span class="app-nav__action-label">Session</span>
-                </a>
-                <a class="app-nav__action" href="catalogue.html">
-                  <span class="app-nav__action-icon" aria-hidden="true">📚</span>
-                  <span class="app-nav__action-label">Catalogue</span>
-                </a>
-                <a class="app-nav__action" href="star-map.html">
-                  <span class="app-nav__action-icon" aria-hidden="true">🧭</span>
-                  <span class="app-nav__action-label">Carte</span>
-                </a>
-              </div>
-            </header>
-            <div class="app-nav__list">
-              <section class="app-nav__section">
-                <h2 class="app-nav__section-title">Exploration</h2>
-                <div class="app-nav__section-links">
-                  <a class="app-nav__link" href="index.html">
-                    <span class="app-nav__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                                      <path d="M12 3.5l2 4.2 4.6.7-3.3 3.2.78 4.6L12 14.9l-4.08 2.3.78-4.6-3.3-3.2 4.6-.7z" />
-                                    </svg>
-                    </span>
-                    <span class="app-nav__meta">
-                      <span class="app-nav__label">Cibles idéales</span>
-                      <span class="app-nav__sublabel">Planifier la session</span>
-                    </span>
-                    <span class="app-nav__chevron" aria-hidden="true">›</span>
-                  </a>
-                  <a class="app-nav__link" href="star-map.html">
-                    <span class="app-nav__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                                      <path d="M12 3.5a5 5 0 015 5c0 3.6-5 10-5 10s-5-6.4-5-10a5 5 0 015-5z" />
-                                      <circle cx="12" cy="8.5" r="1.6" />
-                                      <line x1="5" y1="20.5" x2="19" y2="20.5" />
-                                    </svg>
-                    </span>
-                    <span class="app-nav__meta">
-                      <span class="app-nav__label">Carte du ciel</span>
-                      <span class="app-nav__sublabel">Repérage en direct</span>
-                    </span>
-                    <span class="app-nav__chevron" aria-hidden="true">›</span>
-                  </a>
-                  <a class="app-nav__link" href="dashboard.html">
-                    <span class="app-nav__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                                      <line x1="5" y1="18" x2="5" y2="10" />
-                                      <line x1="11" y1="18" x2="11" y2="6" />
-                                      <line x1="17" y1="18" x2="17" y2="13" />
-                                      <line x1="4" y1="20.5" x2="20" y2="20.5" />
-                                    </svg>
-                    </span>
-                    <span class="app-nav__meta">
-                      <span class="app-nav__label">Tableau de bord</span>
-                      <span class="app-nav__sublabel">Suivre la progression</span>
-                    </span>
-                    <span class="app-nav__chevron" aria-hidden="true">›</span>
-                  </a>
-                  <a class="app-nav__link" href="catalogue.html">
-                    <span class="app-nav__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                                      <path d="M6.5 5h5.5a3 3 0 013 3v11H6.5A2.5 2.5 0 014 16.5V7.5A2.5 2.5 0 016.5 5z" />
-                                      <path d="M15 5h2.5A2.5 2.5 0 0120 7.5v12a1.5 1.5 0 01-1.5 1.5H15" />
-                                      <line x1="9" y1="8.5" x2="12.5" y2="8.5" />
-                                      <line x1="9" y1="12" x2="14" y2="12" />
-                                    </svg>
-                    </span>
-                    <span class="app-nav__meta">
-                      <span class="app-nav__label">Catalogue</span>
-                      <span class="app-nav__sublabel">Rechercher des objets</span>
-                    </span>
-                    <span class="app-nav__chevron" aria-hidden="true">›</span>
-                  </a>
-                </div>
-              </section>
-              <section class="app-nav__section">
-                <h2 class="app-nav__section-title">Organisation</h2>
-                <div class="app-nav__section-links">
-                  <a class="app-nav__link" href="mes-equipements.html">
-                    <span class="app-nav__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                                      <path d="M4.5 16.5l3.2-8h2.6l3.2 8" />
-                                      <line x1="7.4" y1="13" x2="10.9" y2="13" />
-                                      <path d="M13.6 10.2l5-3.6-1.2-1.8-5 3.6z" />
-                                      <line x1="13.6" y1="10.2" x2="18.6" y2="17.6" />
-                                      <line x1="5.8" y1="19.5" x2="14.2" y2="19.5" />
-                                    </svg>
-                    </span>
-                    <span class="app-nav__meta">
-                      <span class="app-nav__label">Équipements</span>
-                      <span class="app-nav__sublabel">Profils optiques</span>
-                    </span>
-                    <span class="app-nav__chevron" aria-hidden="true">›</span>
-                  </a>
-                  <a class="app-nav__link" href="src/pages/mes-listes.html">
-                    <span class="app-nav__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                                      <path d="M5 6.5h5l1.5 2h7.5A1.5 1.5 0 0120.5 10v7.5A2.5 2.5 0 0118 20H6.5A2.5 2.5 0 014 17.5V8.5A2 2 0 015 6.5z" />
-                                      <line x1="8.5" y1="12" x2="15.5" y2="12" />
-                                      <line x1="8.5" y1="15" x2="13.5" y2="15" />
-                                    </svg>
-                    </span>
-                    <span class="app-nav__meta">
-                      <span class="app-nav__label">Listes</span>
-                      <span class="app-nav__sublabel">Collections favorites</span>
-                    </span>
-                    <span class="app-nav__chevron" aria-hidden="true">›</span>
-                  </a>
-                </div>
-              </section>
-              <section class="app-nav__section">
-                <h2 class="app-nav__section-title">Réglages avancés</h2>
-                <div class="app-nav__section-links">
-                  <a class="app-nav__link" href="catalogue-settings.html">
-                    <span class="app-nav__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                                      <line x1="6" y1="5" x2="6" y2="19" />
-                                      <line x1="12" y1="5" x2="12" y2="19" />
-                                      <line x1="18" y1="5" x2="18" y2="19" />
-                                      <circle cx="6" cy="10" r="2.2" />
-                                      <circle cx="12" cy="15" r="2.2" />
-                                      <circle cx="18" cy="9" r="2.2" />
-                                    </svg>
-                    </span>
-                    <span class="app-nav__meta">
-                      <span class="app-nav__label">Catalogues</span>
-                      <span class="app-nav__sublabel">Activer / masquer</span>
-                    </span>
-                    <span class="app-nav__chevron" aria-hidden="true">›</span>
-                  </a>
-                  <a class="app-nav__link" href="score-settings.html" aria-current="page">
-                    <span class="app-nav__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                                      <circle cx="12" cy="12" r="6.5" />
-                                      <circle cx="12" cy="12" r="2.5" />
-                                      <line x1="12" y1="4" x2="12" y2="6.5" />
-                                      <line x1="12" y1="17.5" x2="12" y2="20" />
-                                      <line x1="4" y1="12" x2="6.5" y2="12" />
-                                      <line x1="17.5" y1="12" x2="20" y2="12" />
-                                    </svg>
-                    </span>
-                    <span class="app-nav__meta">
-                      <span class="app-nav__label">Score</span>
-                      <span class="app-nav__sublabel">Critères personnalisés</span>
-                    </span>
-                    <span class="app-nav__chevron" aria-hidden="true">›</span>
-                  </a>
-                </div>
-              </section>
+          <div class="app-menu__scrim" data-app-menu-scrim hidden></div>
+          <div class="app-menu__panel" id="appMenuPanel" data-app-menu-panel tabindex="-1">
+            <div class="app-menu__panel-header">
+              <p class="app-menu__title">Navigation</p>
+              <button class="app-menu__close" type="button" data-app-menu-close aria-label="Fermer le menu">
+                <span aria-hidden="true">✕</span>
+              </button>
             </div>
+            <ul class="app-menu__list">
+              <li class="app-menu__item">
+                <a class="app-menu__link" href="index.html">
+                  <span class="app-menu__icon" aria-hidden="true">⭐</span>
+                  <span class="app-menu__text">Cibles idéales</span>
+                </a>
+              </li>
+              <li class="app-menu__item">
+                <a class="app-menu__link" href="star-map.html">
+                  <span class="app-menu__icon" aria-hidden="true">🗺️</span>
+                  <span class="app-menu__text">Carte du ciel</span>
+                </a>
+              </li>
+              <li class="app-menu__item">
+                <a class="app-menu__link" href="catalogue.html">
+                  <span class="app-menu__icon" aria-hidden="true">📚</span>
+                  <span class="app-menu__text">Catalogue</span>
+                </a>
+              </li>
+              <li class="app-menu__item">
+                <a class="app-menu__link" href="fiche-catalogue.html">
+                  <span class="app-menu__icon" aria-hidden="true">🗂️</span>
+                  <span class="app-menu__text">Fiche catalogue</span>
+                </a>
+              </li>
+              <li class="app-menu__item">
+                <a class="app-menu__link" href="dashboard.html">
+                  <span class="app-menu__icon" aria-hidden="true">📊</span>
+                  <span class="app-menu__text">Tableau de bord</span>
+                </a>
+              </li>
+              <li class="app-menu__item">
+                <a class="app-menu__link" href="mes-equipements.html">
+                  <span class="app-menu__icon" aria-hidden="true">🔭</span>
+                  <span class="app-menu__text">Mes équipements</span>
+                </a>
+              </li>
+              <li class="app-menu__item">
+                <a class="app-menu__link" href="src/pages/mes-listes.html">
+                  <span class="app-menu__icon" aria-hidden="true">📝</span>
+                  <span class="app-menu__text">Mes listes</span>
+                </a>
+              </li>
+              <li class="app-menu__item">
+                <a class="app-menu__link" href="catalogue-settings.html">
+                  <span class="app-menu__icon" aria-hidden="true">⚙️</span>
+                  <span class="app-menu__text">Réglages catalogue</span>
+                </a>
+              </li>
+              <li class="app-menu__item">
+                <a class="app-menu__link" href="score-settings.html" aria-current="page">
+                  <span class="app-menu__icon" aria-hidden="true">🎯</span>
+                  <span class="app-menu__text">Réglages notation</span>
+                </a>
+              </li>
+            </ul>
           </div>
         </nav>
       </div>

@@ -1,66 +1,93 @@
-const navs = Array.from(document.querySelectorAll('[data-app-nav]'));
+const menus = Array.from(document.querySelectorAll('[data-app-menu]'));
+const DESKTOP_QUERY = '(min-width: 960px)';
+const body = document.body;
 
-const DESKTOP_QUERY = 'screen and (min-width: 720px) and (min-height: 560px)';
-const desktopMatcher = window.matchMedia ? window.matchMedia(DESKTOP_QUERY) : null;
-
-const isDesktop = () =>
-  desktopMatcher
-    ? desktopMatcher.matches
-    : window.innerWidth >= 720 && window.innerHeight >= 560;
-
-const syncNavToViewport = (nav, toggle, panel, scrim) => {
-  nav.classList.remove('app-nav--open');
-  if (toggle) {
-    toggle.setAttribute('aria-expanded', 'false');
+const getDesktopMatcher = () => {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return null;
   }
-  if (!panel) {
-    return;
-  }
-  if (isDesktop()) {
-    panel.hidden = false;
-    panel.setAttribute('aria-hidden', 'false');
-  } else {
-    panel.hidden = true;
-    panel.setAttribute('aria-hidden', 'true');
-  }
-  if (scrim) {
-    scrim.hidden = true;
-  }
+  return window.matchMedia(DESKTOP_QUERY);
 };
 
-const closeNav = (nav, toggle, panel, scrim, { focusToggle = false } = {}) => {
-  nav.classList.remove('app-nav--open');
-  if (toggle) {
-    toggle.setAttribute('aria-expanded', 'false');
+const isDesktopViewport = (matcher) => {
+  if (matcher) {
+    return matcher.matches;
   }
-  if (panel) {
-    if (isDesktop()) {
-      panel.hidden = false;
-      panel.setAttribute('aria-hidden', 'false');
-    } else {
-      panel.hidden = true;
-      panel.setAttribute('aria-hidden', 'true');
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  return window.innerWidth >= 960;
+};
+
+menus.forEach((menu, index) => {
+  const toggle = menu.querySelector('[data-app-menu-toggle]');
+  const panel = menu.querySelector('[data-app-menu-panel]');
+  const scrim = menu.querySelector('[data-app-menu-scrim]');
+  const closeButtons = menu.querySelectorAll('[data-app-menu-close]');
+
+  if (!toggle || !panel) {
+    return;
+  }
+
+  const matcher = getDesktopMatcher();
+  const panelId = panel.id || `appMenuPanel${index + 1}`;
+  panel.id = panelId;
+  toggle.setAttribute('aria-controls', panelId);
+  toggle.setAttribute('aria-expanded', 'false');
+
+  menu.classList.add('app-menu--ready');
+
+  const applyOverlayState = () => {
+    if (!body) {
+      return;
     }
-  }
-  if (scrim) {
-    scrim.hidden = true;
-  }
-  if (focusToggle && toggle) {
-    toggle.focus();
-  }
-};
+    if (menu.classList.contains('app-menu--open')) {
+      body.classList.add('app-menu-overlay-open');
+    } else {
+      body.classList.remove('app-menu-overlay-open');
+    }
+  };
 
-const openNav = (nav, toggle, panel, scrim) => {
-  if (isDesktop()) {
-    return;
-  }
-  nav.classList.add('app-nav--open');
-  if (toggle) {
+  const syncToViewport = () => {
+    const desktop = isDesktopViewport(matcher);
+    if (desktop) {
+      menu.classList.remove('app-menu--collapsible');
+      menu.classList.remove('app-menu--open');
+      toggle.setAttribute('aria-expanded', 'false');
+      panel.removeAttribute('aria-hidden');
+      if (scrim) {
+        scrim.hidden = true;
+      }
+      if (body) {
+        body.classList.remove('app-menu-overlay-open');
+      }
+    } else {
+      menu.classList.add('app-menu--collapsible');
+      if (menu.classList.contains('app-menu--open')) {
+        panel.setAttribute('aria-hidden', 'false');
+        if (scrim) {
+          scrim.hidden = false;
+        }
+      } else {
+        panel.setAttribute('aria-hidden', 'true');
+        if (scrim) {
+          scrim.hidden = true;
+        }
+      }
+    }
+  };
+
+  const openMenu = () => {
+    if (!menu.classList.contains('app-menu--collapsible')) {
+      return;
+    }
+    menu.classList.add('app-menu--open');
     toggle.setAttribute('aria-expanded', 'true');
-  }
-  if (panel) {
-    panel.hidden = false;
     panel.setAttribute('aria-hidden', 'false');
+    if (scrim) {
+      scrim.hidden = false;
+    }
+    applyOverlayState();
     if (typeof panel.focus === 'function') {
       try {
         panel.focus({ preventScroll: true });
@@ -68,105 +95,87 @@ const openNav = (nav, toggle, panel, scrim) => {
         panel.focus();
       }
     }
-  }
-  if (scrim) {
-    scrim.hidden = false;
-  }
-};
+  };
 
-navs.forEach((nav) => {
-  const toggle = nav.querySelector('[data-app-nav-toggle]');
-  const panel = nav.querySelector('[data-app-nav-list]');
-  const scrim = nav.querySelector('[data-app-nav-scrim]');
-  const linkContainer = panel ? panel.querySelector('.app-nav__list') || panel : null;
-  if (!toggle || !panel) {
-    return;
-  }
-
-  nav.classList.add('app-nav--collapsible');
-  toggle.setAttribute('aria-expanded', 'false');
-  panel.setAttribute('aria-hidden', isDesktop() ? 'false' : 'true');
-  panel.hidden = !isDesktop();
-  if (scrim) {
-    scrim.hidden = true;
-  }
-
-  nav.classList.add('app-nav--ready');
+  const closeMenu = ({ focusToggle = false } = {}) => {
+    menu.classList.remove('app-menu--open');
+    toggle.setAttribute('aria-expanded', 'false');
+    if (menu.classList.contains('app-menu--collapsible')) {
+      panel.setAttribute('aria-hidden', 'true');
+      if (scrim) {
+        scrim.hidden = true;
+      }
+    } else {
+      panel.removeAttribute('aria-hidden');
+      if (scrim) {
+        scrim.hidden = true;
+      }
+    }
+    applyOverlayState();
+    if (focusToggle) {
+      toggle.focus();
+    }
+  };
 
   toggle.addEventListener('click', () => {
-    if (isDesktop()) {
+    if (!menu.classList.contains('app-menu--collapsible')) {
       return;
     }
-    const expanded = toggle.getAttribute('aria-expanded') === 'true';
-    if (expanded) {
-      closeNav(nav, toggle, panel, scrim);
+    if (menu.classList.contains('app-menu--open')) {
+      closeMenu();
     } else {
-      openNav(nav, toggle, panel, scrim);
+      openMenu();
     }
   });
 
+  closeButtons.forEach((button) => {
+    button.addEventListener('click', () => closeMenu({ focusToggle: true }));
+  });
+
   if (scrim) {
-    scrim.addEventListener('click', () => {
-      closeNav(nav, toggle, panel, scrim, { focusToggle: true });
-    });
+    scrim.addEventListener('click', () => closeMenu());
   }
 
-  if (linkContainer) {
-    linkContainer.addEventListener('click', (event) => {
-      const link = event.target.closest('a');
-      if (!link || isDesktop()) {
-        return;
-      }
-      closeNav(nav, toggle, panel, scrim);
-    });
-  }
-
-  nav.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && nav.classList.contains('app-nav--open')) {
+  panel.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && menu.classList.contains('app-menu--open')) {
       event.preventDefault();
-      closeNav(nav, toggle, panel, scrim, { focusToggle: true });
+      closeMenu({ focusToggle: true });
+    }
+  });
+
+  panel.addEventListener('click', (event) => {
+    const link = event.target.closest('a');
+    if (!link || !menu.classList.contains('app-menu--collapsible')) {
+      return;
+    }
+    closeMenu();
+  });
+
+  syncToViewport();
+
+  if (matcher) {
+    const handleChange = () => {
+      syncToViewport();
+      applyOverlayState();
+    };
+    if (typeof matcher.addEventListener === 'function') {
+      matcher.addEventListener('change', handleChange);
+    } else if (typeof matcher.addListener === 'function') {
+      matcher.addListener(handleChange);
+    }
+  } else if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('resize', () => {
+      syncToViewport();
+      applyOverlayState();
+    });
+  }
+
+  document.addEventListener('click', (event) => {
+    if (!menu.classList.contains('app-menu--collapsible')) {
+      return;
+    }
+    if (!menu.contains(event.target) && menu.classList.contains('app-menu--open')) {
+      closeMenu();
     }
   });
 });
-
-if (navs.length > 0) {
-  document.addEventListener('click', (event) => {
-    navs.forEach((nav) => {
-      const toggle = nav.querySelector('[data-app-nav-toggle]');
-      const panel = nav.querySelector('[data-app-nav-list]');
-      const scrim = nav.querySelector('[data-app-nav-scrim]');
-      if (!toggle || !panel || isDesktop()) {
-        return;
-      }
-      if (!nav.contains(event.target) && nav.classList.contains('app-nav--open')) {
-        closeNav(nav, toggle, panel, scrim);
-      }
-    });
-  });
-
-  const handleViewportChange = () => {
-    navs.forEach((nav) => {
-      const toggle = nav.querySelector('[data-app-nav-toggle]');
-      const panel = nav.querySelector('[data-app-nav-list]');
-      const scrim = nav.querySelector('[data-app-nav-scrim]');
-      if (!toggle || !panel) {
-        return;
-      }
-      syncNavToViewport(nav, toggle, panel, scrim);
-    });
-  };
-
-  if (desktopMatcher) {
-    if (typeof desktopMatcher.addEventListener === 'function') {
-      desktopMatcher.addEventListener('change', handleViewportChange);
-    } else if (typeof desktopMatcher.addListener === 'function') {
-      desktopMatcher.addListener(handleViewportChange);
-    }
-  } else if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
-    window.addEventListener('resize', handleViewportChange);
-  }
-
-  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
-    window.addEventListener('orientationchange', handleViewportChange);
-  }
-}
