@@ -1,9 +1,12 @@
 const navs = Array.from(document.querySelectorAll('[data-app-nav]'));
 
-const DESKTOP_QUERY = '(min-width: 720px)';
+const DESKTOP_QUERY = 'screen and (min-width: 720px) and (min-height: 560px)';
 const desktopMatcher = window.matchMedia ? window.matchMedia(DESKTOP_QUERY) : null;
 
-const isDesktop = () => (desktopMatcher ? desktopMatcher.matches : window.innerWidth >= 720);
+const isDesktop = () =>
+  desktopMatcher
+    ? desktopMatcher.matches
+    : window.innerWidth >= 720 && window.innerHeight >= 560;
 
 const syncNavToViewport = (nav, toggle, panel, scrim) => {
   nav.classList.remove('app-nav--open');

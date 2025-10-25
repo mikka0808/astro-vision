@@ -466,7 +466,7 @@ footer {
   display: flex;
 }
 
-@media (max-width: 719px) and (orientation: landscape) {
+@media (max-width: 719px) and (orientation: landscape), (max-height: 559px) {
   .app-nav--ready .app-nav__drawer {
     top: calc(env(safe-area-inset-top, 0px) + clamp(2.6rem, 10vw, 4rem));
     bottom: calc(env(safe-area-inset-bottom, 0px) + clamp(1rem, 5vw, 1.8rem));
@@ -479,7 +479,7 @@ footer {
   }
 }
 
-@media (min-width: 720px) {
+@media (min-width: 720px) and (min-height: 560px) {
   .app-nav {
     flex-direction: row;
     align-items: center;
@@ -547,7 +547,7 @@ footer {
   }
 }
 
-@media (max-width: 719px) {
+@media (max-width: 719px), (max-height: 559px) {
   .app-nav__link {
     width: 100%;
   }
