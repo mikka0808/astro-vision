@@ -37,6 +37,42 @@
       <button type="button" id="nightModeToggle" class="night-toggle" aria-pressed="false">🔦 Mode nuit</button>
     </div>
   </header>
+  <div class="primary-navigation">
+    <nav class="app-nav" aria-label="Navigation principale">
+      <a class="app-nav__link" href="index.html" title="Préparer la session de cibles">
+        <span class="app-nav__icon" aria-hidden="true">✨</span>
+        <span class="app-nav__label">Cibles</span>
+      </a>
+      <a class="app-nav__link" href="dashboard.html" title="Voir le tableau de bord détaillé">
+        <span class="app-nav__icon" aria-hidden="true">📊</span>
+        <span class="app-nav__label">Tableau</span>
+      </a>
+      <a class="app-nav__link" href="catalogue.html" title="Explorer le catalogue d’observation">
+        <span class="app-nav__icon" aria-hidden="true">📚</span>
+        <span class="app-nav__label">Catalogue</span>
+      </a>
+      <a class="app-nav__link" href="mes-equipements.html" title="Gérer mes équipements">
+        <span class="app-nav__icon" aria-hidden="true">🔭</span>
+        <span class="app-nav__label">Équipements</span>
+      </a>
+      <a class="app-nav__link" href="src/pages/mes-listes.html" title="Consulter mes listes personnalisées">
+        <span class="app-nav__icon" aria-hidden="true">🗂️</span>
+        <span class="app-nav__label">Listes</span>
+      </a>
+      <a class="app-nav__link" href="catalogue-settings.html" aria-current="page" title="Régler les préférences de catalogue">
+        <span class="app-nav__icon" aria-hidden="true">⚙️</span>
+        <span class="app-nav__label">Catalogues</span>
+      </a>
+      <a class="app-nav__link" href="star-map.html" title="Afficher la carte du ciel interactive">
+        <span class="app-nav__icon" aria-hidden="true">🌌</span>
+        <span class="app-nav__label">Carte</span>
+      </a>
+      <a class="app-nav__link" href="score-settings.html" title="Ajuster le calcul du score">
+        <span class="app-nav__icon" aria-hidden="true">🎯</span>
+        <span class="app-nav__label">Score</span>
+      </a>
+    </nav>
+  </div>
   <main>
     <section class="panel simple-settings" aria-labelledby="catalogue-preferences-heading">
       <div class="simple-settings__header">
@@ -53,6 +89,36 @@
     </section>
   </main>
   <footer class="simple-page-footer">
+    <nav class="footer-nav" aria-label="Navigation secondaire">
+      <a class="chip-link" href="index.html">
+        <span aria-hidden="true">✨</span>
+        <span>Cibles</span>
+      </a>
+      <a class="chip-link" href="dashboard.html">
+        <span aria-hidden="true">📊</span>
+        <span>Tableau</span>
+      </a>
+      <a class="chip-link" href="catalogue.html">
+        <span aria-hidden="true">📚</span>
+        <span>Catalogue</span>
+      </a>
+      <a class="chip-link" href="mes-equipements.html">
+        <span aria-hidden="true">🔭</span>
+        <span>Équipements</span>
+      </a>
+      <a class="chip-link" href="src/pages/mes-listes.html">
+        <span aria-hidden="true">🗂️</span>
+        <span>Listes</span>
+      </a>
+      <a class="chip-link" href="star-map.html">
+        <span aria-hidden="true">🌌</span>
+        <span>Carte</span>
+      </a>
+      <a class="chip-link" href="score-settings.html">
+        <span aria-hidden="true">🎯</span>
+        <span>Score</span>
+      </a>
+    </nav>
     <small>Préférences enregistrées localement pendant un an.</small>
   </footer>
   <script type="module" src="src/state/equipement-header.js"></script>
