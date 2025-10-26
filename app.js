@@ -1351,6 +1351,19 @@ function renderAstrophotoGuidance() {
     Array.isArray(decisionAstro.recommendations) &&
     decisionAstro.recommendations.length > 0;
   const planSummary = hasMatchingPlan ? decisionAstro.planSummary : null;
+  const planCalibration = planSummary?.calibration || null;
+  const calibrationSummaryParts = [];
+  if (planCalibration) {
+    if (Number.isFinite(planCalibration.darkCount)) {
+      calibrationSummaryParts.push(`${planCalibration.darkCount} darks`);
+    }
+    if (Number.isFinite(planCalibration.flatCount)) {
+      calibrationSummaryParts.push(`${planCalibration.flatCount} flats`);
+    }
+    if (Number.isFinite(planCalibration.biasCount) && planCalibration.biasCount > 0) {
+      calibrationSummaryParts.push(`${planCalibration.biasCount} offsets`);
+    }
+  }
   const dynamicChecklist = hasMatchingPlan ? decisionAstro.checklist || [] : [];
 
   astrophotoGuidancePanel.hidden = false;
@@ -1404,6 +1417,9 @@ function renderAstrophotoGuidance() {
   } else if (guidance?.filters && !hasMatchingPlan) {
     summaryParts.push(guidance.filters);
   }
+  if (calibrationSummaryParts.length > 0) {
+    summaryParts.push(`Calibrations ${calibrationSummaryParts.join(' • ')}`);
+  }
   astrophotoGuidanceSummary.textContent = summaryParts.join(' • ');
 
   if (astrophotoGuidanceFacts) {
@@ -1451,20 +1467,8 @@ function renderAstrophotoGuidance() {
     if (capture?.cadence) {
       facts.push({ label: 'Cadence recommandée', value: capture.cadence });
     }
-    if (planSummary?.calibration) {
-      const calParts = [];
-      if (Number.isFinite(planSummary.calibration.darkCount)) {
-        calParts.push(`${planSummary.calibration.darkCount} darks`);
-      }
-      if (Number.isFinite(planSummary.calibration.flatCount)) {
-        calParts.push(`${planSummary.calibration.flatCount} flats`);
-      }
-      if (Number.isFinite(planSummary.calibration.biasCount) && planSummary.calibration.biasCount > 0) {
-        calParts.push(`${planSummary.calibration.biasCount} offsets`);
-      }
-      if (calParts.length > 0) {
-        facts.push({ label: 'Calibrations', value: calParts.join(' • ') });
-      }
+    if (calibrationSummaryParts.length > 0) {
+      facts.push({ label: 'Calibrations', value: calibrationSummaryParts.join(' • ') });
     }
     if (Array.isArray(planSummary?.warnings) && planSummary.warnings.length > 0) {
       facts.push({ label: 'À surveiller', value: planSummary.warnings.join(' • ') });
@@ -1583,6 +1587,11 @@ function exportAstrophotoChecklist() {
     calibrationSummaryParts.push(`${planSummary.calibration.biasCount} offsets`);
   }
   const planWarnings = Array.isArray(planSummary?.warnings) ? planSummary.warnings : [];
+  const referenceFiles = Array.isArray(planSummary?.calibration?.referenceFiles)
+    ? planSummary.calibration.referenceFiles.filter(
+        (file) => file && typeof file.filename === 'string' && file.filename.trim()
+      )
+    : [];
 
   const exportWindow = window.open('', '_blank');
   if (!exportWindow || !exportWindow.document) {
@@ -1614,6 +1623,16 @@ function exportAstrophotoChecklist() {
   if (planWarnings.length > 0) {
     summaryList.push(`<li><strong>À surveiller :</strong> ${escapeHtml(planWarnings.join(' • '))}</li>`);
   }
+
+  const referenceFilesHtml = referenceFiles.length > 0
+    ? `<section><h2>Fichiers de calibration suggérés</h2><ul>${referenceFiles
+        .map((file) => {
+          const typeLabel = typeof file.type === 'string' && file.type.trim() ? file.type : 'Calibration';
+          const countLabel = Number.isFinite(file.count) && file.count > 0 ? `${file.count}× ` : '';
+          return `<li>${escapeHtml(typeLabel)} : ${escapeHtml(countLabel)}<code>${escapeHtml(file.filename)}</code></li>`;
+        })
+        .join('')}</ul></section>`
+    : '';
 
   const recommendationsHtml = astro.recommendations
     .map((entry) => {
@@ -1702,6 +1721,7 @@ function exportAstrophotoChecklist() {
           </ul>
         </section>
         ${checklistHtml}
+        ${referenceFilesHtml}
         <section>
           <h2>Détails par cible</h2>
           ${recommendationsHtml}

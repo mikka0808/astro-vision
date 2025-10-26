@@ -1477,6 +1477,19 @@ export function buildVisibilityCalendar(baseResults = [], objects = [], context 
     .filter(Boolean);
 }
 
+function roundExposureSeconds(value, defaults = {}) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  const explicitStep = Number.isFinite(defaults.exposureStepSeconds)
+    ? Math.max(0.001, defaults.exposureStepSeconds)
+    : null;
+  const base = Number.isFinite(defaults.exposureSeconds) ? defaults.exposureSeconds : numeric;
+  const step = explicitStep
+    || (base < 1 ? 0.001 : base < 15 ? 1 : 5);
+  const rounded = Math.round(numeric / step) * step;
+  return step < 1 ? Number(rounded.toFixed(3)) : Number(rounded.toFixed(0));
+}
+
 function clampRange(value, min, max) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return Number.isFinite(min) ? min : null;
@@ -1541,7 +1554,7 @@ function buildCaptureRecommendation(entry, profile, context = {}, weather = {}, 
   const minExposure = Number.isFinite(defaults.minExposureSeconds) ? defaults.minExposureSeconds : baseExposure * 0.5;
   const maxExposure = Number.isFinite(defaults.maxExposureSeconds) ? defaults.maxExposureSeconds : baseExposure * 1.8;
   let exposureSeconds = baseExposure * altitudeNormalized * cloudFactor * bortleFactor;
-  exposureSeconds = clampRange(exposureSeconds, minExposure, maxExposure);
+  exposureSeconds = clampRange(roundExposureSeconds(exposureSeconds, defaults), minExposure, maxExposure);
 
   const baseIntegration = Number.isFinite(defaults.integrationMinutes) ? defaults.integrationMinutes : 120;
   const minIntegration = Number.isFinite(defaults.minIntegrationMinutes) ? defaults.minIntegrationMinutes : baseIntegration * 0.6;
@@ -1550,7 +1563,14 @@ function buildCaptureRecommendation(entry, profile, context = {}, weather = {}, 
   const bortleBoost = 1 + Math.max(0, (bortle - 4) * 0.18);
   const cloudBoost = 1 + Math.max(0, (cloudCover ?? 0 - 20) / 140);
   let integrationMinutes = baseIntegration * altitudeBoost * bortleBoost * cloudBoost;
-  integrationMinutes = clampRange(Math.round(integrationMinutes / 5) * 5, minIntegration, maxIntegration);
+  const integrationStep = Number.isFinite(defaults.integrationStepMinutes)
+    ? Math.max(1, Math.round(defaults.integrationStepMinutes))
+    : 5;
+  integrationMinutes = clampRange(
+    Math.round(integrationMinutes / integrationStep) * integrationStep,
+    minIntegration,
+    maxIntegration
+  );
 
   const isoLabel = formatRangeLabel(defaults.isoRange);
   const gainLabel = formatRangeLabel(defaults.gainRange);
@@ -1601,7 +1621,6 @@ function buildCaptureRecommendation(entry, profile, context = {}, weather = {}, 
   const biasCount = Number.isFinite(defaults.biasCount) ? Math.max(0, Math.round(defaults.biasCount)) : 25;
   const slug = slugifyName(entry.object?.name);
   const exposureLabel = `${Math.round(exposureSeconds)}s`;
-  const integrationLabel = `${Math.round(integrationMinutes)}m`;
   const gainTag = gainText ? gainText.replace(/[^0-9–]/g, '').replace(/–/g, '-') : null;
   const isoTag = isoText ? isoText.replace(/[^0-9–]/g, '').replace(/–/g, '-') : null;
   const sensitivityTag = isoTag || gainTag || 'auto';
@@ -1610,7 +1629,7 @@ function buildCaptureRecommendation(entry, profile, context = {}, weather = {}, 
     calibrationFiles.push({ type: 'Darks', count: darkCount, filename: `dark_${slug}_${exposureLabel}_${sensitivityTag}.fits` });
   }
   if (flatCount > 0) {
-    calibrationFiles.push({ type: 'Flats', count: flatCount, filename: `flat_${slug}_${integrationLabel}.fits` });
+    calibrationFiles.push({ type: 'Flats', count: flatCount, filename: `flat_${slug}_${sensitivityTag}.fits` });
   }
   if (biasCount > 0) {
     calibrationFiles.push({ type: 'Offsets/Bias', count: biasCount, filename: `bias_${slug}_${sensitivityTag}.fits` });
