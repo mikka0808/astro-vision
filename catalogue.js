@@ -36,6 +36,7 @@ import {
   loadCataloguePreferences
 } from './catalogue-preferences.js';
 import { Favoris } from './src/state/favoris.js';
+import { translate, onLanguageChange } from './src/ui/i18n.js';
 
 loadScorePreferencesFromCookie();
 
@@ -450,12 +451,25 @@ function queryFilterInput(container, value) {
   }
 }
 
+function updateNightModeLabel(enabled = document.body.classList.contains('night-mode')) {
+  if (!nightModeToggle) {
+    return;
+  }
+  const key = enabled ? 'actions.nightDisable' : 'actions.nightToggle';
+  const text = translate(key);
+  if (text && text !== key) {
+    nightModeToggle.textContent = text;
+  } else {
+    nightModeToggle.textContent = enabled ? '🌅 Mode jour' : '🔦 Mode nuit';
+  }
+}
+
 function applyNightMode(enabled, { persist = true } = {}) {
   document.body.classList.toggle('night-mode', enabled);
   if (nightModeToggle) {
     nightModeToggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
     nightModeToggle.classList.toggle('is-active', enabled);
-    nightModeToggle.textContent = enabled ? '🌅 Mode jour' : '🔦 Mode nuit';
+    updateNightModeLabel(enabled);
   }
   if (persist) {
     try {
@@ -483,7 +497,12 @@ if (nightModeToggle) {
     const next = !document.body.classList.contains('night-mode');
     applyNightMode(next);
   });
+  updateNightModeLabel();
 }
+
+onLanguageChange(() => {
+  updateNightModeLabel();
+});
 
 if (catalogueSearchInput) {
   setActiveSearchValue(catalogueSearchInput.value || '');

@@ -1,0 +1,17 @@
+{
+  "name": "Astro-Vision",
+  "short_name": "Astro Soir",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#050a18",
+  "theme_color": "#050a18",
+  "description": "Préparez vos nuits d'observation avec Astro-Vision : météo, visibilité et scénarios personnalisés.",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

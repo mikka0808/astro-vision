@@ -44,6 +44,15 @@ import {
   getDefaultCatalogueSelections,
   loadCataloguePreferences
 } from './catalogue-preferences.js';
+import { ALTITUDE_THRESHOLDS, DEFAULT_LANGUAGE, OBSERVATION_LIMITS } from './config/app-config.js';
+import {
+  translate,
+  formatTime as translateTime,
+  formatDate as translateDate,
+  applyTranslations,
+  onLanguageChange
+} from './src/ui/i18n.js';
+import { Favoris } from './src/state/favoris.js';
 
 loadScorePreferencesFromCookie();
 
@@ -118,6 +127,17 @@ const decisionSummary = document.getElementById('decisionSummary');
 const globalScoreValue = document.getElementById('globalScoreValue');
 const globalScoreGauge = document.getElementById('globalScoreGauge');
 const globalScoreDetails = document.getElementById('globalScoreDetails');
+const sessionSummarySection = document.getElementById('sessionSummary');
+const summaryLatitude = document.getElementById('summaryLatitude');
+const summaryLongitude = document.getElementById('summaryLongitude');
+const summaryLocalTime = document.getElementById('summaryLocalTime');
+const summaryTimezone = document.getElementById('summaryTimezone');
+const summaryBortle = document.getElementById('summaryBortle');
+const summaryDuration = document.getElementById('summaryDuration');
+const summaryEditButton = document.querySelector('[data-summary-edit]');
+const scenarioSection = document.getElementById('observationScenarios');
+const scenarioList = document.getElementById('scenarioList');
+const scenarioHint = document.getElementById('scenarioHint');
 const decisionGlobalCard = document.getElementById('decisionGlobal');
 const globalScoreMeter = decisionGlobalCard ? decisionGlobalCard.querySelector('.score-meter') : null;
 const decisionCalendarList = document.getElementById('decisionCalendarList');
@@ -162,6 +182,7 @@ let cachedEvents = [];
 let cachedContext = null;
 let cachedDecision = null;
 let cachedSourceObjects = [];
+let cachedScenarioEntries = [];
 let astrophotoSettings = { enabled: false, profileId: 'visual' };
 let bortleDebounce = null;
 let lastBortleSummary = '';
@@ -169,6 +190,8 @@ let skyMapLoaderPromise = null;
 let skyMapInstance = null;
 let skyMapOverlay = null;
 let autoGeolocAttempted = false;
+let numberFormatter = new Intl.NumberFormat(DEFAULT_LANGUAGE, { maximumFractionDigits: 1 });
+let timeZoneFormatter = new Intl.DateTimeFormat(DEFAULT_LANGUAGE, { timeZoneName: 'short' });
 const skyMapState = { context: null, targets: [], selectedISO: null, ready: false };
 const catalogueCheckboxMap = new Map();
 const catalogueSelectionByMode = new Map();
@@ -189,6 +212,297 @@ let addressSuggestionFetchTimeout = null;
 let addressSuggestionAbortController = null;
 let addressSuggestionsData = [];
 let chartsModulePromise = null;
+let summaryLastContext = null;
+
+function formatHours(value) {
+  if (!Number.isFinite(value)) {
+    return '—';
+  }
+  return `${numberFormatter.format(value)} h`;
+}
+
+function extractTimeZoneLabel(date) {
+  if (!(date instanceof Date)) {
+    return '';
+  }
+  try {
+    const parts = timeZoneFormatter.formatToParts(date);
+    const zone = parts.find((part) => part.type === 'timeZoneName');
+    return zone ? zone.value : '';
+  } catch (error) {
+    return '';
+  }
+}
+
+function resolveTargetIdentifier(object) {
+  if (!object || typeof object !== 'object') {
+    return null;
+  }
+  if (typeof object.id === 'string' && object.id.trim()) {
+    return object.id.trim();
+  }
+  const refs = Array.isArray(object.catalogueRefs) ? object.catalogueRefs : [];
+  const primary = typeof object.primaryCatalogueId === 'string' ? object.primaryCatalogueId : null;
+  const base = refs[0] || primary;
+  if (base) {
+    const number = object.number != null ? `-${object.number}` : '';
+    return `${base}${number}`.toLowerCase();
+  }
+  if (typeof object.name === 'string' && object.name.trim()) {
+    return object.name.trim().toLowerCase().replace(/\s+/g, '-');
+  }
+  return null;
+}
+
+function computeScenarioDifficulty(entry) {
+  const altitude = Number.isFinite(entry?.averageAltitude) ? entry.averageAltitude : entry?.altitude ?? 0;
+  const magnitude = Number(entry?.object?.magnitude);
+  if (altitude >= ALTITUDE_THRESHOLDS.optimal && (!Number.isFinite(magnitude) || magnitude <= 8)) {
+    return 'easy';
+  }
+  if (altitude >= ALTITUDE_THRESHOLDS.medium && (!Number.isFinite(magnitude) || magnitude <= 10.5)) {
+    return 'moderate';
+  }
+  return 'challenge';
+}
+
+function describeScenarioDifficulty(difficulty) {
+  switch (difficulty) {
+    case 'easy':
+      return translate('scenarios.difficulty.easy');
+    case 'moderate':
+      return translate('scenarios.difficulty.moderate');
+    default:
+      return translate('scenarios.difficulty.challenge');
+  }
+}
+
+function isTargetAlreadyPlanned(id) {
+  if (!id) {
+    return false;
+  }
+  try {
+    const listes = Favoris.getListes();
+    return listes.some((liste) => Array.isArray(liste.cibleIds) && liste.cibleIds.includes(id));
+  } catch (error) {
+    console.warn('Impossible de vérifier les listes enregistrées :', error);
+    return false;
+  }
+}
+
+function ensureScenarioListName() {
+  const preferred = translate('scenarios.title');
+  return preferred && preferred.trim() ? preferred.trim() : 'Scénarios d’observation';
+}
+
+function ensureScenarioList() {
+  const listes = Favoris.getListes();
+  const name = ensureScenarioListName();
+  const normalized = name.toLowerCase();
+  const existing = listes.find((liste) => liste.nom?.toLowerCase() === normalized);
+  if (existing) {
+    return existing;
+  }
+  try {
+    return Favoris.creerListe(name);
+  } catch (error) {
+    console.warn('Impossible de créer une nouvelle liste :', error);
+    return null;
+  }
+}
+
+function addScenarioTarget(object, button) {
+  const identifier = resolveTargetIdentifier(object);
+  if (!identifier) {
+    return;
+  }
+  const liste = ensureScenarioList();
+  if (!liste) {
+    return;
+  }
+  const added = Favoris.addToListe(liste.id, identifier);
+  if (added && button) {
+    button.textContent = translate('scenarios.added');
+    button.disabled = true;
+  }
+}
+
+function renderObservationScenarios(entries = [], { preserve = false } = {}) {
+  if (!scenarioSection || !scenarioList || !scenarioHint) {
+    return;
+  }
+  cachedScenarioEntries = Array.isArray(entries) ? entries.slice(0, OBSERVATION_LIMITS.scenarioCount) : [];
+  if (cachedScenarioEntries.length === 0) {
+    scenarioSection.classList.add('hidden');
+    scenarioHint.dataset.i18nKey = 'scenarios.empty';
+    scenarioHint.textContent = translate('scenarios.empty');
+    scenarioList.innerHTML = '';
+    return;
+  }
+
+  scenarioSection.classList.remove('hidden');
+  scenarioHint.dataset.i18nKey = 'scenarios.description';
+  scenarioHint.textContent = translate('scenarios.description');
+  scenarioList.innerHTML = '';
+
+  cachedScenarioEntries.forEach((entry) => {
+    const listItem = document.createElement('li');
+    listItem.className = 'scenario-card tone-frame';
+    const difficulty = computeScenarioDifficulty(entry);
+    const difficultyLabel = describeScenarioDifficulty(difficulty);
+    const bestTime = entry?.bestTime instanceof Date ? entry.bestTime : entry?.bestTime ? new Date(entry.bestTime) : null;
+    const timeText = bestTime ? translateTime(bestTime, { hour: '2-digit', minute: '2-digit' }) : '—';
+    const altitudeText = formatAltitude(entry?.averageAltitude ?? entry?.altitude);
+    const magnitude = Number.isFinite(entry?.object?.magnitude) ? entry.object.magnitude.toFixed(1) : '—';
+    const details = translate('scenarios.details', { time: timeText, altitude: altitudeText, magnitude });
+    const name = entry?.object?.name ?? 'Objet';
+    const type = entry?.object?.type || entry?.object?.category || '';
+    const identifier = resolveTargetIdentifier(entry?.object);
+    const alreadyPlanned = isTargetAlreadyPlanned(identifier);
+
+    listItem.innerHTML = `
+      <div class="scenario-card__body">
+        <div class="scenario-card__header">
+          <h3>${name}</h3>
+          <span class="scenario-card__pill">${difficultyLabel}</span>
+        </div>
+        <p class="scenario-card__meta">${type}</p>
+        <p class="scenario-card__details">${details}</p>
+      </div>
+    `;
+
+    const actions = document.createElement('div');
+    actions.className = 'scenario-card__actions';
+    const addButton = document.createElement('button');
+    addButton.type = 'button';
+    addButton.className = 'link-button link-button--accent';
+    addButton.textContent = alreadyPlanned ? translate('scenarios.added') : translate('actions.addToList');
+    addButton.disabled = alreadyPlanned;
+    addButton.addEventListener('click', () => addScenarioTarget(entry?.object, addButton));
+    actions.appendChild(addButton);
+
+    const viewLink = document.createElement('a');
+    viewLink.className = 'link-button';
+    viewLink.href = 'mes-listes.html';
+    viewLink.textContent = translate('actions.viewLists');
+    actions.appendChild(viewLink);
+
+    listItem.appendChild(actions);
+    scenarioList.appendChild(listItem);
+  });
+
+  applyTranslations(scenarioSection);
+}
+
+function updateScenarioLanguage() {
+  if (cachedScenarioEntries.length > 0) {
+    renderObservationScenarios(cachedScenarioEntries, { preserve: true });
+  } else {
+    if (scenarioHint) {
+      scenarioHint.dataset.i18nKey = cachedContext ? 'scenarios.description' : 'scenarios.empty';
+      scenarioHint.textContent = translate(scenarioHint.dataset.i18nKey);
+    }
+  }
+}
+
+function updateSessionSummary(context) {
+  if (!sessionSummarySection) {
+    return;
+  }
+  summaryLastContext = context || null;
+  if (!context) {
+    if (summaryLatitude) summaryLatitude.textContent = '—';
+    if (summaryLongitude) summaryLongitude.textContent = '—';
+    if (summaryLocalTime) {
+      summaryLocalTime.textContent = translate('summary.none');
+      summaryLocalTime.removeAttribute('datetime');
+    }
+    if (summaryTimezone) summaryTimezone.textContent = '';
+    if (summaryBortle) summaryBortle.textContent = '—';
+    if (summaryDuration) summaryDuration.textContent = '—';
+    return;
+  }
+
+  const { latitude, longitude, bortle, durationHours, localDate, localTime } = context;
+  if (summaryLatitude) {
+    summaryLatitude.textContent = Number.isFinite(latitude) ? formatCoordinate(latitude) : '—';
+  }
+  if (summaryLongitude) {
+    summaryLongitude.textContent = Number.isFinite(longitude) ? formatCoordinate(longitude) : '—';
+  }
+
+  let sessionDate = null;
+  if (context.date instanceof Date && !Number.isNaN(context.date.getTime())) {
+    sessionDate = context.date;
+  } else if (typeof localDate === 'string' && typeof localTime === 'string') {
+    try {
+      sessionDate = buildObservationDate(localDate, localTime);
+    } catch (error) {
+      sessionDate = null;
+    }
+  }
+
+  if (sessionDate instanceof Date && summaryLocalTime) {
+    const dateLabel = translateDate(sessionDate, { weekday: 'short', day: 'numeric', month: 'short' });
+    const timeLabel = translateTime(sessionDate, { hour: '2-digit', minute: '2-digit' });
+    summaryLocalTime.textContent = `${dateLabel} • ${timeLabel}`;
+    summaryLocalTime.dateTime = sessionDate.toISOString();
+    if (summaryTimezone) {
+      summaryTimezone.textContent = extractTimeZoneLabel(sessionDate);
+    }
+  } else if (summaryLocalTime) {
+    summaryLocalTime.textContent = translate('summary.none');
+    summaryLocalTime.removeAttribute('datetime');
+    if (summaryTimezone) summaryTimezone.textContent = '';
+  }
+
+  if (summaryBortle) {
+    if (Number.isFinite(bortle)) {
+      const description = bortleDescriptions[bortle] ? ` • ${bortleDescriptions[bortle]}` : '';
+      summaryBortle.textContent = `Bortle ${bortle}${description}`;
+    } else {
+      summaryBortle.textContent = '—';
+    }
+  }
+
+  if (summaryDuration) {
+    summaryDuration.textContent = Number.isFinite(durationHours) ? formatHours(durationHours) : '—';
+  }
+}
+
+function updateSessionSummaryFromInputs() {
+  const lat = parseCoordinate(latitudeInput?.value || '');
+  const lon = parseCoordinate(longitudeInput?.value || '');
+  const bortle = Number(bortleInput?.value);
+  const duration = Number(durationSelect?.value);
+  const localDate = dateInput?.value || null;
+  const localTime = timeInput?.value || null;
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    updateSessionSummary(null);
+    return;
+  }
+  updateSessionSummary({
+    latitude: lat,
+    longitude: lon,
+    bortle: Number.isFinite(bortle) ? bortle : null,
+    durationHours: Number.isFinite(duration) ? duration : null,
+    localDate,
+    localTime
+  });
+}
+
+function updateNightModeLabel(enabled = document.body.classList.contains('night-mode')) {
+  if (!nightModeToggle) {
+    return;
+  }
+  const key = enabled ? 'actions.nightDisable' : 'actions.nightToggle';
+  const text = translate(key);
+  if (text && text !== key) {
+    nightModeToggle.textContent = text;
+  } else {
+    nightModeToggle.textContent = enabled ? '🌅 Mode jour' : '🔦 Mode nuit';
+  }
+}
 
 function loadChartsModule() {
   if (!chartsModulePromise) {
@@ -199,6 +513,26 @@ function loadChartsModule() {
   }
   return chartsModulePromise;
 }
+
+onLanguageChange((lang) => {
+  try {
+    numberFormatter = new Intl.NumberFormat(lang, { maximumFractionDigits: 1 });
+    timeZoneFormatter = new Intl.DateTimeFormat(lang, { timeZoneName: 'short' });
+  } catch (error) {
+    numberFormatter = new Intl.NumberFormat(DEFAULT_LANGUAGE, { maximumFractionDigits: 1 });
+    timeZoneFormatter = new Intl.DateTimeFormat(DEFAULT_LANGUAGE, { timeZoneName: 'short' });
+  }
+  updateNightModeLabel();
+  updateSessionSummary(summaryLastContext);
+  updateScenarioLanguage();
+  updateFilterSummary();
+});
+
+Favoris.subscribe(() => {
+  if (cachedScenarioEntries.length > 0) {
+    renderObservationScenarios(cachedScenarioEntries, { preserve: true });
+  }
+});
 
 function loadAstrophotoPreferences() {
   const stored = readStorage(ASTROPHOTO_STORAGE_KEY, { fallback: null });
@@ -1793,9 +2127,9 @@ function updateFilterSummary() {
   if (!filterSummary) return;
   const selected = getActiveTypeFilters();
   if (selected.length === 0) {
-    filterSummary.textContent = 'Tous les types sont affichés.';
+    filterSummary.textContent = translate('filters.none');
   } else {
-    filterSummary.textContent = `Filtre actif : ${selected.join(', ')}.`;
+    filterSummary.textContent = translate('filters.active', { types: selected.join(', ') });
   }
 }
 
@@ -1818,6 +2152,7 @@ function updateFilteredTargets() {
   if (cachedContext) {
     prepareSkyMap(cachedContext, display);
   }
+  renderObservationScenarios(display);
 }
 
 function refreshScoresAfterBortle(value, summary) {
@@ -1877,9 +2212,11 @@ function refreshScoresAfterBortle(value, summary) {
       bortle: value,
       bortleSummary: summary ?? cachedContext.bortleSummary ?? ''
     };
+    updateSessionSummary(cachedContext);
     const { display } = renderResultsView(weighted);
     prepareSkyMap(cachedContext, display);
     refreshDecisionSupport();
+    renderObservationScenarios(display);
   } catch (error) {
     console.warn('Impossible de recalculer les scores après mise à jour de la pollution lumineuse :', error);
   }
@@ -1953,11 +2290,13 @@ function initDefaults() {
     applyAstrophotoToggle();
   }
   astrophotoSettings = readAstrophotoSettings();
+  updateSessionSummaryFromInputs();
 }
 
 function updateBortleLabel() {
   const value = Number(bortleInput.value);
   bortleValue.textContent = `${value} - ${bortleDescriptions[value]}`;
+  updateSessionSummaryFromInputs();
 }
 
 function renderWeather(data) {
@@ -2477,16 +2816,18 @@ function renderTargets(targets, stats = {}) {
 
   if (targets.length === 0) {
     if (selectedTypes.length > 0 && matchCount === 0 && total > 0) {
-      resultsHint.textContent =
-        "Aucun objet ne correspond aux types sélectionnés pour cette fenêtre. Retire un filtre ou élargis la durée.";
+      resultsHint.textContent = translate('results.noneFilters');
     } else {
-      resultsHint.textContent =
-        "Aucune cible satisfaisante pour cette fenêtre : tente de changer l'heure, la date ou vise un ciel plus dégagé.";
+      resultsHint.textContent = translate('results.noneGeneral');
     }
   } else {
-    const base = `Top ${targets.length} cibles optimisées selon la météo, la hauteur moyenne, la saison et la Lune.`;
-    const filterNote = selectedTypes.length > 0 ? ` Filtre type : ${selectedTypes.join(', ')}.` : '';
-    const matchNote = matchCount > targets.length ? ` (${targets.length} sur ${matchCount} correspondances)` : '';
+    const base = translate('results.base', { count: targets.length });
+    const filterNote = selectedTypes.length > 0
+      ? translate('results.filterNote', { types: selectedTypes.join(', ') })
+      : '';
+    const matchNote = matchCount > targets.length
+      ? translate('results.matchNote', { shown: targets.length, matches: matchCount })
+      : '';
     resultsHint.textContent = `${base}${filterNote}${matchNote}`;
   }
 
@@ -2581,7 +2922,7 @@ function applyNightMode(enabled, { persist = true } = {}) {
   if (nightModeToggle) {
     nightModeToggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
     nightModeToggle.classList.toggle('is-active', enabled);
-    nightModeToggle.textContent = enabled ? '🌅 Mode jour' : '🔦 Mode nuit';
+    updateNightModeLabel(enabled);
   }
   if (persist) {
     try {
@@ -3059,6 +3400,7 @@ async function handleSessionSubmit(event) {
   resetSkyMapPanel();
   resultsHint.textContent = 'Analyse en cours...';
   targetsList.innerHTML = '';
+  renderObservationScenarios([]);
   cachedResults = [];
   cachedWeather = null;
   cachedMoon = null;
@@ -3147,8 +3489,10 @@ async function handleSessionSubmit(event) {
       nightDurationHours: computedNightDurationHours,
       nightSessionSlots: computedNightSessionSlots
     };
+    updateSessionSummary(cachedContext);
     const { display } = renderResultsView(weightedEntries);
     prepareSkyMap(cachedContext, display);
+    renderObservationScenarios(display);
     const decision = computeDecisionInsights(weightedEntries, {
       weather,
       moon,
@@ -3187,6 +3531,7 @@ function fillCoordinates(lat, lon) {
   latitudeInput.value = formatCoordinate(lat);
   longitudeInput.value = formatCoordinate(lon);
   triggerCoordinateUpdates();
+  updateSessionSummaryFromInputs();
 }
 
 async function attemptAutoGeolocation() {
@@ -3270,18 +3615,27 @@ useGeolocBtn.addEventListener('click', () => {
 bortleInput.addEventListener('input', updateBortleLabel);
 latitudeInput.addEventListener('blur', handleCoordinateBlur);
 longitudeInput.addEventListener('blur', handleCoordinateBlur);
-latitudeInput.addEventListener('input', triggerCoordinateUpdates);
-longitudeInput.addEventListener('input', triggerCoordinateUpdates);
+latitudeInput.addEventListener('input', () => {
+  triggerCoordinateUpdates();
+  updateSessionSummaryFromInputs();
+});
+longitudeInput.addEventListener('input', () => {
+  triggerCoordinateUpdates();
+  updateSessionSummaryFromInputs();
+});
 dateInput.addEventListener('change', () => {
   triggerCoordinateUpdates();
   updateSessionDurationOptions(computedNightDurationHours);
+  updateSessionSummaryFromInputs();
 });
 const handleSessionTimeChange = () => {
   updateSessionDurationOptions(computedNightDurationHours);
   scheduleBortleRefresh();
+  updateSessionSummaryFromInputs();
 };
 timeInput.addEventListener('change', handleSessionTimeChange);
 timeInput.addEventListener('input', handleSessionTimeChange);
+durationSelect.addEventListener('change', updateSessionSummaryFromInputs);
 resolveAddressBtn.addEventListener('click', resolveAddress);
 addressInput.addEventListener('input', (event) => {
   scheduleAddressSuggestions(event.target.value);
@@ -3349,6 +3703,16 @@ spinnerButtons.forEach((button) => {
     updateCoordinateInput(targetInput, step * direction);
   });
 });
+
+if (summaryEditButton && sessionForm) {
+  summaryEditButton.addEventListener('click', () => {
+    sessionForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const focusable = sessionForm.querySelector('input, select, textarea, button');
+    if (focusable && typeof focusable.focus === 'function') {
+      focusable.focus({ preventScroll: true });
+    }
+  });
+}
 
 if (enableAstrophotoInput) {
   enableAstrophotoInput.addEventListener('change', () => {
