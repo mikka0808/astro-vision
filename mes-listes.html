@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Astro Soir — Réglage du score</title>
+  <title>Astro Soir — Mes listes personnalisées</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-  <header class="hero">
+<body class="catalogue-page">
+  <header class="hero hero--compact">
     <div class="hero-content">
       <div class="hero-bar">
         <a class="site-brand" href="index.html">
@@ -19,10 +19,10 @@
           </span>
         </a>
         <div class="hero-tools">
-          <button type="button" id="nightModeToggle" class="night-toggle" aria-pressed="false">🔦 Mode nuit</button>
+          <a class="chip-link" href="catalogue.html">← Retour au catalogue</a>
         </div>
       </div>
-      <h1 class="hero-title">Réglage du score</h1>
+      <h1 class="hero-title">Mes listes personnalisées</h1>
             <div class="hero-navigation primary-navigation">
         <nav class="app-menu" aria-label="Navigation principale" data-app-menu>
           <button
@@ -81,7 +81,7 @@
                 </a>
               </li>
               <li class="app-menu__item">
-                <a class="app-menu__link" href="mes-listes.html">
+                <a class="app-menu__link" href="mes-listes.html" aria-current="page">
                   <span class="app-menu__icon" aria-hidden="true">📝</span>
                   <span class="app-menu__text">Mes listes</span>
                 </a>
@@ -93,7 +93,7 @@
                 </a>
               </li>
               <li class="app-menu__item">
-                <a class="app-menu__link" href="score-settings.html" aria-current="page">
+                <a class="app-menu__link" href="score-settings.html">
                   <span class="app-menu__icon" aria-hidden="true">🎯</span>
                   <span class="app-menu__text">Réglages notation</span>
                 </a>
@@ -119,28 +119,56 @@
     </div>
   </section>
   <main>
-    <section class="panel" aria-labelledby="score-settings-heading">
+    <section class="panel" id="listesPanel" aria-live="polite">
       <div class="panel-header">
-        <h2 id="score-settings-heading">Personnaliser la notation de visibilité</h2>
-        <p>Déplace les curseurs pour indiquer l’importance relative de chaque facteur. Les poids sont automatiquement renormalisés afin que la somme corresponde à 100&nbsp;%.</p>
-      </div>
-      <div class="panel-body score-settings">
-        <div class="score-settings__controls">
-          <p class="score-settings__total" id="scoreWeightsTotal">Chargement des préférences…</p>
-          <div id="scoreWeightControls" class="score-settings__grid" role="group" aria-describedby="score-settings-heading"></div>
-          <div class="score-settings__actions">
-            <button type="button" id="resetScoreWeights" class="secondary">Réinitialiser les valeurs recommandées</button>
-          </div>
+        <div class="panel-heading">
+          <h2>Gestion des listes</h2>
+          <p id="listesHint">Retrouve ici toutes tes listes favorites. Renomme-les, supprime-les ou exporte-les en CSV.</p>
         </div>
-        <aside class="score-settings__summary" aria-live="polite">
-          <h3 class="score-summary__title">Répartition actuelle</h3>
-          <ul id="scoreWeightsSummary" class="score-summary"></ul>
-        </aside>
+      </div>
+      <div class="panel-body">
+        <div class="listes-actions">
+          <button type="button" class="link-button link-button--accent" id="createQuickList">Nouvelle liste rapide</button>
+        </div>
+        <div id="listesContainer" class="listes-grid" aria-live="polite"></div>
       </div>
     </section>
   </main>
+  <footer>
+    <nav class="footer-nav" aria-label="Navigation secondaire">
+      <a class="chip-link" href="index.html">
+        <span aria-hidden="true">✨</span>
+        <span>Cibles</span>
+      </a>
+      <a class="chip-link" href="dashboard.html">
+        <span aria-hidden="true">📊</span>
+        <span>Tableau</span>
+      </a>
+      <a class="chip-link" href="catalogue.html">
+        <span aria-hidden="true">📚</span>
+        <span>Catalogue</span>
+      </a>
+      <a class="chip-link" href="mes-equipements.html">
+        <span aria-hidden="true">🔭</span>
+        <span>Équipements</span>
+      </a>
+      <a class="chip-link" href="star-map.html">
+        <span aria-hidden="true">🌌</span>
+        <span>Carte</span>
+      </a>
+      <a class="chip-link" href="score-settings.html">
+        <span aria-hidden="true">🎯</span>
+        <span>Score</span>
+      </a>
+      <a class="chip-link" href="catalogue-settings.html">
+        <span aria-hidden="true">⚙️</span>
+        <span>Catalogues</span>
+      </a>
+    </nav>
+    <small>Export CSV : compatible avec les tableurs courants et logiciels de planification.</small>
+  </footer>
   <script type="module" src="src/ui/navigation.js"></script>
   <script type="module" src="src/state/equipement-header.js"></script>
-  <script type="module" src="score-settings.js"></script>
+  <script type="module" src="src/pages/mes-listes.js"></script>
 </body>
 </html>

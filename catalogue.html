@@ -24,15 +24,83 @@
       </div>
       <h1 id="catalogueTitle" class="hero-title">Catalogue d’observation</h1>
       <p id="catalogueSubtitle" class="sr-only">Consulte les catalogues sélectionnés et leurs scores de visibilité.</p>
-      <div class="hero-navigation">
-        <nav class="top-nav" aria-label="Navigation principale">
-          <a class="nav-link" href="index.html">← Retour à l'analyse</a>
-          <a class="nav-link" href="dashboard.html">Tableau de bord</a>
-          <a class="nav-link" href="mes-equipements.html">Mes équipements</a>
-          <a class="nav-link" href="catalogue-settings.html">Préférences de catalogue</a>
-          <a class="nav-link" href="star-map.html">Carte du ciel</a>
-          <a class="nav-link" href="src/pages/mes-listes.html">Mes listes</a>
-          <a class="nav-link" href="score-settings.html">Réglage du score</a>
+            <div class="hero-navigation primary-navigation">
+        <nav class="app-menu" aria-label="Navigation principale" data-app-menu>
+          <button
+            class="app-menu__toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="appMenuPanel"
+            data-app-menu-toggle
+          >
+            <span class="app-menu__toggle-icon" aria-hidden="true"></span>
+            <span class="app-menu__toggle-label">Menu</span>
+          </button>
+          <div class="app-menu__scrim" data-app-menu-scrim hidden></div>
+          <div class="app-menu__panel" id="appMenuPanel" data-app-menu-panel tabindex="-1">
+            <div class="app-menu__panel-header">
+              <p class="app-menu__title">Navigation</p>
+              <button class="app-menu__close" type="button" data-app-menu-close aria-label="Fermer le menu">
+                <span aria-hidden="true">✕</span>
+              </button>
+            </div>
+            <ul class="app-menu__list">
+              <li class="app-menu__item">
+                <a class="app-menu__link" href="index.html">
+                  <span class="app-menu__icon" aria-hidden="true">⭐</span>
+                  <span class="app-menu__text">Cibles idéales</span>
+                </a>
+              </li>
+              <li class="app-menu__item">
+                <a class="app-menu__link" href="star-map.html">
+                  <span class="app-menu__icon" aria-hidden="true">🗺️</span>
+                  <span class="app-menu__text">Carte du ciel</span>
+                </a>
+              </li>
+              <li class="app-menu__item">
+                <a class="app-menu__link" href="catalogue.html" aria-current="page">
+                  <span class="app-menu__icon" aria-hidden="true">📚</span>
+                  <span class="app-menu__text">Catalogue</span>
+                </a>
+              </li>
+              <li class="app-menu__item">
+                <a class="app-menu__link" href="fiche-catalogue.html">
+                  <span class="app-menu__icon" aria-hidden="true">🗂️</span>
+                  <span class="app-menu__text">Fiche catalogue</span>
+                </a>
+              </li>
+              <li class="app-menu__item">
+                <a class="app-menu__link" href="dashboard.html">
+                  <span class="app-menu__icon" aria-hidden="true">📊</span>
+                  <span class="app-menu__text">Tableau de bord</span>
+                </a>
+              </li>
+              <li class="app-menu__item">
+                <a class="app-menu__link" href="mes-equipements.html">
+                  <span class="app-menu__icon" aria-hidden="true">🔭</span>
+                  <span class="app-menu__text">Mes équipements</span>
+                </a>
+              </li>
+              <li class="app-menu__item">
+                <a class="app-menu__link" href="mes-listes.html">
+                  <span class="app-menu__icon" aria-hidden="true">📝</span>
+                  <span class="app-menu__text">Mes listes</span>
+                </a>
+              </li>
+              <li class="app-menu__item">
+                <a class="app-menu__link" href="catalogue-settings.html">
+                  <span class="app-menu__icon" aria-hidden="true">⚙️</span>
+                  <span class="app-menu__text">Réglages catalogue</span>
+                </a>
+              </li>
+              <li class="app-menu__item">
+                <a class="app-menu__link" href="score-settings.html">
+                  <span class="app-menu__icon" aria-hidden="true">🎯</span>
+                  <span class="app-menu__text">Réglages notation</span>
+                </a>
+              </li>
+            </ul>
+          </div>
         </nav>
       </div>
     </div>
@@ -155,16 +223,39 @@
     </section>
   </main>
   <footer>
-    <nav class="footer-nav">
-      <a class="nav-link" href="index.html">Page principale</a>
-      <a class="nav-link" href="dashboard.html">Tableau de bord</a>
-      <a class="nav-link" href="mes-equipements.html">Mes équipements</a>
-      <a class="nav-link" href="catalogue-settings.html">Préférences de catalogue</a>
-      <a class="nav-link" href="star-map.html">Carte du ciel</a>
-      <a class="nav-link" href="src/pages/mes-listes.html">Mes listes</a>
+    <nav class="footer-nav" aria-label="Navigation secondaire">
+      <a class="chip-link" href="index.html">
+        <span aria-hidden="true">✨</span>
+        <span>Cibles</span>
+      </a>
+      <a class="chip-link" href="dashboard.html">
+        <span aria-hidden="true">📊</span>
+        <span>Tableau</span>
+      </a>
+      <a class="chip-link" href="mes-equipements.html">
+        <span aria-hidden="true">🔭</span>
+        <span>Équipements</span>
+      </a>
+      <a class="chip-link" href="mes-listes.html">
+        <span aria-hidden="true">🗂️</span>
+        <span>Listes</span>
+      </a>
+      <a class="chip-link" href="catalogue-settings.html">
+        <span aria-hidden="true">⚙️</span>
+        <span>Catalogues</span>
+      </a>
+      <a class="chip-link" href="star-map.html">
+        <span aria-hidden="true">🌌</span>
+        <span>Carte</span>
+      </a>
+      <a class="chip-link" href="score-settings.html">
+        <span aria-hidden="true">🎯</span>
+        <span>Score</span>
+      </a>
     </nav>
     <small>Sources météo : <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open‑Meteo</a>. Catalogues et métadonnées consolidés par Astro Soir.</small>
   </footer>
+  <script type="module" src="src/ui/navigation.js"></script>
   <script type="module" src="src/state/equipement-header.js"></script>
   <script type="module" src="catalogue.js"></script>
 </body>
