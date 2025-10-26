@@ -27,6 +27,7 @@ import {
   resolveScoreTone,
   getAstrophotoProfile
 } from './src/core/astro.js';
+import { computeMoonSession } from './src/core/lune.js';
 import { focaleEffective, fovDeg, echantillonnage } from './src/utils/optique.js';
 import { readStorage, writeStorage } from './src/utils/storage.js';
 import {
@@ -165,6 +166,7 @@ let lastBortleSummary = '';
 let skyMapLoaderPromise = null;
 let skyMapInstance = null;
 let skyMapOverlay = null;
+let autoGeolocAttempted = false;
 const skyMapState = { context: null, targets: [], selectedISO: null, ready: false };
 const catalogueCheckboxMap = new Map();
 const catalogueSelectionByMode = new Map();
@@ -1633,8 +1635,12 @@ function renderWeather(data) {
     : 'Point de rosée à confirmer';
 
   if (weatherHighlights) {
+    const layerSummary =
+      lowValue === '—' || midValue === '—' || highValue === '—'
+        ? 'Répartition à confirmer'
+        : `B/M/H ${lowValue} / ${midValue} / ${highValue}`;
     const highlightCards = [
-      { label: 'Nuages', value: coverValue, sub: 'Couverture totale' },
+      { label: 'Nuages', value: coverValue, sub: layerSummary },
       { label: 'Température', value: temperatureValue, sub: dewSummary },
       { label: 'Seeing', value: seeingQuality, sub: `${seeingPercent} • FWHM ${seeingArcsec}` },
       { label: 'Vent', value: windValue, sub: `Rafales ${gustValue}` },
@@ -1704,7 +1710,36 @@ function renderMoon(moon) {
   const impact = describeMoonImpactLevel(moon.illumination);
   const illuminationText = formatIllumination(moon.illumination);
 
-  moonSummary.innerHTML = `<strong>${moon.emoji ?? '🌙'} ${moon.name}</strong> • ${illuminationText} éclairée • ${impact}`;
+  const altitude = Number.isFinite(moon.altitude) ? moon.altitude : null;
+  const altitudeLabel = Number.isFinite(altitude) ? formatAltitude(altitude) : null;
+  const directionText = Number.isFinite(moon.azimuth) ? describeAzimuth(moon.azimuth) : null;
+  const aboveHorizon = typeof moon.aboveHorizon === 'boolean' ? moon.aboveHorizon : null;
+
+  let summaryPosition = '';
+  if (altitudeLabel) {
+    if (aboveHorizon === false) {
+      summaryPosition = `Sous l’horizon (${altitudeLabel})`;
+      if (directionText) {
+        summaryPosition += ` • ${directionText}`;
+      }
+    } else {
+      summaryPosition = `Altitude ${altitudeLabel}`;
+      if (directionText) {
+        summaryPosition += ` • ${directionText}`;
+      }
+    }
+  }
+
+  const summaryParts = [
+    `<strong>${moon.emoji ?? '🌙'} ${moon.name}</strong>`,
+    `${illuminationText} éclairée`,
+    impact
+  ];
+  if (summaryPosition) {
+    summaryParts.push(summaryPosition);
+  }
+
+  moonSummary.innerHTML = summaryParts.join(' • ');
 
   if (moonPhaseLabel) {
     moonPhaseLabel.textContent = moon.name;
@@ -1722,14 +1757,50 @@ function renderMoon(moon) {
     moonVisual.setAttribute('aria-label', `Phase ${moon.name}`);
   }
 
+  const ageLabel = Number.isFinite(moon.ageDays) ? `${moon.ageDays.toFixed(1)} jours` : 'Âge inconnu';
+  const description = moon.description || 'Aspect à confirmer';
+  const positionParts = [];
+  if (altitudeLabel) {
+    positionParts.push(altitudeLabel);
+  }
+  if (directionText) {
+    positionParts.push(directionText);
+  }
+  const positionValue = positionParts.length > 0 ? positionParts.join(' • ') : 'Position inconnue';
+
+  let visibilityValue;
+  if (aboveHorizon === null) {
+    visibilityValue = 'Visibilité à confirmer';
+  } else if (aboveHorizon) {
+    visibilityValue = 'Au-dessus de l’horizon';
+  } else {
+    visibilityValue = 'Sous l’horizon';
+    if (altitudeLabel) {
+      visibilityValue += ` (${altitudeLabel})`;
+    }
+  }
+
+  const observationTime = typeof moon.observationDate === 'string' ? formatLocalTime(moon.observationDate) : null;
+  if (observationTime) {
+    visibilityValue += ` • ${observationTime}`;
+  }
+
   moonDetails.innerHTML = `
     <li>
       <span class="data-label">Âge lunaire</span>
-      <span class="data-value">${moon.ageDays.toFixed(1)} jours</span>
+      <span class="data-value">${ageLabel}</span>
     </li>
     <li>
       <span class="data-label">Aspect du soir</span>
-      <span class="data-value">${moon.description}</span>
+      <span class="data-value">${description}</span>
+    </li>
+    <li>
+      <span class="data-label">Position instantanée</span>
+      <span class="data-value">${positionValue}</span>
+    </li>
+    <li>
+      <span class="data-label">Visibilité</span>
+      <span class="data-value">${visibilityValue}</span>
     </li>
     <li>
       <span class="data-label">Impact sur le ciel</span>
@@ -2607,7 +2678,7 @@ async function handleSessionSubmit(event) {
   const observationDateUTC = buildObservationDate(dateValue, timeValue);
 
   try {
-    const moon = computeMoonPhase(observationDateUTC);
+    const moon = computeMoonSession(observationDateUTC, lat, lon) || computeMoonPhase(observationDateUTC);
     const events = getUpcomingEvents(observationDateUTC, moon);
     const weather = await fetchWeather(lat, lon, dateValue, timeValue, duration);
     renderWeather(weather);
@@ -2694,11 +2765,66 @@ function fillCoordinates(lat, lon) {
   triggerCoordinateUpdates();
 }
 
+async function attemptAutoGeolocation() {
+  if (autoGeolocAttempted) return;
+  if (!navigator.geolocation) {
+    autoGeolocAttempted = true;
+    return;
+  }
+
+  const fallbackLat = formatCoordinate(48.856);
+  const fallbackLon = formatCoordinate(2.352);
+  const hasStoredLatitude = Number.isFinite(cachedContext?.latitude);
+  const hasStoredLongitude = Number.isFinite(cachedContext?.longitude);
+  const hasStoredLocation = hasStoredLatitude && hasStoredLongitude;
+  const isUsingFallback = latitudeInput.value === fallbackLat && longitudeInput.value === fallbackLon;
+
+  if (hasStoredLocation && !isUsingFallback) {
+    autoGeolocAttempted = true;
+    return;
+  }
+
+  autoGeolocAttempted = true;
+
+  if (navigator.permissions && navigator.permissions.query) {
+    try {
+      const status = await navigator.permissions.query({ name: 'geolocation' });
+      if (status.state === 'denied') {
+        return;
+      }
+    } catch (error) {
+      console.warn('Permission de géolocalisation inconnue, tentative quand même :', error);
+    }
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      fillCoordinates(position.coords.latitude, position.coords.longitude);
+      autoFetchBortle();
+      try {
+        if (typeof sessionForm.requestSubmit === 'function') {
+          sessionForm.requestSubmit();
+        } else {
+          const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+          sessionForm.dispatchEvent(submitEvent);
+        }
+      } catch (error) {
+        console.warn('Impossible de lancer automatiquement une analyse après géolocalisation :', error);
+      }
+    },
+    (error) => {
+      console.warn('Géolocalisation automatique indisponible :', error);
+    },
+    { enableHighAccuracy: true, maximumAge: 120000 }
+  );
+}
+
 useGeolocBtn.addEventListener('click', () => {
   if (!navigator.geolocation) {
     alert('La géolocalisation n\'est pas supportée dans ce navigateur.');
     return;
   }
+  autoGeolocAttempted = true;
   useGeolocBtn.disabled = true;
   useGeolocBtn.textContent = '…';
   navigator.geolocation.getCurrentPosition(
@@ -2893,6 +3019,7 @@ initNightMode();
     initDefaults();
     await ensureCatalogueData(getSelectedCatalogueIds());
     prefetchRemainingCatalogueData();
+    await attemptAutoGeolocation();
   } catch (error) {
     console.error(error);
     resultsHint.textContent = 'Erreur de chargement : impossible de récupérer les objets célestes.';
