@@ -150,8 +150,23 @@
               <button type="button" id="starMapReset" class="link-button">Réinitialiser l’orientation</button>
               <div class="star-map__control-actions">
                 <button type="button" id="starMapCenterSelection" class="button secondary star-map__control-button">🎯 Centrer Polaris</button>
+                <button type="button" id="starMapSessionTime" class="button secondary star-map__control-button">🕓 Heure de session</button>
               </div>
               <p class="star-map__control-hint">Double-clique une étoile pour la placer automatiquement au zénith.</p>
+            </div>
+            <div class="star-map__control">
+              <label for="starMapMagnitude">Limite de magnitude</label>
+              <div class="star-map__slider">
+                <input type="range" id="starMapMagnitude" min="-1" max="8" step="0.1" value="6">
+                <output id="starMapMagnitudeValue" for="starMapMagnitude">6.0</output>
+              </div>
+            </div>
+            <div class="star-map__control">
+              <label for="starMapFov">Champ de vision</label>
+              <div class="star-map__slider">
+                <input type="range" id="starMapFov" min="60" max="180" step="5" value="160">
+                <output id="starMapFovValue" for="starMapFov">160°</output>
+              </div>
             </div>
             <div class="star-map__control">
               <label class="toggle">
@@ -162,6 +177,22 @@
                 <input type="checkbox" id="starMapMilkyWay" checked>
                 <span>Afficher la Voie lactée</span>
               </label>
+              <label class="toggle">
+                <input type="checkbox" id="starMapGrid" checked>
+                <span>Afficher la grille</span>
+              </label>
+              <label class="toggle">
+                <input type="checkbox" id="starMapHorizon" checked>
+                <span>Tracer l’horizon</span>
+              </label>
+            </div>
+            <div class="star-map__control">
+              <p class="star-map__control-label">Afficher / masquer</p>
+              <div class="star-map__control-actions star-map__control-actions--wrap">
+                <button type="button" id="starMapToggleStars" class="button tertiary star-map__control-button" aria-pressed="true">✨ Masquer les étoiles</button>
+                <button type="button" id="starMapToggleConstellations" class="button tertiary star-map__control-button" aria-pressed="true">🌌 Masquer les constellations</button>
+                <button type="button" id="starMapToggleLabels" class="button tertiary star-map__control-button" aria-pressed="true">🔖 Masquer les noms</button>
+              </div>
             </div>
             <div class="star-map__legend" aria-live="polite">
               <h3 class="star-map__legend-title">Constellations à explorer</h3>

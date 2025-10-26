@@ -9,6 +9,16 @@ const rotationValue = document.getElementById('starMapRotationValue');
 const resetButton = document.getElementById('starMapReset');
 const constellationsToggle = document.getElementById('starMapConstellations');
 const milkyWayToggle = document.getElementById('starMapMilkyWay');
+const gridToggle = document.getElementById('starMapGrid');
+const horizonToggle = document.getElementById('starMapHorizon');
+const magnitudeInput = document.getElementById('starMapMagnitude');
+const magnitudeValue = document.getElementById('starMapMagnitudeValue');
+const fovInput = document.getElementById('starMapFov');
+const fovValue = document.getElementById('starMapFovValue');
+const toggleStarsButton = document.getElementById('starMapToggleStars');
+const toggleConstellationsButton = document.getElementById('starMapToggleConstellations');
+const toggleLabelsButton = document.getElementById('starMapToggleLabels');
+const sessionTimeButton = document.getElementById('starMapSessionTime');
 const legendList = document.getElementById('constellationLegend');
 const detailsPanel = document.getElementById('starMapDetails');
 const autoRotateButton = document.getElementById('starMapAutoRotate');
@@ -810,14 +820,43 @@ const LABELLED_STARS = new Set([
 ]);
 
 const TWO_PI = Math.PI * 2;
+const OBSERVER_LONGITUDE = 2.3522; // Paris
+const DEFAULT_MAGNITUDE_LIMIT = 6;
+const MIN_MAGNITUDE_LIMIT = -1;
+const MAX_MAGNITUDE_LIMIT = 8;
+const MIN_FIELD_OF_VIEW = 60;
+const MAX_FIELD_OF_VIEW = 180;
+const DEFAULT_FIELD_OF_VIEW = 160;
+const PAN_INERTIA_DECAY = 0.92;
+const PAN_VELOCITY_THRESHOLD = 0.02;
+
 const mapState = {
   devicePixelRatio: window.devicePixelRatio || 1,
   canvasSize: 0,
+  baseRadius: 0,
   radius: 0,
   centerX: 0,
   centerY: 0,
+  viewCenterX: 0,
+  viewCenterY: 0,
   rotationHours: 0,
+  panX: 0,
+  panY: 0,
+  velocityX: 0,
+  velocityY: 0,
+  inertiaFrame: null,
+  lastInertiaTime: null,
+  zoom: 1,
+  targetZoom: 1,
+  zoomFrame: null,
+  lastZoomTime: null,
+  fieldOfView: DEFAULT_FIELD_OF_VIEW,
+  magnitudeLimit: DEFAULT_MAGNITUDE_LIMIT,
+  showStars: true,
   showConstellations: true,
+  showLabels: true,
+  showGrid: true,
+  showHorizon: true,
   showMilkyWay: true,
   hoveredStar: null,
   selectedStar: null,
@@ -830,11 +869,19 @@ const mapState = {
   lastAutoRotateTime: null
 };
 
+mapState.targetZoom = fieldOfViewToZoom(mapState.fieldOfView);
+mapState.zoom = mapState.targetZoom;
+
 const pointerState = {
   active: false,
   pointerId: null,
-  startAngle: 0,
-  startRotation: 0,
+  startX: 0,
+  startY: 0,
+  lastX: 0,
+  lastY: 0,
+  lastTime: 0,
+  velocityX: 0,
+  velocityY: 0,
   moved: false
 };
 
@@ -905,22 +952,140 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function toJulianDate(date) {
+  return date.getTime() / 86400000 + 2440587.5;
+}
+
+function computeLocalSiderealTime(date, longitudeDegrees) {
+  const JD = toJulianDate(date);
+  const T = (JD - 2451545.0) / 36525;
+  const GMST =
+    280.46061837 +
+    360.98564736629 * (JD - 2451545.0) +
+    0.000387933 * T * T -
+    (T * T * T) / 38710000;
+  const GMSTDegrees = ((GMST % 360) + 360) % 360;
+  const GMSTHours = GMSTDegrees / 15;
+  const longitudeHours = longitudeDegrees / 15;
+  return normaliseHours(GMSTHours + longitudeHours);
+}
+
 const MAP_PADDING = 24;
 const MAX_CANVAS_SIZE = 1080;
 const AUTO_ROTATE_SPEED = 0.25;
 const DEFAULT_FOCUS_STAR = 'Polaris';
 
+function fieldOfViewToZoom(fieldOfView) {
+  return 180 / clamp(fieldOfView, MIN_FIELD_OF_VIEW, MAX_FIELD_OF_VIEW);
+}
+
+function clampPan() {
+  const limit = mapState.baseRadius * mapState.zoom * 2.2;
+  mapState.panX = clamp(mapState.panX, -limit, limit);
+  mapState.panY = clamp(mapState.panY, -limit, limit);
+}
+
+function updateViewTransform() {
+  clampPan();
+  mapState.viewCenterX = mapState.centerX + mapState.panX;
+  mapState.viewCenterY = mapState.centerY + mapState.panY;
+  mapState.radius = mapState.baseRadius * mapState.zoom;
+}
+
+function toScreenCoordinates(px, py) {
+  return {
+    x: mapState.viewCenterX + px * mapState.zoom,
+    y: mapState.viewCenterY + py * mapState.zoom
+  };
+}
+
+function stopZoomAnimation() {
+  if (mapState.zoomFrame) {
+    cancelFrame(mapState.zoomFrame);
+  }
+  mapState.zoomFrame = null;
+  mapState.lastZoomTime = null;
+}
+
+function animateZoomStep(timestamp) {
+  if (!mapState.zoomFrame) {
+    mapState.lastZoomTime = null;
+    return;
+  }
+  if (typeof mapState.lastZoomTime !== 'number') {
+    mapState.lastZoomTime = timestamp;
+  }
+  const delta = mapState.targetZoom - mapState.zoom;
+  if (Math.abs(delta) < 0.0005) {
+    mapState.zoom = mapState.targetZoom;
+    stopZoomAnimation();
+    renderStarMap();
+    return;
+  }
+  const elapsed = Math.max(16, timestamp - mapState.lastZoomTime);
+  const factor = clamp(elapsed / 160, 0.08, 0.28);
+  mapState.zoom += delta * factor;
+  mapState.lastZoomTime = timestamp;
+  renderStarMap();
+  mapState.zoomFrame = requestFrame(animateZoomStep);
+}
+
+function startZoomAnimation() {
+  if (!mapState.zoomFrame) {
+    mapState.zoomFrame = requestFrame(animateZoomStep);
+  }
+}
+
+function stopPanInertia() {
+  if (mapState.inertiaFrame) {
+    cancelFrame(mapState.inertiaFrame);
+  }
+  mapState.inertiaFrame = null;
+  mapState.lastInertiaTime = null;
+  mapState.velocityX = 0;
+  mapState.velocityY = 0;
+}
+
+function panInertiaStep(timestamp) {
+  if (!mapState.inertiaFrame) {
+    mapState.lastInertiaTime = null;
+    return;
+  }
+  if (typeof mapState.lastInertiaTime !== 'number') {
+    mapState.lastInertiaTime = timestamp;
+  }
+  const deltaTime = Math.max(16, timestamp - mapState.lastInertiaTime);
+  mapState.lastInertiaTime = timestamp;
+  mapState.panX += mapState.velocityX * deltaTime;
+  mapState.panY += mapState.velocityY * deltaTime;
+  mapState.velocityX *= PAN_INERTIA_DECAY;
+  mapState.velocityY *= PAN_INERTIA_DECAY;
+  if (Math.abs(mapState.velocityX) < PAN_VELOCITY_THRESHOLD && Math.abs(mapState.velocityY) < PAN_VELOCITY_THRESHOLD) {
+    stopPanInertia();
+    renderStarMap();
+    return;
+  }
+  renderStarMap();
+  mapState.inertiaFrame = requestFrame(panInertiaStep);
+}
+
+function startPanInertia() {
+  if (!mapState.inertiaFrame) {
+    mapState.inertiaFrame = requestFrame(panInertiaStep);
+  }
+}
+
 function projectCoordinates(rightAscension, declination) {
-  if (!mapState.radius) {
-    return { x: 0, y: 0, radius: 0 };
+  if (!mapState.baseRadius) {
+    return { px: 0, py: 0, radial: 0 };
   }
   const effectiveRA = normaliseHours(rightAscension - mapState.rotationHours);
   const angle = (effectiveRA / 24) * TWO_PI;
   const clampedDec = clamp(declination, -90, 90);
-  const radial = ((90 - clampedDec) / 180) * mapState.radius;
-  const x = mapState.centerX + Math.sin(angle) * radial;
-  const y = mapState.centerY - Math.cos(angle) * radial;
-  return { x, y, radius: radial };
+  const radial = ((90 - clampedDec) / 180) * mapState.baseRadius;
+  const px = Math.sin(angle) * radial;
+  const py = -Math.cos(angle) * radial;
+  return { px, py, radial };
 }
 
 function computeProjections() {
@@ -928,8 +1093,10 @@ function computeProjections() {
   mapState.projectedPositions.clear();
   STAR_CATALOG.forEach((star) => {
     const coords = projectCoordinates(star.rightAscension, star.declination);
-    mapState.projectedPositions.set(star.name, coords);
-    mapState.projectedStars.push({ star, ...coords });
+    const screen = toScreenCoordinates(coords.px, coords.py);
+    const screenRadius = coords.radial * mapState.zoom;
+    mapState.projectedPositions.set(star.name, { ...coords, ...screen, screenRadius });
+    mapState.projectedStars.push({ star, ...coords, ...screen, screenRadius });
   });
 }
 function drawBackground() {
@@ -938,14 +1105,14 @@ function drawBackground() {
   }
   ctx.save();
   ctx.beginPath();
-  ctx.arc(mapState.centerX, mapState.centerY, mapState.radius, 0, TWO_PI);
+  ctx.arc(mapState.viewCenterX, mapState.viewCenterY, mapState.radius, 0, TWO_PI);
   ctx.closePath();
   const gradient = ctx.createRadialGradient(
-    mapState.centerX,
-    mapState.centerY,
+    mapState.viewCenterX,
+    mapState.viewCenterY,
     mapState.radius * 0.1,
-    mapState.centerX,
-    mapState.centerY,
+    mapState.viewCenterX,
+    mapState.viewCenterY,
     mapState.radius
   );
   gradient.addColorStop(0, '#071a36');
@@ -959,19 +1126,19 @@ function drawBackground() {
 }
 
 function drawGraticule() {
-  if (!ctx || !mapState.radius) {
+  if (!ctx || !mapState.radius || !mapState.showGrid) {
     return;
   }
   ctx.save();
   ctx.beginPath();
-  ctx.arc(mapState.centerX, mapState.centerY, mapState.radius, 0, TWO_PI);
+  ctx.arc(mapState.viewCenterX, mapState.viewCenterY, mapState.radius, 0, TWO_PI);
   ctx.clip();
   ctx.lineWidth = 1;
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.09)';
   for (let dec = -60; dec <= 60; dec += 30) {
-    const radius = ((90 - dec) / 180) * mapState.radius;
+    const radius = ((90 - dec) / 180) * mapState.baseRadius * mapState.zoom;
     ctx.beginPath();
-    ctx.arc(mapState.centerX, mapState.centerY, radius, 0, TWO_PI);
+    ctx.arc(mapState.viewCenterX, mapState.viewCenterY, radius, 0, TWO_PI);
     ctx.stroke();
   }
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
@@ -982,12 +1149,12 @@ function drawGraticule() {
     const cos = Math.cos(angle);
     ctx.beginPath();
     ctx.moveTo(
-      mapState.centerX + sin * innerStart,
-      mapState.centerY - cos * innerStart
+      mapState.viewCenterX + sin * innerStart,
+      mapState.viewCenterY - cos * innerStart
     );
     ctx.lineTo(
-      mapState.centerX + sin * mapState.radius,
-      mapState.centerY - cos * mapState.radius
+      mapState.viewCenterX + sin * mapState.radius,
+      mapState.viewCenterY - cos * mapState.radius
     );
     ctx.stroke();
   }
@@ -1003,10 +1170,24 @@ function drawGraticule() {
     const sin = Math.sin(angle);
     const cos = Math.cos(angle);
     const labelRadius = mapState.radius + 14;
-    const x = mapState.centerX + sin * labelRadius;
-    const y = mapState.centerY - cos * labelRadius;
+    const x = mapState.viewCenterX + sin * labelRadius;
+    const y = mapState.viewCenterY - cos * labelRadius;
     ctx.fillText(`${hour} h`, x, y);
   }
+  ctx.restore();
+}
+
+function drawHorizon() {
+  if (!ctx || !mapState.radius || !mapState.showHorizon) {
+    return;
+  }
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(mapState.viewCenterX, mapState.viewCenterY, mapState.radius, 0, TWO_PI);
+  ctx.strokeStyle = 'rgba(255, 200, 160, 0.5)';
+  ctx.lineWidth = 1.6;
+  ctx.setLineDash([10, 6]);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -1016,24 +1197,25 @@ function drawMilkyWay() {
   }
   ctx.save();
   ctx.beginPath();
-  ctx.arc(mapState.centerX, mapState.centerY, mapState.radius, 0, TWO_PI);
+  ctx.arc(mapState.viewCenterX, mapState.viewCenterY, mapState.radius, 0, TWO_PI);
   ctx.clip();
   MILKY_WAY_NODES.forEach((node) => {
     const coords = projectCoordinates(node.rightAscension, node.declination);
-    const width = mapState.radius * node.width;
+    const center = toScreenCoordinates(coords.px, coords.py);
+    const width = mapState.baseRadius * node.width * mapState.zoom;
     const gradient = ctx.createRadialGradient(
-      coords.x,
-      coords.y,
+      center.x,
+      center.y,
       width * 0.2,
-      coords.x,
-      coords.y,
+      center.x,
+      center.y,
       width
     );
     gradient.addColorStop(0, 'rgba(96, 150, 255, 0.22)');
     gradient.addColorStop(1, 'rgba(20, 40, 90, 0)');
     ctx.beginPath();
     ctx.fillStyle = gradient;
-    ctx.arc(coords.x, coords.y, width, 0, TWO_PI);
+    ctx.arc(center.x, center.y, width, 0, TWO_PI);
     ctx.fill();
   });
   ctx.restore();
@@ -1045,7 +1227,7 @@ function drawConstellations() {
   }
   ctx.save();
   ctx.beginPath();
-  ctx.arc(mapState.centerX, mapState.centerY, mapState.radius, 0, TWO_PI);
+  ctx.arc(mapState.viewCenterX, mapState.viewCenterY, mapState.radius, 0, TWO_PI);
   ctx.clip();
   const activeId = mapState.activeConstellation?.id;
   const previewId = mapState.previewConstellation?.id;
@@ -1078,9 +1260,10 @@ function drawConstellationLabel(constellation, { preview = false } = {}) {
     return;
   }
   const coords = projectCoordinates(constellation.anchor.rightAscension, constellation.anchor.declination);
-  if (coords.radius > mapState.radius) {
+  if (coords.radial > mapState.baseRadius) {
     return;
   }
+  const screen = toScreenCoordinates(coords.px, coords.py);
   ctx.save();
   const isActive = mapState.activeConstellation?.id === constellation.id;
   const color = isActive
@@ -1093,12 +1276,12 @@ function drawConstellationLabel(constellation, { preview = false } = {}) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   const label = constellation.abbreviation || constellation.name;
-  ctx.fillText(label, coords.x, coords.y);
+  ctx.fillText(label, screen.x, screen.y);
   ctx.restore();
 }
 
 function drawStars() {
-  if (!ctx || !mapState.radius) {
+  if (!ctx || !mapState.radius || !mapState.showStars) {
     return;
   }
   const activeConstellation = mapState.activeConstellation;
@@ -1127,8 +1310,11 @@ function drawStars() {
     }
   }
 
-  mapState.projectedStars.forEach(({ star, x, y, radius }) => {
-    if (radius > mapState.radius + 8) {
+  mapState.projectedStars.forEach(({ star, x, y, screenRadius }) => {
+    if (screenRadius > mapState.radius + 8) {
+      return;
+    }
+    if (typeof star.magnitude === 'number' && star.magnitude > mapState.magnitudeLimit) {
       return;
     }
     const baseSize = Math.max(1.3, 4.6 - (star.magnitude ?? 5) * 0.6);
@@ -1174,7 +1360,7 @@ function drawStars() {
 }
 
 function drawStarLabels() {
-  if (!ctx || !mapState.radius) {
+  if (!ctx || !mapState.radius || !mapState.showLabels || !mapState.showStars) {
     return;
   }
   ctx.save();
@@ -1190,8 +1376,11 @@ function drawStarLabels() {
     if (!shouldLabel) {
       return;
     }
-    const dx = x - mapState.centerX;
-    const dy = y - mapState.centerY;
+    if (typeof star.magnitude === 'number' && star.magnitude > mapState.magnitudeLimit) {
+      return;
+    }
+    const dx = x - mapState.viewCenterX;
+    const dy = y - mapState.viewCenterY;
     if (dx * dx + dy * dy > limit) {
       return;
     }
@@ -1205,9 +1394,11 @@ function renderStarMap() {
   }
   ctx.setTransform(mapState.devicePixelRatio, 0, 0, mapState.devicePixelRatio, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  updateViewTransform();
   computeProjections();
   drawBackground();
   drawGraticule();
+  drawHorizon();
   if (mapState.showMilkyWay) {
     drawMilkyWay();
   }
@@ -1252,9 +1443,10 @@ function resizeCanvas() {
   const devicePixelRatio = window.devicePixelRatio || 1;
   mapState.devicePixelRatio = devicePixelRatio;
   mapState.canvasSize = size;
-  mapState.radius = size / 2 - MAP_PADDING;
+  mapState.baseRadius = size / 2 - MAP_PADDING;
   mapState.centerX = size / 2;
   mapState.centerY = size / 2;
+  updateViewTransform();
   canvas.width = Math.round(size * devicePixelRatio);
   canvas.height = Math.round(size * devicePixelRatio);
   canvas.style.width = `${size}px`;
@@ -1337,6 +1529,101 @@ function setRotation(hours) {
   updateDetails();
 }
 
+function updateMagnitudeControl() {
+  if (magnitudeInput) {
+    magnitudeInput.value = mapState.magnitudeLimit.toFixed(1);
+  }
+  if (magnitudeValue) {
+    magnitudeValue.textContent = mapState.magnitudeLimit.toFixed(1);
+  }
+}
+
+function setMagnitudeLimit(value) {
+  const clamped = clamp(value, MIN_MAGNITUDE_LIMIT, MAX_MAGNITUDE_LIMIT);
+  if (clamped === mapState.magnitudeLimit) {
+    return;
+  }
+  mapState.magnitudeLimit = clamped;
+  updateMagnitudeControl();
+  mapState.hoveredStar = null;
+  updateDetails();
+  updateTooltip(null);
+  renderStarMap();
+}
+
+function updateFieldOfViewControl() {
+  if (fovInput) {
+    fovInput.value = Math.round(mapState.fieldOfView).toString();
+  }
+  if (fovValue) {
+    fovValue.textContent = `${Math.round(mapState.fieldOfView)}°`;
+  }
+}
+
+function setFieldOfView(value, { animate = true } = {}) {
+  const clamped = clamp(value, MIN_FIELD_OF_VIEW, MAX_FIELD_OF_VIEW);
+  if (clamped === mapState.fieldOfView) {
+    updateFieldOfViewControl();
+    return;
+  }
+  mapState.fieldOfView = clamped;
+  mapState.targetZoom = fieldOfViewToZoom(mapState.fieldOfView);
+  updateFieldOfViewControl();
+  if (!animate) {
+    stopZoomAnimation();
+    mapState.zoom = mapState.targetZoom;
+    renderStarMap();
+    return;
+  }
+  startZoomAnimation();
+}
+
+function updateVisibilityButton(button, active, hideLabel, showLabel) {
+  if (!button) {
+    return;
+  }
+  button.setAttribute('aria-pressed', active ? 'true' : 'false');
+  button.classList.toggle('is-active', active);
+  const label = active ? hideLabel : showLabel;
+  button.textContent = label;
+  button.setAttribute('title', label);
+}
+
+function updateVisibilityControls() {
+  updateVisibilityButton(toggleStarsButton, mapState.showStars, '✨ Masquer les étoiles', '✨ Afficher les étoiles');
+  updateVisibilityButton(toggleConstellationsButton, mapState.showConstellations, '🌌 Masquer les constellations', '🌌 Afficher les constellations');
+  updateVisibilityButton(toggleLabelsButton, mapState.showLabels, '🔖 Masquer les noms', '🔖 Afficher les noms');
+  if (constellationsToggle) {
+    constellationsToggle.checked = mapState.showConstellations;
+  }
+}
+
+function toggleStarsVisibility() {
+  mapState.showStars = !mapState.showStars;
+  if (!mapState.showStars) {
+    mapState.hoveredStar = null;
+    mapState.selectedStar = null;
+    updateLegendActive();
+    updateDetails();
+    updateTooltip(null);
+  }
+  updateVisibilityControls();
+  renderStarMap();
+  updateCenterButtonLabel();
+}
+
+function toggleConstellationsVisibility() {
+  mapState.showConstellations = !mapState.showConstellations;
+  updateVisibilityControls();
+  renderStarMap();
+}
+
+function toggleLabelsVisibility() {
+  mapState.showLabels = !mapState.showLabels;
+  updateVisibilityControls();
+  renderStarMap();
+}
+
 function toggleConstellation(constellation) {
   if (!constellation) {
     return;
@@ -1371,6 +1658,7 @@ function selectStar(star) {
   updateLegendActive();
   updateDetails();
   renderStarMap();
+  updateCenterButtonLabel();
 }
 
 function clearSelection() {
@@ -1380,6 +1668,7 @@ function clearSelection() {
   updateLegendActive();
   updateDetails();
   renderStarMap();
+  updateCenterButtonLabel();
 }
 
 function previewConstellation(constellation) {
@@ -1525,9 +1814,15 @@ function getRelativePosition(event) {
 }
 
 function findStarAtPosition(x, y) {
+  if (!mapState.showStars) {
+    return null;
+  }
   let closest = null;
   let minDistance = Infinity;
   mapState.projectedStars.forEach(({ star, x: sx, y: sy }) => {
+    if (typeof star.magnitude === 'number' && star.magnitude > mapState.magnitudeLimit) {
+      return;
+    }
     const dx = x - sx;
     const dy = y - sy;
     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -1606,6 +1901,7 @@ function focusOnStar(star) {
     return;
   }
   stopAutoRotate();
+  stopPanInertia();
   mapState.hoveredStar = null;
   mapState.previewConstellation = null;
   mapState.selectedStar = star;
@@ -1617,6 +1913,12 @@ function focusOnStar(star) {
   }
   updateLegendActive();
   setRotation(star.rightAscension);
+  const coords = projectCoordinates(star.rightAscension, star.declination);
+  mapState.panX = -coords.px * mapState.zoom;
+  mapState.panY = -coords.py * mapState.zoom;
+  updateViewTransform();
+  renderStarMap();
+  updateCenterButtonLabel();
 }
 
 function handleCenterSelection() {
@@ -1761,13 +2063,18 @@ function handlePointerDown(event) {
     return;
   }
   stopAutoRotate();
+  stopPanInertia();
   clearConstellationPreview();
   pointerState.active = true;
   pointerState.pointerId = event.pointerId;
   pointerState.moved = false;
-  const { x, y } = getRelativePosition(event);
-  pointerState.startAngle = Math.atan2(y - mapState.centerY, x - mapState.centerX);
-  pointerState.startRotation = mapState.rotationHours;
+  pointerState.startX = event.clientX;
+  pointerState.startY = event.clientY;
+  pointerState.lastX = event.clientX;
+  pointerState.lastY = event.clientY;
+  pointerState.velocityX = 0;
+  pointerState.velocityY = 0;
+  pointerState.lastTime = event.timeStamp || performance.now();
   canvas.setPointerCapture(event.pointerId);
 }
 
@@ -1776,20 +2083,26 @@ function handlePointerMove(event) {
     return;
   }
   if (pointerState.active && event.pointerId === pointerState.pointerId) {
-    const { x, y } = getRelativePosition(event);
-    const angle = Math.atan2(y - mapState.centerY, x - mapState.centerX);
-    let delta = pointerState.startAngle - angle;
-    if (delta > Math.PI) {
-      delta -= TWO_PI;
-    } else if (delta < -Math.PI) {
-      delta += TWO_PI;
-    }
-    const deltaHours = (delta / TWO_PI) * 24;
-    if (Math.abs(deltaHours) > 0.01) {
+    const dx = event.clientX - pointerState.lastX;
+    const dy = event.clientY - pointerState.lastY;
+    mapState.panX += dx;
+    mapState.panY += dy;
+    const deltaXFromStart = event.clientX - pointerState.startX;
+    const deltaYFromStart = event.clientY - pointerState.startY;
+    if (!pointerState.moved && Math.hypot(deltaXFromStart, deltaYFromStart) > 4) {
       pointerState.moved = true;
       clearConstellationPreview(undefined, { skipRender: true, skipDetails: true });
-      setRotation(pointerState.startRotation + deltaHours);
+      mapState.hoveredStar = null;
+      updateTooltip(null);
     }
+    const now = event.timeStamp || performance.now();
+    const deltaTime = Math.max(16, now - pointerState.lastTime);
+    pointerState.velocityX = dx / deltaTime;
+    pointerState.velocityY = dy / deltaTime;
+    pointerState.lastX = event.clientX;
+    pointerState.lastY = event.clientY;
+    pointerState.lastTime = now;
+    renderStarMap();
   } else {
     const { x, y } = getRelativePosition(event);
     const hovered = findStarAtPosition(x, y);
@@ -1805,6 +2118,7 @@ function handlePointerMove(event) {
       }
       renderStarMap();
       previewCleared = false;
+      updateCenterButtonLabel();
     } else if (previewCleared) {
       renderStarMap();
     }
@@ -1820,10 +2134,19 @@ function handlePointerUp(event) {
     canvas.releasePointerCapture(event.pointerId);
     if (!pointerState.moved && mapState.hoveredStar) {
       selectStar(mapState.hoveredStar);
+    } else {
+      mapState.velocityX = pointerState.velocityX;
+      mapState.velocityY = pointerState.velocityY;
+      if (Math.abs(mapState.velocityX) > PAN_VELOCITY_THRESHOLD || Math.abs(mapState.velocityY) > PAN_VELOCITY_THRESHOLD) {
+        startPanInertia();
+      }
     }
     pointerState.active = false;
     pointerState.pointerId = null;
     pointerState.moved = false;
+    pointerState.velocityX = 0;
+    pointerState.velocityY = 0;
+    updateCenterButtonLabel();
   }
 }
 
@@ -1844,17 +2167,72 @@ function handleRotationInput(event) {
 
 function handleResetOrientation() {
   stopAutoRotate();
+  stopPanInertia();
+  mapState.panX = 0;
+  mapState.panY = 0;
+  updateViewTransform();
   setRotation(0);
   clearSelection();
 }
 
 function handleConstellationToggle(event) {
   mapState.showConstellations = Boolean(event.target.checked);
+  updateVisibilityControls();
   renderStarMap();
 }
 
 function handleMilkyWayToggle(event) {
   mapState.showMilkyWay = Boolean(event.target.checked);
+  renderStarMap();
+}
+
+function handleMagnitudeInput(event) {
+  const value = parseFloat(event.target.value);
+  setMagnitudeLimit(Number.isNaN(value) ? mapState.magnitudeLimit : value);
+}
+
+function handleFovInput(event) {
+  const value = parseFloat(event.target.value);
+  const clamped = Number.isNaN(value) ? mapState.fieldOfView : value;
+  const animate = event.type !== 'input';
+  setFieldOfView(clamped, { animate });
+  if (animate) {
+    renderStarMap();
+  }
+}
+
+function handleGridToggle(event) {
+  mapState.showGrid = Boolean(event.target.checked);
+  renderStarMap();
+}
+
+function handleHorizonToggle(event) {
+  mapState.showHorizon = Boolean(event.target.checked);
+  renderStarMap();
+}
+
+function handleSessionTimeRecenter() {
+  stopAutoRotate();
+  stopPanInertia();
+  mapState.panX = 0;
+  mapState.panY = 0;
+  updateViewTransform();
+  const sidereal = computeLocalSiderealTime(new Date(), OBSERVER_LONGITUDE);
+  setRotation(sidereal);
+}
+
+function handleWheel(event) {
+  if (!canvas) {
+    return;
+  }
+  event.preventDefault();
+  stopAutoRotate();
+  const delta = -event.deltaY || 0;
+  if (!delta) {
+    return;
+  }
+  const sensitivity = mapState.fieldOfView * 0.0025;
+  setFieldOfView(mapState.fieldOfView - delta * sensitivity);
   renderStarMap();
 }
 function applyNightMode(enabled) {
@@ -1904,11 +2282,32 @@ function initialiseStarMap() {
 
   mapState.showConstellations = constellationsToggle ? Boolean(constellationsToggle.checked) : true;
   mapState.showMilkyWay = milkyWayToggle ? Boolean(milkyWayToggle.checked) : true;
+  mapState.showGrid = gridToggle ? Boolean(gridToggle.checked) : true;
+  mapState.showHorizon = horizonToggle ? Boolean(horizonToggle.checked) : true;
+
+  if (magnitudeInput) {
+    const initialMagnitude = parseFloat(magnitudeInput.value);
+    if (!Number.isNaN(initialMagnitude)) {
+      mapState.magnitudeLimit = clamp(initialMagnitude, MIN_MAGNITUDE_LIMIT, MAX_MAGNITUDE_LIMIT);
+    }
+  }
+  updateMagnitudeControl();
+
+  if (fovInput) {
+    const initialFov = parseFloat(fovInput.value);
+    if (!Number.isNaN(initialFov)) {
+      mapState.fieldOfView = clamp(initialFov, MIN_FIELD_OF_VIEW, MAX_FIELD_OF_VIEW);
+    }
+  }
+  mapState.targetZoom = fieldOfViewToZoom(mapState.fieldOfView);
+  mapState.zoom = mapState.targetZoom;
+  updateFieldOfViewControl();
+  updateVisibilityControls();
 
   setDefaultDetails();
   resizeCanvas();
-  setRotation(0);
-  renderStarMap();
+  const initialSidereal = computeLocalSiderealTime(new Date(), OBSERVER_LONGITUDE);
+  setRotation(initialSidereal);
 
   readNightModePreference();
   if (nightModeToggle) {
@@ -1940,6 +2339,7 @@ function initialiseStarMap() {
   canvas.addEventListener('pointercancel', handlePointerUp);
   canvas.addEventListener('pointerleave', handlePointerLeave);
   canvas.addEventListener('dblclick', handleDoubleClick);
+  canvas.addEventListener('wheel', handleWheel, { passive: false });
 
   if (rotationInput) {
     rotationInput.addEventListener('input', handleRotationInput);
@@ -1954,6 +2354,29 @@ function initialiseStarMap() {
   if (milkyWayToggle) {
     milkyWayToggle.addEventListener('change', handleMilkyWayToggle);
   }
+  if (gridToggle) {
+    gridToggle.addEventListener('change', handleGridToggle);
+  }
+  if (horizonToggle) {
+    horizonToggle.addEventListener('change', handleHorizonToggle);
+  }
+  if (magnitudeInput) {
+    magnitudeInput.addEventListener('input', handleMagnitudeInput);
+    magnitudeInput.addEventListener('change', handleMagnitudeInput);
+  }
+  if (fovInput) {
+    fovInput.addEventListener('input', handleFovInput);
+    fovInput.addEventListener('change', handleFovInput);
+  }
+  if (toggleStarsButton) {
+    toggleStarsButton.addEventListener('click', toggleStarsVisibility);
+  }
+  if (toggleConstellationsButton) {
+    toggleConstellationsButton.addEventListener('click', toggleConstellationsVisibility);
+  }
+  if (toggleLabelsButton) {
+    toggleLabelsButton.addEventListener('click', toggleLabelsVisibility);
+  }
   if (autoRotateButton) {
     autoRotateButton.addEventListener('click', toggleAutoRotate);
     updateAutoRotateButton();
@@ -1962,6 +2385,10 @@ function initialiseStarMap() {
     centerButton.addEventListener('click', handleCenterSelection);
     centerButton.setAttribute('title', 'Aligner la carte sur l’étoile suivie');
     updateCenterButtonLabel();
+  }
+  if (sessionTimeButton) {
+    sessionTimeButton.addEventListener('click', handleSessionTimeRecenter);
+    sessionTimeButton.setAttribute('title', 'Recentrer sur l’heure sidérale locale');
   }
   if (fullscreenButton) {
     fullscreenButton.addEventListener('click', handleFullscreenToggle);
