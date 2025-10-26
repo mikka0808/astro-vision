@@ -200,6 +200,17 @@
               <dl class="object-session-facts" id="objectSessionFacts"></dl>
             </div>
           </details>
+
+          <details class="object-panel object-panel--navigation" id="objectStarHopSection" hidden>
+            <summary>Itinéraire star-hopping</summary>
+            <div class="object-panel__body object-star-hop">
+              <div class="object-star-hop__map" aria-hidden="true">
+                <canvas id="objectStarHopCanvas" width="320" height="320"></canvas>
+              </div>
+              <p class="help-text" id="objectStarHopEmpty">Sélectionne une cible pour générer un itinéraire de repérage.</p>
+              <ol class="object-star-hop__steps" id="objectStarHopList"></ol>
+            </div>
+          </details>
         </div>
       </div>
     </article>
