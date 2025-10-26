@@ -1,5 +1,6 @@
 import { Equipements } from '../state/equipement.js';
 import { focaleEffective, fovDeg, echantillonnage } from '../utils/optique.js';
+import { getAstrophotoProfile } from '../core/astro.js';
 
 const listContainer = document.getElementById('equipmentList');
 const listHint = document.getElementById('equipmentListHint');
@@ -9,6 +10,7 @@ const formTitle = document.getElementById('equipmentFormTitle');
 const submitButton = document.getElementById('saveEquipmentProfile');
 const deleteButton = document.getElementById('deleteEquipmentProfile');
 const statusMessage = document.getElementById('equipmentStatus');
+const presetButtons = document.querySelectorAll('[data-equipment-preset]');
 
 const inputs = {
   nom: document.getElementById('equipmentName'),
@@ -194,6 +196,84 @@ function resetFormFields() {
   inputs.miroirY.checked = false;
   inputs.setActive.checked = !Equipements.getCurrentId();
   updatePreview();
+}
+
+function sanitizePresetPayload(setup, label) {
+  if (!setup || !setup.sensor) {
+    return null;
+  }
+  const focaleMm = Number(setup.focaleMm);
+  const ouvertureMm = Number(setup.apertureMm);
+  const largeurMm = Number(setup.sensor.widthMm);
+  const hauteurMm = Number(setup.sensor.heightMm);
+  const pixelUm = Number(setup.sensor.pixelUm);
+  if (!Number.isFinite(focaleMm) || focaleMm <= 0) {
+    return null;
+  }
+  if (!Number.isFinite(ouvertureMm) || ouvertureMm <= 0) {
+    return null;
+  }
+  if (!Number.isFinite(largeurMm) || largeurMm <= 0) {
+    return null;
+  }
+  if (!Number.isFinite(hauteurMm) || hauteurMm <= 0) {
+    return null;
+  }
+  if (!Number.isFinite(pixelUm) || pixelUm <= 0) {
+    return null;
+  }
+  const reducteur = Number(setup.reducteur);
+  const ratio = Number.isFinite(reducteur) && reducteur > 0 ? reducteur : null;
+  const bin = Number.isFinite(setup.bin) && setup.bin > 0 ? Math.round(setup.bin) : 1;
+  const rotation = Number.isFinite(setup.rotationDeg) ? setup.rotationDeg : 0;
+  return {
+    id: typeof setup.presetId === 'string' && setup.presetId.trim() ? setup.presetId.trim() : `preset-${Date.now()}`,
+    nom: typeof setup.presetName === 'string' && setup.presetName.trim() ? setup.presetName.trim() : label,
+    focaleMm,
+    ouvertureMm,
+    reducteur: ratio && Math.abs(ratio - 1) > 0.001 ? ratio : null,
+    capteur: {
+      largeurMm,
+      hauteurMm,
+      pixelUm
+    },
+    bin,
+    rotationDeg: rotation,
+    miroirX: Boolean(setup.mirrorX),
+    miroirY: Boolean(setup.mirrorY)
+  };
+}
+
+function applyPresetProfile(presetId) {
+  clearStatus();
+  const preset = getAstrophotoProfile(presetId);
+  if (!preset || !preset.setup) {
+    showStatus('Ce préréglage est indisponible pour le moment.');
+    return;
+  }
+  const payload = sanitizePresetPayload(preset.setup, preset.label);
+  if (!payload) {
+    showStatus('Impossible de charger ce préréglage. Vérifie les valeurs définies.');
+    return;
+  }
+  const existing = Equipements.getById(payload.id);
+  if (existing) {
+    showStatus(`Le préréglage « ${existing.nom} » est déjà enregistré.`);
+    startEdition(existing.id);
+    return;
+  }
+  try {
+    const created = Equipements.create(payload);
+    Equipements.setCurrent(created.id);
+    showStatus(`Préréglage « ${created.nom} » ajouté et défini comme actif.`);
+    startEdition(created.id);
+    if (inputs.setActive) {
+      inputs.setActive.checked = true;
+    }
+  } catch (error) {
+    console.error('Erreur lors de la création du préréglage :', error);
+    showStatus('Impossible d’ajouter ce préréglage automatiquement.');
+  }
 }
 
 function renderList(profiles, currentId) {
@@ -447,6 +527,18 @@ if (form) {
 
 if (deleteButton) {
   deleteButton.addEventListener('click', handleDelete);
+}
+
+if (presetButtons && presetButtons.length > 0) {
+  presetButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const presetId = button.dataset.equipmentPreset;
+      if (!presetId) {
+        return;
+      }
+      applyPresetProfile(presetId);
+    });
+  });
 }
 
 Object.values(inputs).forEach((input) => {

@@ -215,6 +215,7 @@ const ASTROPHOTO_PROFILES = [
     maxMagnitude: 12,
     weights: { base: 0.45, altitude: 0.2, window: 0.15, brightness: 0.1, seeing: 0.05, transparency: 0.05 },
     categoryBoost: {},
+    setup: null,
     guidance: {
       summary: 'Pour des sessions découverte et imagerie légère sans autoguidage.',
       exposure: '30 à 60 s à ISO 1600–3200 (f/4–f/5.6)',
@@ -234,6 +235,21 @@ const ASTROPHOTO_PROFILES = [
     maxMagnitude: 9.5,
     weights: { base: 0.35, altitude: 0.2, window: 0.15, brightness: 0.15, seeing: 0.05, transparency: 0.1 },
     categoryBoost: { Nébuleuses: 1.15, 'Amas ouverts': 1.1, 'Autres objets': 0.9 },
+    setup: {
+      presetId: 'preset-dslr-135',
+      presetName: 'APN 135 mm plein format',
+      focaleMm: 135,
+      apertureMm: 48,
+      reducteur: 1,
+      sensor: { widthMm: 36, heightMm: 24, pixelUm: 5.3 },
+      bin: 1,
+      allowUnguidedEstimates: true,
+      capture: {
+        iso: 'ISO 800–1600',
+        gain: null,
+        cadence: 'Empile 30 × 90 s — dithering toutes les 3 poses'
+      }
+    },
     guidance: {
       summary: 'Optimise le grand champ : nébuleuses diffuses et régions étoilées.',
       exposure: '60 à 180 s à ISO 800–1600 (f/2.8–f/4)',
@@ -253,6 +269,21 @@ const ASTROPHOTO_PROFILES = [
     maxMagnitude: 11,
     weights: { base: 0.4, altitude: 0.2, window: 0.1, brightness: 0.15, seeing: 0.1, transparency: 0.05 },
     categoryBoost: { Galaxies: 1.15, Nébuleuses: 1.1, 'Amas globulaires': 1.05 },
+    setup: {
+      presetId: 'preset-newton-150-750',
+      presetName: 'Newton 150/750 + caméra APS-C',
+      focaleMm: 750,
+      apertureMm: 150,
+      reducteur: 1,
+      sensor: { widthMm: 23.5, heightMm: 15.7, pixelUm: 3.76 },
+      bin: 1,
+      allowUnguidedEstimates: true,
+      capture: {
+        iso: null,
+        gain: 'Gain 100–120',
+        cadence: 'Empile 45 × 180 s — dithering toutes les 2 poses'
+      }
+    },
     guidance: {
       summary: "Tire parti d'un 150/750 sur les galaxies et nébuleuses contrastées.",
       exposure: '180 à 240 s avec gain 100–120 ou ISO 800–1600 sous autoguidage',
@@ -273,6 +304,21 @@ const ASTROPHOTO_PROFILES = [
     weights: { base: 0.25, altitude: 0.25, window: 0.15, brightness: 0.1, seeing: 0.2, transparency: 0.05 },
     categoryBoost: { Planètes: 1.3, Étoiles: 1.15, 'Amas globulaires': 1.05 },
     requireSeeing: 0.55,
+    setup: {
+      presetId: 'preset-planetary-150',
+      presetName: 'Setup planétaire 150 mm',
+      focaleMm: 3000,
+      apertureMm: 150,
+      reducteur: 1,
+      sensor: { widthMm: 4.8, heightMm: 3.6, pixelUm: 2.9 },
+      bin: 1,
+      allowUnguidedEstimates: false,
+      capture: {
+        iso: null,
+        gain: 'Gain 280–320',
+        cadence: 'Séquences SER de 90 s à ≥ 150 i/s'
+      }
+    },
     guidance: {
       summary: 'Optimise la haute résolution sur planètes et étoiles doubles.',
       exposure: 'Séquences vidéo de 90 à 180 s à ≥ 150 i/s (ROI serré)',
@@ -332,6 +378,17 @@ function findAstrophotoProfile(id) {
   return ASTROPHOTO_PROFILES.find((profile) => profile.id === id) || ASTROPHOTO_PROFILES[0];
 }
 
+function cloneAstrophotoSetup(setup) {
+  if (!setup) return null;
+  const sensor = setup.sensor ? { ...setup.sensor } : null;
+  const capture = setup.capture ? { ...setup.capture } : null;
+  return {
+    ...setup,
+    sensor,
+    capture
+  };
+}
+
 export function getAstrophotoProfile(id) {
   const profile = findAstrophotoProfile(id);
   if (!profile) return null;
@@ -341,7 +398,8 @@ export function getAstrophotoProfile(id) {
         checklist: Array.isArray(profile.guidance.checklist) ? [...profile.guidance.checklist] : []
       }
     : null;
-  return { ...profile, guidance };
+  const setup = cloneAstrophotoSetup(profile.setup);
+  return { ...profile, guidance, setup };
 }
 
 export function describeSeeingQuality(value) {

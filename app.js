@@ -27,6 +27,8 @@ import {
   resolveScoreTone,
   getAstrophotoProfile
 } from './src/core/astro.js';
+import { focaleEffective, fovDeg, echantillonnage } from './src/utils/optique.js';
+import { readStorage, writeStorage } from './src/utils/storage.js';
 import {
   parseCataloguePayload,
   fetchCatalogueObjectsFromSource,
@@ -144,6 +146,8 @@ const defaultDurationOptions = durationSelect
 const defaultDurationValue = durationSelect ? durationSelect.value : '2';
 
 const SESSION_SNAPSHOT_VERSION = 8;
+const ASTROPHOTO_STORAGE_KEY = 'astro:photo-mode';
+const FULL_FRAME_DIAGONAL_MM = 43.26661530799898;
 let objectsCatalog = [];
 let catalogueDefinitions = [];
 let cachedNightStartTime = null;
@@ -190,6 +194,150 @@ function loadChartsModule() {
     });
   }
   return chartsModulePromise;
+}
+
+function loadAstrophotoPreferences() {
+  const stored = readStorage(ASTROPHOTO_STORAGE_KEY, { fallback: null });
+  if (!stored || typeof stored !== 'object') {
+    return null;
+  }
+  const profileId = typeof stored.profileId === 'string' && stored.profileId.trim() ? stored.profileId.trim() : 'visual';
+  return { enabled: Boolean(stored.enabled), profileId };
+}
+
+function persistAstrophotoPreferences(settings) {
+  if (!settings || typeof settings !== 'object') {
+    writeStorage(ASTROPHOTO_STORAGE_KEY, null, { removeOnNull: true });
+    return;
+  }
+  const payload = {
+    enabled: Boolean(settings.enabled),
+    profileId: typeof settings.profileId === 'string' && settings.profileId.trim() ? settings.profileId.trim() : 'visual'
+  };
+  writeStorage(ASTROPHOTO_STORAGE_KEY, payload);
+}
+
+function formatArcminutes(value) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+  if (value >= 120) {
+    return `${(value / 60).toFixed(1)}°`;
+  }
+  if (value >= 10) {
+    return `${value.toFixed(0)}′`;
+  }
+  return `${value.toFixed(1)}′`;
+}
+
+function formatFieldArcminutes(width, height) {
+  const widthText = formatArcminutes(width);
+  const heightText = formatArcminutes(height);
+  if (!widthText || !heightText) {
+    return null;
+  }
+  return `${widthText} × ${heightText}`;
+}
+
+function formatSamplingArcsec(value) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+  if (value >= 1) {
+    return `${value.toFixed(2)}″/px`;
+  }
+  return `${value.toFixed(3)}″/px`;
+}
+
+function formatExposureSeconds(seconds) {
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    return null;
+  }
+  if (seconds >= 120) {
+    const minutes = Math.floor(seconds / 60);
+    const remainder = Math.round(seconds % 60);
+    if (remainder === 0) {
+      return `${minutes} min`;
+    }
+    return `${minutes} min ${remainder} s`;
+  }
+  if (seconds >= 10) {
+    return `${Math.round(seconds)} s`;
+  }
+  if (seconds >= 1) {
+    return `${seconds.toFixed(1)} s`;
+  }
+  return `${seconds.toFixed(2)} s`;
+}
+
+function computeAstrophotoMetrics(profile) {
+  const setup = profile?.setup;
+  if (!setup || !setup.sensor) {
+    return null;
+  }
+  const focaleMm = Number(setup.focaleMm);
+  const apertureMm = Number(setup.apertureMm);
+  const reducteur = Number(setup.reducteur);
+  const bin = Number.isFinite(setup.bin) && setup.bin > 0 ? setup.bin : 1;
+  const widthMm = Number(setup.sensor.widthMm);
+  const heightMm = Number(setup.sensor.heightMm);
+  const pixelUm = Number(setup.sensor.pixelUm);
+  if (!Number.isFinite(focaleMm) || focaleMm <= 0) {
+    return null;
+  }
+  if (!Number.isFinite(widthMm) || widthMm <= 0 || !Number.isFinite(heightMm) || heightMm <= 0) {
+    return null;
+  }
+  if (!Number.isFinite(pixelUm) || pixelUm <= 0) {
+    return null;
+  }
+  const ratio = Number.isFinite(reducteur) && reducteur > 0 ? reducteur : 1;
+  const focaleEff = focaleEffective(focaleMm, ratio);
+  const sampling = echantillonnage(pixelUm, focaleEff, bin);
+  const widthArcmin = fovDeg(widthMm, focaleEff) * 60;
+  const heightArcmin = fovDeg(heightMm, focaleEff) * 60;
+  const diagonal = Math.sqrt(widthMm * widthMm + heightMm * heightMm);
+  const cropFactor = diagonal > 0 ? FULL_FRAME_DIAGONAL_MM / diagonal : 1;
+  const allowUnguided = setup.allowUnguidedEstimates !== false;
+  const exposure500 = allowUnguided && focaleEff > 0 && cropFactor > 0 ? 500 / (focaleEff * cropFactor) : null;
+  let exposureNPF = null;
+  if (allowUnguided && focaleEff > 0 && cropFactor > 0 && Number.isFinite(apertureMm) && apertureMm > 0) {
+    exposureNPF = ((35 * apertureMm) + (30 * pixelUm)) / (focaleEff * cropFactor);
+  }
+  return {
+    sampling,
+    widthArcmin,
+    heightArcmin,
+    exposure500,
+    exposureNPF,
+    allowUnguided,
+    focalEff: focaleEff,
+    cropFactor,
+    fNumber: Number.isFinite(apertureMm) && apertureMm > 0 ? focaleEff / apertureMm : null
+  };
+}
+
+function buildUnguidedExposureLabel(metrics) {
+  if (!metrics) {
+    return null;
+  }
+  const parts = [];
+  if (Number.isFinite(metrics.exposure500) && metrics.exposure500 > 0) {
+    const formatted = formatExposureSeconds(metrics.exposure500);
+    if (formatted) {
+      parts.push(`500 : ${formatted}`);
+    }
+  }
+  if (Number.isFinite(metrics.exposureNPF) && metrics.exposureNPF > 0) {
+    const formatted = formatExposureSeconds(metrics.exposureNPF);
+    if (formatted) {
+      parts.push(`NPF : ${formatted}`);
+    }
+  }
+  if (parts.length === 0) {
+    return null;
+  }
+  return parts.join(' • ');
 }
 
 function applyGlobalScoreTone(scoreValue) {
@@ -1150,6 +1298,8 @@ function renderAstrophotoGuidance() {
 
   const profile = getAstrophotoProfile(equipmentSelect?.value || 'visual');
   const guidance = profile?.guidance ?? null;
+  const metrics = computeAstrophotoMetrics(profile);
+  const capture = profile?.setup?.capture ?? null;
 
   astrophotoGuidancePanel.hidden = false;
   astrophotoGuidancePanel.removeAttribute('data-state');
@@ -1160,6 +1310,35 @@ function renderAstrophotoGuidance() {
   if (astrophotoGuidanceFacts) {
     astrophotoGuidanceFacts.innerHTML = '';
     const facts = [];
+    if (metrics) {
+      const fieldText = formatFieldArcminutes(metrics.widthArcmin, metrics.heightArcmin);
+      const samplingText = formatSamplingArcsec(metrics.sampling);
+      const unguidedText = buildUnguidedExposureLabel(metrics);
+      if (fieldText) {
+        facts.push({ label: 'Champ', value: fieldText });
+      }
+      if (samplingText) {
+        facts.push({ label: 'Échantillonnage', value: samplingText });
+      }
+      if (unguidedText) {
+        facts.push({ label: 'Pose max sans suivi', value: unguidedText });
+      }
+    }
+    if (capture) {
+      const sensitivity = [];
+      if (capture.iso) {
+        sensitivity.push(capture.iso);
+      }
+      if (capture.gain) {
+        sensitivity.push(capture.gain);
+      }
+      if (sensitivity.length > 0) {
+        facts.push({ label: 'Sensibilité', value: sensitivity.join(' • ') });
+      }
+      if (capture.cadence) {
+        facts.push({ label: 'Cadence recommandée', value: capture.cadence });
+      }
+    }
     if (guidance?.exposure) {
       facts.push({ label: 'Pose unitaire', value: guidance.exposure });
     }
@@ -1205,6 +1384,7 @@ function applyAstrophotoToggle() {
     equipmentSelect.value = 'visual';
   }
   renderAstrophotoGuidance();
+  persistAstrophotoPreferences(readAstrophotoSettings());
 }
 
 function readAstrophotoSettings() {
@@ -1219,14 +1399,16 @@ function readAstrophotoSettings() {
 
 function hydrateAstrophotoSettings(snapshot) {
   if (!enableAstrophotoInput || !equipmentSelect) return;
-  const stored = snapshot?.astroSettings || {
-    enabled: snapshot?.decisionSupport?.astrophoto?.active,
-    profileId: snapshot?.decisionSupport?.astrophoto?.profileId
-  };
-  if (!stored) return;
-  enableAstrophotoInput.checked = Boolean(stored.enabled);
-  if (stored.profileId) {
-    equipmentSelect.value = stored.profileId;
+  const decision = snapshot?.decisionSupport?.astrophoto || null;
+  const stored = snapshot?.astroSettings || loadAstrophotoPreferences() ||
+    (decision
+      ? { enabled: decision.active, profileId: decision.profileId }
+      : null);
+  if (stored) {
+    enableAstrophotoInput.checked = Boolean(stored.enabled);
+    const desiredId = typeof stored.profileId === 'string' && stored.profileId ? stored.profileId : 'visual';
+    const hasOption = Array.from(equipmentSelect.options || []).some((option) => option.value === desiredId);
+    equipmentSelect.value = hasOption ? desiredId : 'visual';
   }
   applyAstrophotoToggle();
 }
@@ -2629,6 +2811,7 @@ if (enableAstrophotoInput) {
 if (equipmentSelect) {
   equipmentSelect.addEventListener('change', () => {
     astrophotoSettings = readAstrophotoSettings();
+    persistAstrophotoPreferences(astrophotoSettings);
     renderAstrophotoGuidance();
     refreshDecisionSupport();
   });

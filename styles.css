@@ -4472,6 +4472,56 @@ body.star-map--pseudo-fullscreen {
   font-size: 0.95rem;
 }
 
+.equipment-presets {
+  background: var(--color-surface-quiet);
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border-soft);
+  padding: clamp(1rem, 3vw, 1.35rem);
+  margin-bottom: clamp(1.25rem, 3vw, 2rem);
+  display: grid;
+  gap: 0.5rem;
+}
+
+.equipment-presets h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.equipment-presets__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.chip-button {
+  border: none;
+  border-radius: 999px;
+  padding: 0.55rem 1.1rem;
+  background: rgba(130, 183, 255, 0.18);
+  color: var(--color-accent-strong);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.chip-button:hover,
+.chip-button:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(5, 9, 24, 0.18);
+}
+
+.chip-button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.chip-button:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
 .equipment-list {
   display: grid;
   gap: 0.75rem;
