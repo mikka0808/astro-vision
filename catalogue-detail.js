@@ -10,6 +10,7 @@ import {
   formatIllumination,
   formatLocalDateTime,
   formatLocalTime,
+  horizontalCoordinates,
   resolveScoreTone
 } from './src/core/astro.js';
 import { createObservationPreview, resolveImageSources } from './catalogue-media.js';
@@ -23,6 +24,7 @@ import {
   loadCataloguePreferences
 } from './catalogue-preferences.js';
 import { normaliseCatalogueId } from './src/core/catalogue.js';
+import { STAR_CATALOG } from './src/core/star-catalog.js';
 
 loadScorePreferencesFromCookie();
 
@@ -93,6 +95,10 @@ const storySection = document.getElementById('objectStorySection');
 const sessionSection = document.getElementById('objectSessionSection');
 const sessionSummary = document.getElementById('objectSessionSummary');
 const sessionFacts = document.getElementById('objectSessionFacts');
+const starHopSection = document.getElementById('objectStarHopSection');
+const starHopCanvas = document.getElementById('objectStarHopCanvas');
+const starHopList = document.getElementById('objectStarHopList');
+const starHopMessage = document.getElementById('objectStarHopEmpty');
 const highlightsList = document.getElementById('objectHighlights');
 const usageSection = document.getElementById('objectUsageSection');
 const usageList = document.getElementById('objectUsage');
@@ -105,6 +111,56 @@ let catalogueDefinitions = [];
 let mediaCandidateSources = null;
 let currentMediaDetail = null;
 let mediaSourceItem = null;
+
+const STAR_HOP_MAX_REFERENCE_STARS = 3;
+const STAR_HOP_MIN_REFERENCE_STARS = 2;
+const STAR_HOP_DISTANCE_LIMIT = 35;
+const DEFAULT_STAR_HOP_LOCATION = { latitude: 48.8566, longitude: 2.3522 };
+
+function toRadians(deg) {
+  return (deg * Math.PI) / 180;
+}
+
+function hoursDifference(sourceHours, targetHours) {
+  let delta = sourceHours - targetHours;
+  while (delta > 12) delta -= 24;
+  while (delta < -12) delta += 24;
+  return delta;
+}
+
+function angularDistanceDeg(a, b) {
+  const ra1 = toRadians((a?.raHours ?? a?.rightAscension ?? 0) * 15);
+  const ra2 = toRadians((b?.raHours ?? b?.rightAscension ?? 0) * 15);
+  const dec1 = toRadians(a?.decDeg ?? a?.declination ?? 0);
+  const dec2 = toRadians(b?.decDeg ?? b?.declination ?? 0);
+  const cosValue =
+    Math.sin(dec1) * Math.sin(dec2) + Math.cos(dec1) * Math.cos(dec2) * Math.cos(ra1 - ra2);
+  const clamped = Math.min(1, Math.max(-1, cosValue));
+  return (Math.acos(clamped) * 180) / Math.PI;
+}
+
+function formatAngularDistance(value) {
+  if (!Number.isFinite(value)) {
+    return '—';
+  }
+  return `${value.toFixed(1).replace('.', ',')}°`;
+}
+
+function resolveObservationContext(snapshot) {
+  const context = snapshot?.context || {};
+  const latitude = Number(context.latitude);
+  const longitude = Number(context.longitude);
+  const location = {
+    latitude: Number.isFinite(latitude) ? latitude : DEFAULT_STAR_HOP_LOCATION.latitude,
+    longitude: Number.isFinite(longitude) ? longitude : DEFAULT_STAR_HOP_LOCATION.longitude
+  };
+  const dateISO = context.dateISO;
+  let observationDate = dateISO ? new Date(dateISO) : new Date();
+  if (!(observationDate instanceof Date) || Number.isNaN(observationDate.getTime())) {
+    observationDate = new Date();
+  }
+  return { location, observationDate };
+}
 
 function slugify(value) {
   return String(value || '')
@@ -230,6 +286,24 @@ function resetSummary() {
   if (summaryMagnitude) summaryMagnitude.textContent = '—';
   if (summaryDistance) summaryDistance.textContent = '—';
   if (summaryWindow) summaryWindow.textContent = '—';
+}
+
+function resetStarHop() {
+  if (starHopSection) {
+    starHopSection.hidden = true;
+  }
+  if (starHopList) {
+    starHopList.innerHTML = '';
+  }
+  if (starHopMessage) {
+    starHopMessage.hidden = false;
+  }
+  if (starHopCanvas) {
+    const context = starHopCanvas.getContext('2d');
+    if (context) {
+      context.clearRect(0, 0, starHopCanvas.width || 0, starHopCanvas.height || 0);
+    }
+  }
 }
 
 function updateSummary(values = {}) {
@@ -822,6 +896,228 @@ function renderSources(object, dossier) {
   }
 }
 
+function renderStarHopMap(bodies, steps) {
+  if (!starHopCanvas) {
+    return;
+  }
+  const context = starHopCanvas.getContext('2d');
+  if (!context) {
+    return;
+  }
+  const ratio = window.devicePixelRatio || 1;
+  const parentWidth = starHopCanvas.parentElement?.clientWidth || starHopCanvas.clientWidth || 280;
+  const displaySize = Math.max(240, Math.min(360, Math.round(parentWidth))); 
+  starHopCanvas.width = displaySize * ratio;
+  starHopCanvas.height = displaySize * ratio;
+  starHopCanvas.style.width = `${displaySize}px`;
+  starHopCanvas.style.height = `${displaySize}px`;
+  context.setTransform(ratio, 0, 0, ratio, 0, 0);
+  context.clearRect(0, 0, displaySize, displaySize);
+  const center = displaySize / 2;
+  const radius = center - 14;
+
+  const gradient = context.createRadialGradient(center, center, radius * 0.1, center, center, radius);
+  gradient.addColorStop(0, 'rgba(12, 30, 60, 0.92)');
+  gradient.addColorStop(1, 'rgba(3, 8, 18, 0.98)');
+  context.beginPath();
+  context.arc(center, center, radius, 0, Math.PI * 2);
+  context.fillStyle = gradient;
+  context.fill();
+  context.lineWidth = 1.2;
+  context.strokeStyle = 'rgba(130, 183, 255, 0.35)';
+  context.stroke();
+
+  const target = bodies[bodies.length - 1];
+  const projected = bodies.map((body) => {
+    const deltaHours = hoursDifference(body.raHours, target.raHours);
+    const meanDec = (body.decDeg + target.decDeg) / 2;
+    const dx = deltaHours * 15 * Math.cos(toRadians(meanDec));
+    const dy = body.decDeg - target.decDeg;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    return { ...body, dx, dy, distance };
+  });
+  const maxDistance = projected.reduce((max, item) => Math.max(max, item.distance), 0);
+  const viewExtent = Math.max(12, Math.min(40, (maxDistance || 0) * 1.2));
+  const scale = viewExtent > 0 ? radius / viewExtent : radius / 20;
+  const positions = new Map();
+  projected.forEach((body) => {
+    const x = center + body.dx * scale;
+    const y = center - body.dy * scale;
+    positions.set(body.key, { ...body, x, y });
+  });
+
+  context.save();
+  context.lineWidth = 2.1;
+  context.strokeStyle = 'rgba(124, 226, 165, 0.85)';
+  context.setLineDash([6, 5]);
+  steps.forEach((step) => {
+    const from = positions.get(step.fromKey);
+    const to = positions.get(step.toKey);
+    if (!from || !to) return;
+    context.beginPath();
+    context.moveTo(from.x, from.y);
+    context.lineTo(to.x, to.y);
+    context.stroke();
+  });
+  context.restore();
+
+  positions.forEach((body) => {
+    const size = body.isTarget ? 6.6 : Math.max(3.4, 5.2 - (body.magnitude ?? 2.5) * 0.55);
+    context.beginPath();
+    context.fillStyle = body.isTarget ? 'rgba(255, 213, 138, 0.95)' : 'rgba(156, 197, 255, 0.92)';
+    context.arc(body.x, body.y, size, 0, Math.PI * 2);
+    context.fill();
+    if (body.isTarget) {
+      context.lineWidth = 2.2;
+      context.strokeStyle = 'rgba(255, 213, 138, 0.8)';
+      context.stroke();
+    }
+  });
+
+  context.save();
+  context.fillStyle = 'rgba(235, 244, 255, 0.85)';
+  context.font = '12px "Inter", system-ui, sans-serif';
+  context.textAlign = 'center';
+  context.textBaseline = 'top';
+  positions.forEach((body) => {
+    const label = body.isTarget ? body.name : body.name;
+    const offset = body.isTarget ? 9 : 8;
+    context.fillText(label, body.x, body.y + offset);
+  });
+  context.restore();
+}
+
+function renderStarHopItinerary(object, snapshot) {
+  if (!starHopSection || !starHopList) {
+    return;
+  }
+  resetStarHop();
+  if (!object || !Number.isFinite(object.raHours) || !Number.isFinite(object.decDeg)) {
+    return;
+  }
+
+  const brightStars = STAR_CATALOG.filter(
+    (star) => Number.isFinite(star.magnitude) && star.magnitude <= 3 && Number.isFinite(star.rightAscension)
+  );
+  if (brightStars.length === 0) {
+    return;
+  }
+
+  const targetBody = {
+    key: 'target',
+    name: object.name || 'Cible',
+    designation: object.designation || null,
+    raHours: object.raHours,
+    decDeg: object.decDeg,
+    magnitude: object.magnitude,
+    isTarget: true
+  };
+
+  const candidates = brightStars
+    .map((star) => ({
+      star,
+      distance: angularDistanceDeg(
+        { raHours: star.rightAscension, decDeg: star.declination },
+        targetBody
+      )
+    }))
+    .filter((entry) => Number.isFinite(entry.distance))
+    .sort((a, b) => a.distance - b.distance);
+
+  if (candidates.length === 0) {
+    return;
+  }
+
+  const nearReferences = candidates.filter((entry) => entry.distance <= STAR_HOP_DISTANCE_LIMIT);
+  let references = nearReferences.length >= STAR_HOP_MIN_REFERENCE_STARS
+    ? nearReferences
+    : candidates;
+  references = references.slice(0, STAR_HOP_MAX_REFERENCE_STARS);
+
+  if (references.length < STAR_HOP_MIN_REFERENCE_STARS) {
+    return;
+  }
+
+  const sortedReferences = references.sort((a, b) => b.distance - a.distance);
+  const routeBodies = sortedReferences.map((entry, index) => {
+    const label = entry.star.name || entry.star.designation || `Repère ${index + 1}`;
+    return {
+      key: `star:${label}`,
+      name: label,
+      designation: entry.star.designation || null,
+      raHours: entry.star.rightAscension,
+      decDeg: entry.star.declination,
+      magnitude: entry.star.magnitude,
+      isTarget: false
+    };
+  });
+
+  const chain = [...routeBodies, targetBody];
+  const { location, observationDate } = resolveObservationContext(snapshot);
+  const steps = [];
+
+  function getLabel(body) {
+    if (!body) return '—';
+    if (body.isTarget) {
+      return body.name;
+    }
+    return body.designation ? `${body.name} (${body.designation})` : body.name;
+  }
+
+  for (let i = 0; i < chain.length - 1; i += 1) {
+    const from = chain[i];
+    const to = chain[i + 1];
+    const distance = angularDistanceDeg(from, to);
+    const altAz = horizontalCoordinates(to, location, observationDate);
+    steps.push({
+      index: i + 1,
+      from,
+      to,
+      distance,
+      altAz,
+      fromKey: from.key,
+      toKey: to.key
+    });
+  }
+
+  starHopList.innerHTML = '';
+  steps.forEach((step) => {
+    const li = document.createElement('li');
+    li.className = 'object-star-hop__step';
+
+    const title = document.createElement('div');
+    title.className = 'object-star-hop__step-title';
+    const badge = document.createElement('span');
+    badge.className = 'object-star-hop__step-index';
+    badge.textContent = `Étape ${step.index}`;
+    const label = document.createElement('span');
+    label.className = 'object-star-hop__step-label';
+    label.textContent = `${getLabel(step.from)} → ${getLabel(step.to)}`;
+    title.appendChild(badge);
+    title.appendChild(label);
+    li.appendChild(title);
+
+    const meta = document.createElement('p');
+    meta.className = 'object-star-hop__step-meta';
+    const distanceText = formatAngularDistance(step.distance);
+    const altitudeText = formatAltitude(step.altAz?.altitude);
+    const azimuthText = describeAzimuth(step.altAz?.azimuth);
+    meta.textContent = `Distance ${distanceText} • Alt ${altitudeText} • ${azimuthText}`;
+    li.appendChild(meta);
+
+    starHopList.appendChild(li);
+  });
+
+  if (starHopMessage) {
+    starHopMessage.hidden = true;
+  }
+  starHopSection.hidden = false;
+  if (!starHopSection.open) {
+    starHopSection.open = true;
+  }
+  renderStarHopMap(chain, steps);
+}
+
 function renderSessionMetrics(metrics) {
   if (!metrics) {
     sessionFacts.appendChild(createFact('Disponibilité', 'Aucun score calculé pour cette cible.'));
@@ -890,6 +1186,7 @@ function renderSession(snapshot, metrics) {
 async function bootstrap() {
   const request = parseObjectRequest();
   resetSummary();
+  resetStarHop();
   updateMediaCandidates(null);
   if (!request.slug && !Number.isFinite(request.number)) {
     message.textContent =
@@ -918,6 +1215,7 @@ async function bootstrap() {
       }
       article.hidden = true;
       resetSummary();
+      resetStarHop();
       return;
     }
 
@@ -951,6 +1249,7 @@ async function bootstrap() {
     renderNarrative(object, dossier);
     renderSources(object, dossier);
     renderSession(snapshot, metrics);
+    renderStarHopItinerary(object, snapshot);
 
     article.hidden = false;
     message.textContent = '';
@@ -959,6 +1258,7 @@ async function bootstrap() {
     message.textContent = "Impossible de charger cette fiche pour le moment. Vérifie ta connexion ou réessaie plus tard.";
     article.hidden = true;
     resetSummary();
+    resetStarHop();
   }
 }
 

@@ -1,4 +1,5 @@
 import { NIGHT_MODE_STORAGE_KEY } from './src/core/astro.js';
+import { STAR_CATALOG } from './src/core/star-catalog.js';
 
 const nightModeToggle = document.getElementById('nightModeToggle');
 const canvas = document.getElementById('starMapCanvas');
@@ -9,6 +10,16 @@ const rotationValue = document.getElementById('starMapRotationValue');
 const resetButton = document.getElementById('starMapReset');
 const constellationsToggle = document.getElementById('starMapConstellations');
 const milkyWayToggle = document.getElementById('starMapMilkyWay');
+const gridToggle = document.getElementById('starMapGrid');
+const horizonToggle = document.getElementById('starMapHorizon');
+const magnitudeInput = document.getElementById('starMapMagnitude');
+const magnitudeValue = document.getElementById('starMapMagnitudeValue');
+const fovInput = document.getElementById('starMapFov');
+const fovValue = document.getElementById('starMapFovValue');
+const toggleStarsButton = document.getElementById('starMapToggleStars');
+const toggleConstellationsButton = document.getElementById('starMapToggleConstellations');
+const toggleLabelsButton = document.getElementById('starMapToggleLabels');
+const sessionTimeButton = document.getElementById('starMapSessionTime');
 const legendList = document.getElementById('constellationLegend');
 const detailsPanel = document.getElementById('starMapDetails');
 const autoRotateButton = document.getElementById('starMapAutoRotate');
@@ -39,573 +50,6 @@ const cancelFrame =
 if (!canvas || !canvasContainer || !rotationInput || !rotationValue || !legendList || !detailsPanel) {
   console.warn('Carte du ciel : éléments requis introuvables.');
 }
-
-const STAR_CATALOG = [
-  {
-    name: 'Polaris',
-    designation: 'α UMi',
-    constellation: 'UMi',
-    rightAscension: 2.5303,
-    declination: 89.2641,
-    magnitude: 1.97,
-    spectralType: 'F7',
-    distance: 447,
-    description: 'Étoile polaire actuelle, située presque exactement dans l’axe de rotation terrestre.',
-    observation: 'Repère indispensable pour la mise en station d’une monture équatoriale et le cadrage nord.'
-  },
-  {
-    name: 'Dubhe',
-    designation: 'α UMa',
-    constellation: 'UMa',
-    rightAscension: 11.0621,
-    declination: 61.7508,
-    magnitude: 1.79,
-    spectralType: 'K0',
-    distance: 123,
-    description: 'Étoile orangée marquant le coin supérieur de la Grande Ourse.',
-    observation: 'Aligne Dubhe avec Merak pour pointer précisément la Polaire.'
-  },
-  {
-    name: 'Merak',
-    designation: 'β UMa',
-    constellation: 'UMa',
-    rightAscension: 11.0307,
-    declination: 56.3824,
-    magnitude: 2.37,
-    spectralType: 'A1',
-    distance: 80,
-    description: 'Étoile blanche de la Grande Ourse formant avec Dubhe le repère pour trouver la Polaire.',
-    observation: 'La ligne Dubhe → Merak multipliée cinq fois mène directement à Polaris.'
-  },
-  {
-    name: 'Phecda',
-    designation: 'γ UMa',
-    constellation: 'UMa',
-    rightAscension: 11.8987,
-    declination: 53.6948,
-    magnitude: 2.43,
-    spectralType: 'A0',
-    distance: 83,
-    description: 'Étoile blanche marquant la cuve de la Grande Ourse.',
-    observation: 'Servez-vous du trapèze formé par Phecda pour cadrer les galaxies M81/M82.'
-  },
-  {
-    name: 'Megrez',
-    designation: 'δ UMa',
-    constellation: 'UMa',
-    rightAscension: 12.257,
-    declination: 57.0326,
-    magnitude: 3.31,
-    spectralType: 'A3',
-    distance: 80,
-    description: 'Étoile la plus discrète du chariot mais pivot des segments vers la queue.',
-    observation: 'Permet de suivre la courbure menant à Mizar et Alkaid.'
-  },
-  {
-    name: 'Alioth',
-    designation: 'ε UMa',
-    constellation: 'UMa',
-    rightAscension: 12.9005,
-    declination: 55.9598,
-    magnitude: 1.77,
-    spectralType: 'A0',
-    distance: 82,
-    description: 'Étoile la plus brillante du chariot, visible toute l’année sous nos latitudes.',
-    observation: 'Bon point d’ancrage pour balayer la région des galaxies du Bouvier.'
-  },
-  {
-    name: 'Mizar',
-    designation: 'ζ UMa',
-    constellation: 'UMa',
-    rightAscension: 13.3987,
-    declination: 54.9253,
-    magnitude: 2.23,
-    spectralType: 'A2',
-    distance: 86,
-    description: 'Étoile double emblématique, facilement résolue aux jumelles avec Alcor.',
-    observation: 'Test de pouvoir séparateur classique pour un instrument bien collimaté.'
-  },
-  {
-    name: 'Alkaid',
-    designation: 'η UMa',
-    constellation: 'UMa',
-    rightAscension: 13.7923,
-    declination: 49.3133,
-    magnitude: 1.85,
-    spectralType: 'B3',
-    distance: 104,
-    description: 'Dernière étoile de la queue de la Grande Ourse, bleutée et énergique.',
-    observation: 'Dirige ton regard vers le quadrilatère du Bouvier depuis Alkaid pour trouver Arcturus.'
-  },
-  {
-    name: 'Kochab',
-    designation: 'β UMi',
-    constellation: 'UMi',
-    rightAscension: 14.8451,
-    declination: 74.1555,
-    magnitude: 2.08,
-    spectralType: 'K4',
-    distance: 131,
-    description: 'L’une des deux gardiennes du pôle entourant Polaris.',
-    observation: 'Aligne Kochab avec Pherkad pour visualiser le petit chariot.'
-  },
-  {
-    name: 'Pherkad',
-    designation: 'γ UMi',
-    constellation: 'UMi',
-    rightAscension: 15.3455,
-    declination: 71.8339,
-    magnitude: 3.05,
-    spectralType: 'A3',
-    distance: 487,
-    description: 'Étoile bleutée complétant la poignée du Petit Chariot.',
-    observation: 'Forme avec Kochab un axe pratique pour vérifier la mise en station.'
-  },
-  {
-    name: 'Vega',
-    designation: 'α Lyr',
-    constellation: 'Lyr',
-    rightAscension: 18.6156,
-    declination: 38.7837,
-    magnitude: 0.03,
-    spectralType: 'A0',
-    distance: 25,
-    description: 'Astre phare du ciel d’été, proche du zénith sous nos latitudes.',
-    observation: 'Point de départ idéal pour repérer la Lyre et la nébuleuse annulaire M57.'
-  },
-  {
-    name: 'Sheliak',
-    designation: 'β Lyr',
-    constellation: 'Lyr',
-    rightAscension: 18.8346,
-    declination: 33.3627,
-    magnitude: 3.45,
-    spectralType: 'B7',
-    distance: 960,
-    description: 'Binaire à éclipses représentant la base de la Lyre.',
-    observation: 'Observe ses variations de luminosité sur plusieurs nuits claires.'
-  },
-  {
-    name: 'Sulafat',
-    designation: 'γ Lyr',
-    constellation: 'Lyr',
-    rightAscension: 18.9826,
-    declination: 32.6896,
-    magnitude: 3.25,
-    spectralType: 'B9',
-    distance: 620,
-    description: 'Étoile bleue formant l’angle opposé à Vega dans la Lyre.',
-    observation: 'Centre-toi entre Sulafat et Sheliak pour viser M57.'
-  },
-  {
-    name: 'Deneb',
-    designation: 'α Cyg',
-    constellation: 'Cyg',
-    rightAscension: 20.6905,
-    declination: 45.2803,
-    magnitude: 1.25,
-    spectralType: 'A2',
-    distance: 2616,
-    description: 'Supergéante blanche marquant la queue du Cygne.',
-    observation: 'Encadre Deneb avec Sadr et Gienah pour suivre la grande croix du Cygne.'
-  },
-  {
-    name: 'Sadr',
-    designation: 'γ Cyg',
-    constellation: 'Cyg',
-    rightAscension: 20.3705,
-    declination: 40.2567,
-    magnitude: 2.23,
-    spectralType: 'F8',
-    distance: 1830,
-    description: 'Cœur de la constellation du Cygne baignant dans la Voie lactée.',
-    observation: 'Balaye autour de Sadr pour révéler IC 1318 et les nébulosités de Gamma Cygni.'
-  },
-  {
-    name: 'Gienah',
-    designation: 'ε Cyg',
-    constellation: 'Cyg',
-    rightAscension: 20.77,
-    declination: 33.9703,
-    magnitude: 2.48,
-    spectralType: 'B9',
-    distance: 72,
-    description: 'Aile occidentale du Cygne, étoile double accessible.',
-    observation: 'Parfaite pour tester la résolution d’une petite lunette.'
-  },
-  {
-    name: 'Albireo',
-    designation: 'β Cyg',
-    constellation: 'Cyg',
-    rightAscension: 19.512,
-    declination: 27.9597,
-    magnitude: 3.08,
-    spectralType: 'K3 + B8',
-    distance: 430,
-    description: 'Étoile double célèbre pour son contraste orange/bleu.',
-    observation: 'Augmente légèrement le grossissement pour séparer les deux composantes chatoyantes.'
-  },
-  {
-    name: 'Altair',
-    designation: 'α Aql',
-    constellation: 'Aql',
-    rightAscension: 19.8464,
-    declination: 8.8683,
-    magnitude: 0.77,
-    spectralType: 'A7',
-    distance: 17,
-    description: 'Étoile brillante du Triangle d’été, très rapide en rotation.',
-    observation: 'Trace la ligne Altair–Vega pour rejoindre le zénith en été.'
-  },
-  {
-    name: 'Tarazed',
-    designation: 'γ Aql',
-    constellation: 'Aql',
-    rightAscension: 19.7705,
-    declination: 10.6132,
-    magnitude: 2.72,
-    spectralType: 'K3',
-    distance: 395,
-    description: 'Géante orangée voisinant Altair dans Aquila.',
-    observation: 'Offre un joli contraste de couleur avec Altair et Alshain.'
-  },
-  {
-    name: 'Alshain',
-    designation: 'β Aql',
-    constellation: 'Aql',
-    rightAscension: 19.9219,
-    declination: 6.4068,
-    magnitude: 3.71,
-    spectralType: 'G8',
-    distance: 45,
-    description: 'Compagne plus discrète d’Altair, étoile double accessible.',
-    observation: 'Un grossissement modéré révèle la compagne Alshain B.'
-  },
-  {
-    name: 'Betelgeuse',
-    designation: 'α Ori',
-    constellation: 'Ori',
-    rightAscension: 5.9195,
-    declination: 7.407,
-    magnitude: 0.5,
-    spectralType: 'M1',
-    distance: 548,
-    description: 'Supergéante rouge en fin de vie, très variable.',
-    observation: 'Comparatif de luminosité avec Rigel pour suivre ses variations.'
-  },
-  {
-    name: 'Bellatrix',
-    designation: 'γ Ori',
-    constellation: 'Ori',
-    rightAscension: 5.4188,
-    declination: 6.3497,
-    magnitude: 1.64,
-    spectralType: 'B2',
-    distance: 252,
-    description: 'Guerrière brillante marquant l’épaule droite d’Orion.',
-    observation: 'Servez-vous de Bellatrix pour cadrer la boucle de Barnard.'
-  },
-  {
-    name: 'Mintaka',
-    designation: 'δ Ori',
-    constellation: 'Ori',
-    rightAscension: 5.5334,
-    declination: -0.2991,
-    magnitude: 2.25,
-    spectralType: 'O9',
-    distance: 1200,
-    description: 'Étoile occidentale de la ceinture d’Orion, double serrée.',
-    observation: 'Bon test de turbulence : la composante secondaire devient visible par nuit stable.'
-  },
-  {
-    name: 'Alnilam',
-    designation: 'ε Ori',
-    constellation: 'Ori',
-    rightAscension: 5.6036,
-    declination: -1.2019,
-    magnitude: 1.69,
-    spectralType: 'B0',
-    distance: 1342,
-    description: 'Étoile centrale de la ceinture d’Orion, entourée de poussières.',
-    observation: 'Viser Alnilam en photo révèle la nébuleuse de la Tête de Cheval à proximité.'
-  },
-  {
-    name: 'Alnitak',
-    designation: 'ζ Ori',
-    constellation: 'Ori',
-    rightAscension: 5.6793,
-    declination: -1.9426,
-    magnitude: 1.74,
-    spectralType: 'O9',
-    distance: 817,
-    description: 'Étoile orientale de la ceinture, triple spectaculaire.',
-    observation: 'Centre la flamme d’Orion (NGC 2024) à quelques minutes d’arc vers l’est.'
-  },
-  {
-    name: 'Rigel',
-    designation: 'β Ori',
-    constellation: 'Ori',
-    rightAscension: 5.2423,
-    declination: -8.2016,
-    magnitude: 0.18,
-    spectralType: 'B8',
-    distance: 863,
-    description: 'Supergéante bleue dominant l’hémisphère sud hivernal.',
-    observation: 'Pousse le grossissement pour séparer la compagne Rigel B.'
-  },
-  {
-    name: 'Saiph',
-    designation: 'κ Ori',
-    constellation: 'Ori',
-    rightAscension: 5.7959,
-    declination: -9.6696,
-    magnitude: 2.06,
-    spectralType: 'B0',
-    distance: 650,
-    description: 'Coin sud-est d’Orion, marque la limite de la boucle d’Orion.',
-    observation: 'Repère pour encadrer la nébuleuse de la Rosette plus à l’est.'
-  },
-  {
-    name: 'Sirius',
-    designation: 'α CMa',
-    constellation: 'CMa',
-    rightAscension: 6.7525,
-    declination: -16.7161,
-    magnitude: -1.46,
-    spectralType: 'A1',
-    distance: 8.6,
-    description: 'Étoile la plus brillante du ciel nocturne, visible même en ville.',
-    observation: 'Attends qu’elle culmine pour tenter d’apercevoir sa naine blanche compagne.'
-  },
-  {
-    name: 'Adhara',
-    designation: 'ε CMa',
-    constellation: 'CMa',
-    rightAscension: 6.9771,
-    declination: -28.9721,
-    magnitude: 1.5,
-    spectralType: 'B2',
-    distance: 430,
-    description: 'Deuxième étoile de la constellation du Grand Chien.',
-    observation: 'Constitue avec Wezen un triangle pointant vers M41.'
-  },
-  {
-    name: 'Wezen',
-    designation: 'δ CMa',
-    constellation: 'CMa',
-    rightAscension: 7.1399,
-    declination: -26.3932,
-    magnitude: 1.82,
-    spectralType: 'F8',
-    distance: 1600,
-    description: 'Supergéante jaune marquant le centre du Grand Chien.',
-    observation: 'Base idéale pour localiser la nébuleuse de la Rosette en remontant vers Monoceros.'
-  },
-  {
-    name: 'Procyon',
-    designation: 'α CMi',
-    constellation: 'CMi',
-    rightAscension: 7.655,
-    declination: 5.225,
-    magnitude: 0.38,
-    spectralType: 'F5',
-    distance: 11.5,
-    description: 'Une des composantes du Triangle d’hiver, proche de la Terre.',
-    observation: 'Combine Procyon avec Sirius et Betelgeuse pour dessiner le triangle hivernal.'
-  },
-  {
-    name: 'Capella',
-    designation: 'α Aur',
-    constellation: 'Aur',
-    rightAscension: 5.2782,
-    declination: 46.0,
-    magnitude: 0.08,
-    spectralType: 'G3',
-    distance: 42,
-    description: 'Système quadruple dominant l’hiver boréal.',
-    observation: 'Utilise Capella pour t’orienter vers l’amas des Hyades.'
-  },
-  {
-    name: 'Aldebaran',
-    designation: 'α Tau',
-    constellation: 'Tau',
-    rightAscension: 4.5987,
-    declination: 16.5092,
-    magnitude: 0.87,
-    spectralType: 'K5',
-    distance: 65,
-    description: 'Géante orangée traversant l’amas ouvert des Hyades.',
-    observation: 'Filtre UHC déconseillé : privilégie un oculaire grand champ pour les Hyades.'
-  },
-  {
-    name: 'Elnath',
-    designation: 'β Tau',
-    constellation: 'Tau',
-    rightAscension: 5.4382,
-    declination: 28.6074,
-    magnitude: 1.65,
-    spectralType: 'B7',
-    distance: 134,
-    description: 'Étoile bleutée à la frontière du Cocher et du Taureau.',
-    observation: 'Aide à tracer la corne nord du Taureau vers la nébuleuse du Crabe.'
-  },
-  {
-    name: 'Castor',
-    designation: 'α Gem',
-    constellation: 'Gem',
-    rightAscension: 7.5767,
-    declination: 31.8883,
-    magnitude: 1.6,
-    spectralType: 'A1',
-    distance: 52,
-    description: 'Sextuple système stellaire facilement dédoublable.',
-    observation: 'Grossissement moyen pour séparer les composantes A et B.'
-  },
-  {
-    name: 'Pollux',
-    designation: 'β Gem',
-    constellation: 'Gem',
-    rightAscension: 7.7553,
-    declination: 28.0262,
-    magnitude: 1.14,
-    spectralType: 'K0',
-    distance: 34,
-    description: 'Géante orangée abritant une exoplanète confirmée.',
-    observation: 'Une paire parfaite avec Castor pour débuter les repérages hivernaux.'
-  },
-  {
-    name: 'Regulus',
-    designation: 'α Leo',
-    constellation: 'Leo',
-    rightAscension: 10.1395,
-    declination: 11.9672,
-    magnitude: 1.35,
-    spectralType: 'B7',
-    distance: 79,
-    description: 'Étoile principale du Lion alignée avec le Sphinx céleste.',
-    observation: 'Utilise Regulus pour balayer la chaîne de galaxies de l’arrière du Lion.'
-  },
-  {
-    name: 'Algieba',
-    designation: 'γ Leo',
-    constellation: 'Leo',
-    rightAscension: 10.3329,
-    declination: 19.8416,
-    magnitude: 2.01,
-    spectralType: 'K1',
-    distance: 130,
-    description: 'Magnifique double dorée dans la crinière du Lion.',
-    observation: 'Sépare les composantes avec un grossissement supérieur à 120×.'
-  },
-  {
-    name: 'Denebola',
-    designation: 'β Leo',
-    constellation: 'Leo',
-    rightAscension: 11.8177,
-    declination: 14.5719,
-    magnitude: 2.14,
-    spectralType: 'A3',
-    distance: 36,
-    description: 'Queue du Lion, marque l’accès au Champ de Coma.',
-    observation: 'Prolonge la ligne Zosma–Denebola pour atteindre l’amas de la Chevelure.'
-  },
-  {
-    name: 'Arcturus',
-    designation: 'α Boo',
-    constellation: 'Boo',
-    rightAscension: 14.261,
-    declination: 19.1825,
-    magnitude: -0.05,
-    spectralType: 'K1',
-    distance: 36,
-    description: 'Géante orangée visible en fin de printemps, se lève après la Grande Ourse.',
-    observation: 'Prolonge la courbure de la queue de la Grande Ourse pour atteindre Arcturus.'
-  },
-  {
-    name: 'Spica',
-    designation: 'α Vir',
-    constellation: 'Vir',
-    rightAscension: 13.4199,
-    declination: -11.1614,
-    magnitude: 0.98,
-    spectralType: 'B1',
-    distance: 250,
-    description: 'Binaire spectroscopique bleu-blanc marquant la Vierge.',
-    observation: 'Trace Arcturus → Spica pour localiser la Vierge et ses galaxies.'
-  },
-  {
-    name: 'Antares',
-    designation: 'α Sco',
-    constellation: 'Sco',
-    rightAscension: 16.4901,
-    declination: -26.4319,
-    magnitude: 1.06,
-    spectralType: 'M1',
-    distance: 555,
-    description: 'Supergéante rouge flamboyante au cœur du Scorpion.',
-    observation: 'Compare sa teinte rouge à celle de Mars lors des oppositions.'
-  },
-  {
-    name: 'Shaula',
-    designation: 'λ Sco',
-    constellation: 'Sco',
-    rightAscension: 17.5601,
-    declination: -37.1038,
-    magnitude: 1.62,
-    spectralType: 'B2',
-    distance: 570,
-    description: 'Étoile bleutée marquant le dard du Scorpion.',
-    observation: 'Cadre la région pour révéler l’amas ouvert M7.'
-  },
-  {
-    name: 'Sargas',
-    designation: 'θ Sco',
-    constellation: 'Sco',
-    rightAscension: 17.6219,
-    declination: -42.9978,
-    magnitude: 1.86,
-    spectralType: 'F0',
-    distance: 270,
-    description: 'Supergéante jaune du Scorpion austral.',
-    observation: 'Accueille les nébulosités de la région de la queue du Scorpion.'
-  },
-  {
-    name: 'Fomalhaut',
-    designation: 'α PsA',
-    constellation: 'PsA',
-    rightAscension: 22.9608,
-    declination: -29.6222,
-    magnitude: 1.16,
-    spectralType: 'A4',
-    distance: 25,
-    description: 'Étoile solitaire de l’automne, hôte d’un disque protoplanétaire.',
-    observation: 'Choisis un horizon dégagé vers le sud pour la saisir.'
-  },
-  {
-    name: 'Achernar',
-    designation: 'α Eri',
-    constellation: 'Eri',
-    rightAscension: 1.6286,
-    declination: -57.2368,
-    magnitude: 0.46,
-    spectralType: 'B6',
-    distance: 139,
-    description: 'Étoile aplatie très rapide, visible près de l’horizon sud.',
-    observation: 'Observation difficile depuis la France métropolitaine : privilégie les nuits sans turbulence.'
-  },
-  {
-    name: 'Canopus',
-    designation: 'α Car',
-    constellation: 'Car',
-    rightAscension: 6.3992,
-    declination: -52.6957,
-    magnitude: -0.62,
-    spectralType: 'F0',
-    distance: 310,
-    description: 'Deuxième étoile la plus brillante du ciel, réservée aux latitudes méridionales.',
-    observation: 'Accessible depuis le sud de l’Europe lors de conditions exceptionnelles.'
-  }
-];
 
 const CONSTELLATIONS = [
   {
@@ -810,14 +254,43 @@ const LABELLED_STARS = new Set([
 ]);
 
 const TWO_PI = Math.PI * 2;
+const OBSERVER_LONGITUDE = 2.3522; // Paris
+const DEFAULT_MAGNITUDE_LIMIT = 6;
+const MIN_MAGNITUDE_LIMIT = -1;
+const MAX_MAGNITUDE_LIMIT = 8;
+const MIN_FIELD_OF_VIEW = 60;
+const MAX_FIELD_OF_VIEW = 180;
+const DEFAULT_FIELD_OF_VIEW = 160;
+const PAN_INERTIA_DECAY = 0.92;
+const PAN_VELOCITY_THRESHOLD = 0.02;
+
 const mapState = {
   devicePixelRatio: window.devicePixelRatio || 1,
   canvasSize: 0,
+  baseRadius: 0,
   radius: 0,
   centerX: 0,
   centerY: 0,
+  viewCenterX: 0,
+  viewCenterY: 0,
   rotationHours: 0,
+  panX: 0,
+  panY: 0,
+  velocityX: 0,
+  velocityY: 0,
+  inertiaFrame: null,
+  lastInertiaTime: null,
+  zoom: 1,
+  targetZoom: 1,
+  zoomFrame: null,
+  lastZoomTime: null,
+  fieldOfView: DEFAULT_FIELD_OF_VIEW,
+  magnitudeLimit: DEFAULT_MAGNITUDE_LIMIT,
+  showStars: true,
   showConstellations: true,
+  showLabels: true,
+  showGrid: true,
+  showHorizon: true,
   showMilkyWay: true,
   hoveredStar: null,
   selectedStar: null,
@@ -830,11 +303,19 @@ const mapState = {
   lastAutoRotateTime: null
 };
 
+mapState.targetZoom = fieldOfViewToZoom(mapState.fieldOfView);
+mapState.zoom = mapState.targetZoom;
+
 const pointerState = {
   active: false,
   pointerId: null,
-  startAngle: 0,
-  startRotation: 0,
+  startX: 0,
+  startY: 0,
+  lastX: 0,
+  lastY: 0,
+  lastTime: 0,
+  velocityX: 0,
+  velocityY: 0,
   moved: false
 };
 
@@ -905,22 +386,140 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function toJulianDate(date) {
+  return date.getTime() / 86400000 + 2440587.5;
+}
+
+function computeLocalSiderealTime(date, longitudeDegrees) {
+  const JD = toJulianDate(date);
+  const T = (JD - 2451545.0) / 36525;
+  const GMST =
+    280.46061837 +
+    360.98564736629 * (JD - 2451545.0) +
+    0.000387933 * T * T -
+    (T * T * T) / 38710000;
+  const GMSTDegrees = ((GMST % 360) + 360) % 360;
+  const GMSTHours = GMSTDegrees / 15;
+  const longitudeHours = longitudeDegrees / 15;
+  return normaliseHours(GMSTHours + longitudeHours);
+}
+
 const MAP_PADDING = 24;
 const MAX_CANVAS_SIZE = 1080;
 const AUTO_ROTATE_SPEED = 0.25;
 const DEFAULT_FOCUS_STAR = 'Polaris';
 
+function fieldOfViewToZoom(fieldOfView) {
+  return 180 / clamp(fieldOfView, MIN_FIELD_OF_VIEW, MAX_FIELD_OF_VIEW);
+}
+
+function clampPan() {
+  const limit = mapState.baseRadius * mapState.zoom * 2.2;
+  mapState.panX = clamp(mapState.panX, -limit, limit);
+  mapState.panY = clamp(mapState.panY, -limit, limit);
+}
+
+function updateViewTransform() {
+  clampPan();
+  mapState.viewCenterX = mapState.centerX + mapState.panX;
+  mapState.viewCenterY = mapState.centerY + mapState.panY;
+  mapState.radius = mapState.baseRadius * mapState.zoom;
+}
+
+function toScreenCoordinates(px, py) {
+  return {
+    x: mapState.viewCenterX + px * mapState.zoom,
+    y: mapState.viewCenterY + py * mapState.zoom
+  };
+}
+
+function stopZoomAnimation() {
+  if (mapState.zoomFrame) {
+    cancelFrame(mapState.zoomFrame);
+  }
+  mapState.zoomFrame = null;
+  mapState.lastZoomTime = null;
+}
+
+function animateZoomStep(timestamp) {
+  if (!mapState.zoomFrame) {
+    mapState.lastZoomTime = null;
+    return;
+  }
+  if (typeof mapState.lastZoomTime !== 'number') {
+    mapState.lastZoomTime = timestamp;
+  }
+  const delta = mapState.targetZoom - mapState.zoom;
+  if (Math.abs(delta) < 0.0005) {
+    mapState.zoom = mapState.targetZoom;
+    stopZoomAnimation();
+    renderStarMap();
+    return;
+  }
+  const elapsed = Math.max(16, timestamp - mapState.lastZoomTime);
+  const factor = clamp(elapsed / 160, 0.08, 0.28);
+  mapState.zoom += delta * factor;
+  mapState.lastZoomTime = timestamp;
+  renderStarMap();
+  mapState.zoomFrame = requestFrame(animateZoomStep);
+}
+
+function startZoomAnimation() {
+  if (!mapState.zoomFrame) {
+    mapState.zoomFrame = requestFrame(animateZoomStep);
+  }
+}
+
+function stopPanInertia() {
+  if (mapState.inertiaFrame) {
+    cancelFrame(mapState.inertiaFrame);
+  }
+  mapState.inertiaFrame = null;
+  mapState.lastInertiaTime = null;
+  mapState.velocityX = 0;
+  mapState.velocityY = 0;
+}
+
+function panInertiaStep(timestamp) {
+  if (!mapState.inertiaFrame) {
+    mapState.lastInertiaTime = null;
+    return;
+  }
+  if (typeof mapState.lastInertiaTime !== 'number') {
+    mapState.lastInertiaTime = timestamp;
+  }
+  const deltaTime = Math.max(16, timestamp - mapState.lastInertiaTime);
+  mapState.lastInertiaTime = timestamp;
+  mapState.panX += mapState.velocityX * deltaTime;
+  mapState.panY += mapState.velocityY * deltaTime;
+  mapState.velocityX *= PAN_INERTIA_DECAY;
+  mapState.velocityY *= PAN_INERTIA_DECAY;
+  if (Math.abs(mapState.velocityX) < PAN_VELOCITY_THRESHOLD && Math.abs(mapState.velocityY) < PAN_VELOCITY_THRESHOLD) {
+    stopPanInertia();
+    renderStarMap();
+    return;
+  }
+  renderStarMap();
+  mapState.inertiaFrame = requestFrame(panInertiaStep);
+}
+
+function startPanInertia() {
+  if (!mapState.inertiaFrame) {
+    mapState.inertiaFrame = requestFrame(panInertiaStep);
+  }
+}
+
 function projectCoordinates(rightAscension, declination) {
-  if (!mapState.radius) {
-    return { x: 0, y: 0, radius: 0 };
+  if (!mapState.baseRadius) {
+    return { px: 0, py: 0, radial: 0 };
   }
   const effectiveRA = normaliseHours(rightAscension - mapState.rotationHours);
   const angle = (effectiveRA / 24) * TWO_PI;
   const clampedDec = clamp(declination, -90, 90);
-  const radial = ((90 - clampedDec) / 180) * mapState.radius;
-  const x = mapState.centerX + Math.sin(angle) * radial;
-  const y = mapState.centerY - Math.cos(angle) * radial;
-  return { x, y, radius: radial };
+  const radial = ((90 - clampedDec) / 180) * mapState.baseRadius;
+  const px = Math.sin(angle) * radial;
+  const py = -Math.cos(angle) * radial;
+  return { px, py, radial };
 }
 
 function computeProjections() {
@@ -928,8 +527,10 @@ function computeProjections() {
   mapState.projectedPositions.clear();
   STAR_CATALOG.forEach((star) => {
     const coords = projectCoordinates(star.rightAscension, star.declination);
-    mapState.projectedPositions.set(star.name, coords);
-    mapState.projectedStars.push({ star, ...coords });
+    const screen = toScreenCoordinates(coords.px, coords.py);
+    const screenRadius = coords.radial * mapState.zoom;
+    mapState.projectedPositions.set(star.name, { ...coords, ...screen, screenRadius });
+    mapState.projectedStars.push({ star, ...coords, ...screen, screenRadius });
   });
 }
 function drawBackground() {
@@ -938,14 +539,14 @@ function drawBackground() {
   }
   ctx.save();
   ctx.beginPath();
-  ctx.arc(mapState.centerX, mapState.centerY, mapState.radius, 0, TWO_PI);
+  ctx.arc(mapState.viewCenterX, mapState.viewCenterY, mapState.radius, 0, TWO_PI);
   ctx.closePath();
   const gradient = ctx.createRadialGradient(
-    mapState.centerX,
-    mapState.centerY,
+    mapState.viewCenterX,
+    mapState.viewCenterY,
     mapState.radius * 0.1,
-    mapState.centerX,
-    mapState.centerY,
+    mapState.viewCenterX,
+    mapState.viewCenterY,
     mapState.radius
   );
   gradient.addColorStop(0, '#071a36');
@@ -959,19 +560,19 @@ function drawBackground() {
 }
 
 function drawGraticule() {
-  if (!ctx || !mapState.radius) {
+  if (!ctx || !mapState.radius || !mapState.showGrid) {
     return;
   }
   ctx.save();
   ctx.beginPath();
-  ctx.arc(mapState.centerX, mapState.centerY, mapState.radius, 0, TWO_PI);
+  ctx.arc(mapState.viewCenterX, mapState.viewCenterY, mapState.radius, 0, TWO_PI);
   ctx.clip();
   ctx.lineWidth = 1;
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.09)';
   for (let dec = -60; dec <= 60; dec += 30) {
-    const radius = ((90 - dec) / 180) * mapState.radius;
+    const radius = ((90 - dec) / 180) * mapState.baseRadius * mapState.zoom;
     ctx.beginPath();
-    ctx.arc(mapState.centerX, mapState.centerY, radius, 0, TWO_PI);
+    ctx.arc(mapState.viewCenterX, mapState.viewCenterY, radius, 0, TWO_PI);
     ctx.stroke();
   }
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
@@ -982,12 +583,12 @@ function drawGraticule() {
     const cos = Math.cos(angle);
     ctx.beginPath();
     ctx.moveTo(
-      mapState.centerX + sin * innerStart,
-      mapState.centerY - cos * innerStart
+      mapState.viewCenterX + sin * innerStart,
+      mapState.viewCenterY - cos * innerStart
     );
     ctx.lineTo(
-      mapState.centerX + sin * mapState.radius,
-      mapState.centerY - cos * mapState.radius
+      mapState.viewCenterX + sin * mapState.radius,
+      mapState.viewCenterY - cos * mapState.radius
     );
     ctx.stroke();
   }
@@ -1003,10 +604,24 @@ function drawGraticule() {
     const sin = Math.sin(angle);
     const cos = Math.cos(angle);
     const labelRadius = mapState.radius + 14;
-    const x = mapState.centerX + sin * labelRadius;
-    const y = mapState.centerY - cos * labelRadius;
+    const x = mapState.viewCenterX + sin * labelRadius;
+    const y = mapState.viewCenterY - cos * labelRadius;
     ctx.fillText(`${hour} h`, x, y);
   }
+  ctx.restore();
+}
+
+function drawHorizon() {
+  if (!ctx || !mapState.radius || !mapState.showHorizon) {
+    return;
+  }
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(mapState.viewCenterX, mapState.viewCenterY, mapState.radius, 0, TWO_PI);
+  ctx.strokeStyle = 'rgba(255, 200, 160, 0.5)';
+  ctx.lineWidth = 1.6;
+  ctx.setLineDash([10, 6]);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -1016,24 +631,25 @@ function drawMilkyWay() {
   }
   ctx.save();
   ctx.beginPath();
-  ctx.arc(mapState.centerX, mapState.centerY, mapState.radius, 0, TWO_PI);
+  ctx.arc(mapState.viewCenterX, mapState.viewCenterY, mapState.radius, 0, TWO_PI);
   ctx.clip();
   MILKY_WAY_NODES.forEach((node) => {
     const coords = projectCoordinates(node.rightAscension, node.declination);
-    const width = mapState.radius * node.width;
+    const center = toScreenCoordinates(coords.px, coords.py);
+    const width = mapState.baseRadius * node.width * mapState.zoom;
     const gradient = ctx.createRadialGradient(
-      coords.x,
-      coords.y,
+      center.x,
+      center.y,
       width * 0.2,
-      coords.x,
-      coords.y,
+      center.x,
+      center.y,
       width
     );
     gradient.addColorStop(0, 'rgba(96, 150, 255, 0.22)');
     gradient.addColorStop(1, 'rgba(20, 40, 90, 0)');
     ctx.beginPath();
     ctx.fillStyle = gradient;
-    ctx.arc(coords.x, coords.y, width, 0, TWO_PI);
+    ctx.arc(center.x, center.y, width, 0, TWO_PI);
     ctx.fill();
   });
   ctx.restore();
@@ -1045,7 +661,7 @@ function drawConstellations() {
   }
   ctx.save();
   ctx.beginPath();
-  ctx.arc(mapState.centerX, mapState.centerY, mapState.radius, 0, TWO_PI);
+  ctx.arc(mapState.viewCenterX, mapState.viewCenterY, mapState.radius, 0, TWO_PI);
   ctx.clip();
   const activeId = mapState.activeConstellation?.id;
   const previewId = mapState.previewConstellation?.id;
@@ -1078,9 +694,10 @@ function drawConstellationLabel(constellation, { preview = false } = {}) {
     return;
   }
   const coords = projectCoordinates(constellation.anchor.rightAscension, constellation.anchor.declination);
-  if (coords.radius > mapState.radius) {
+  if (coords.radial > mapState.baseRadius) {
     return;
   }
+  const screen = toScreenCoordinates(coords.px, coords.py);
   ctx.save();
   const isActive = mapState.activeConstellation?.id === constellation.id;
   const color = isActive
@@ -1093,12 +710,12 @@ function drawConstellationLabel(constellation, { preview = false } = {}) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   const label = constellation.abbreviation || constellation.name;
-  ctx.fillText(label, coords.x, coords.y);
+  ctx.fillText(label, screen.x, screen.y);
   ctx.restore();
 }
 
 function drawStars() {
-  if (!ctx || !mapState.radius) {
+  if (!ctx || !mapState.radius || !mapState.showStars) {
     return;
   }
   const activeConstellation = mapState.activeConstellation;
@@ -1127,8 +744,11 @@ function drawStars() {
     }
   }
 
-  mapState.projectedStars.forEach(({ star, x, y, radius }) => {
-    if (radius > mapState.radius + 8) {
+  mapState.projectedStars.forEach(({ star, x, y, screenRadius }) => {
+    if (screenRadius > mapState.radius + 8) {
+      return;
+    }
+    if (typeof star.magnitude === 'number' && star.magnitude > mapState.magnitudeLimit) {
       return;
     }
     const baseSize = Math.max(1.3, 4.6 - (star.magnitude ?? 5) * 0.6);
@@ -1174,7 +794,7 @@ function drawStars() {
 }
 
 function drawStarLabels() {
-  if (!ctx || !mapState.radius) {
+  if (!ctx || !mapState.radius || !mapState.showLabels || !mapState.showStars) {
     return;
   }
   ctx.save();
@@ -1190,8 +810,11 @@ function drawStarLabels() {
     if (!shouldLabel) {
       return;
     }
-    const dx = x - mapState.centerX;
-    const dy = y - mapState.centerY;
+    if (typeof star.magnitude === 'number' && star.magnitude > mapState.magnitudeLimit) {
+      return;
+    }
+    const dx = x - mapState.viewCenterX;
+    const dy = y - mapState.viewCenterY;
     if (dx * dx + dy * dy > limit) {
       return;
     }
@@ -1205,9 +828,11 @@ function renderStarMap() {
   }
   ctx.setTransform(mapState.devicePixelRatio, 0, 0, mapState.devicePixelRatio, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  updateViewTransform();
   computeProjections();
   drawBackground();
   drawGraticule();
+  drawHorizon();
   if (mapState.showMilkyWay) {
     drawMilkyWay();
   }
@@ -1252,9 +877,10 @@ function resizeCanvas() {
   const devicePixelRatio = window.devicePixelRatio || 1;
   mapState.devicePixelRatio = devicePixelRatio;
   mapState.canvasSize = size;
-  mapState.radius = size / 2 - MAP_PADDING;
+  mapState.baseRadius = size / 2 - MAP_PADDING;
   mapState.centerX = size / 2;
   mapState.centerY = size / 2;
+  updateViewTransform();
   canvas.width = Math.round(size * devicePixelRatio);
   canvas.height = Math.round(size * devicePixelRatio);
   canvas.style.width = `${size}px`;
@@ -1337,6 +963,101 @@ function setRotation(hours) {
   updateDetails();
 }
 
+function updateMagnitudeControl() {
+  if (magnitudeInput) {
+    magnitudeInput.value = mapState.magnitudeLimit.toFixed(1);
+  }
+  if (magnitudeValue) {
+    magnitudeValue.textContent = mapState.magnitudeLimit.toFixed(1);
+  }
+}
+
+function setMagnitudeLimit(value) {
+  const clamped = clamp(value, MIN_MAGNITUDE_LIMIT, MAX_MAGNITUDE_LIMIT);
+  if (clamped === mapState.magnitudeLimit) {
+    return;
+  }
+  mapState.magnitudeLimit = clamped;
+  updateMagnitudeControl();
+  mapState.hoveredStar = null;
+  updateDetails();
+  updateTooltip(null);
+  renderStarMap();
+}
+
+function updateFieldOfViewControl() {
+  if (fovInput) {
+    fovInput.value = Math.round(mapState.fieldOfView).toString();
+  }
+  if (fovValue) {
+    fovValue.textContent = `${Math.round(mapState.fieldOfView)}°`;
+  }
+}
+
+function setFieldOfView(value, { animate = true } = {}) {
+  const clamped = clamp(value, MIN_FIELD_OF_VIEW, MAX_FIELD_OF_VIEW);
+  if (clamped === mapState.fieldOfView) {
+    updateFieldOfViewControl();
+    return;
+  }
+  mapState.fieldOfView = clamped;
+  mapState.targetZoom = fieldOfViewToZoom(mapState.fieldOfView);
+  updateFieldOfViewControl();
+  if (!animate) {
+    stopZoomAnimation();
+    mapState.zoom = mapState.targetZoom;
+    renderStarMap();
+    return;
+  }
+  startZoomAnimation();
+}
+
+function updateVisibilityButton(button, active, hideLabel, showLabel) {
+  if (!button) {
+    return;
+  }
+  button.setAttribute('aria-pressed', active ? 'true' : 'false');
+  button.classList.toggle('is-active', active);
+  const label = active ? hideLabel : showLabel;
+  button.textContent = label;
+  button.setAttribute('title', label);
+}
+
+function updateVisibilityControls() {
+  updateVisibilityButton(toggleStarsButton, mapState.showStars, '✨ Masquer les étoiles', '✨ Afficher les étoiles');
+  updateVisibilityButton(toggleConstellationsButton, mapState.showConstellations, '🌌 Masquer les constellations', '🌌 Afficher les constellations');
+  updateVisibilityButton(toggleLabelsButton, mapState.showLabels, '🔖 Masquer les noms', '🔖 Afficher les noms');
+  if (constellationsToggle) {
+    constellationsToggle.checked = mapState.showConstellations;
+  }
+}
+
+function toggleStarsVisibility() {
+  mapState.showStars = !mapState.showStars;
+  if (!mapState.showStars) {
+    mapState.hoveredStar = null;
+    mapState.selectedStar = null;
+    updateLegendActive();
+    updateDetails();
+    updateTooltip(null);
+  }
+  updateVisibilityControls();
+  renderStarMap();
+  updateCenterButtonLabel();
+}
+
+function toggleConstellationsVisibility() {
+  mapState.showConstellations = !mapState.showConstellations;
+  updateVisibilityControls();
+  renderStarMap();
+}
+
+function toggleLabelsVisibility() {
+  mapState.showLabels = !mapState.showLabels;
+  updateVisibilityControls();
+  renderStarMap();
+}
+
 function toggleConstellation(constellation) {
   if (!constellation) {
     return;
@@ -1371,6 +1092,7 @@ function selectStar(star) {
   updateLegendActive();
   updateDetails();
   renderStarMap();
+  updateCenterButtonLabel();
 }
 
 function clearSelection() {
@@ -1380,6 +1102,7 @@ function clearSelection() {
   updateLegendActive();
   updateDetails();
   renderStarMap();
+  updateCenterButtonLabel();
 }
 
 function previewConstellation(constellation) {
@@ -1525,9 +1248,15 @@ function getRelativePosition(event) {
 }
 
 function findStarAtPosition(x, y) {
+  if (!mapState.showStars) {
+    return null;
+  }
   let closest = null;
   let minDistance = Infinity;
   mapState.projectedStars.forEach(({ star, x: sx, y: sy }) => {
+    if (typeof star.magnitude === 'number' && star.magnitude > mapState.magnitudeLimit) {
+      return;
+    }
     const dx = x - sx;
     const dy = y - sy;
     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -1606,6 +1335,7 @@ function focusOnStar(star) {
     return;
   }
   stopAutoRotate();
+  stopPanInertia();
   mapState.hoveredStar = null;
   mapState.previewConstellation = null;
   mapState.selectedStar = star;
@@ -1617,6 +1347,12 @@ function focusOnStar(star) {
   }
   updateLegendActive();
   setRotation(star.rightAscension);
+  const coords = projectCoordinates(star.rightAscension, star.declination);
+  mapState.panX = -coords.px * mapState.zoom;
+  mapState.panY = -coords.py * mapState.zoom;
+  updateViewTransform();
+  renderStarMap();
+  updateCenterButtonLabel();
 }
 
 function handleCenterSelection() {
@@ -1761,13 +1497,18 @@ function handlePointerDown(event) {
     return;
   }
   stopAutoRotate();
+  stopPanInertia();
   clearConstellationPreview();
   pointerState.active = true;
   pointerState.pointerId = event.pointerId;
   pointerState.moved = false;
-  const { x, y } = getRelativePosition(event);
-  pointerState.startAngle = Math.atan2(y - mapState.centerY, x - mapState.centerX);
-  pointerState.startRotation = mapState.rotationHours;
+  pointerState.startX = event.clientX;
+  pointerState.startY = event.clientY;
+  pointerState.lastX = event.clientX;
+  pointerState.lastY = event.clientY;
+  pointerState.velocityX = 0;
+  pointerState.velocityY = 0;
+  pointerState.lastTime = event.timeStamp || performance.now();
   canvas.setPointerCapture(event.pointerId);
 }
 
@@ -1776,20 +1517,26 @@ function handlePointerMove(event) {
     return;
   }
   if (pointerState.active && event.pointerId === pointerState.pointerId) {
-    const { x, y } = getRelativePosition(event);
-    const angle = Math.atan2(y - mapState.centerY, x - mapState.centerX);
-    let delta = pointerState.startAngle - angle;
-    if (delta > Math.PI) {
-      delta -= TWO_PI;
-    } else if (delta < -Math.PI) {
-      delta += TWO_PI;
-    }
-    const deltaHours = (delta / TWO_PI) * 24;
-    if (Math.abs(deltaHours) > 0.01) {
+    const dx = event.clientX - pointerState.lastX;
+    const dy = event.clientY - pointerState.lastY;
+    mapState.panX += dx;
+    mapState.panY += dy;
+    const deltaXFromStart = event.clientX - pointerState.startX;
+    const deltaYFromStart = event.clientY - pointerState.startY;
+    if (!pointerState.moved && Math.hypot(deltaXFromStart, deltaYFromStart) > 4) {
       pointerState.moved = true;
       clearConstellationPreview(undefined, { skipRender: true, skipDetails: true });
-      setRotation(pointerState.startRotation + deltaHours);
+      mapState.hoveredStar = null;
+      updateTooltip(null);
     }
+    const now = event.timeStamp || performance.now();
+    const deltaTime = Math.max(16, now - pointerState.lastTime);
+    pointerState.velocityX = dx / deltaTime;
+    pointerState.velocityY = dy / deltaTime;
+    pointerState.lastX = event.clientX;
+    pointerState.lastY = event.clientY;
+    pointerState.lastTime = now;
+    renderStarMap();
   } else {
     const { x, y } = getRelativePosition(event);
     const hovered = findStarAtPosition(x, y);
@@ -1805,6 +1552,7 @@ function handlePointerMove(event) {
       }
       renderStarMap();
       previewCleared = false;
+      updateCenterButtonLabel();
     } else if (previewCleared) {
       renderStarMap();
     }
@@ -1820,10 +1568,19 @@ function handlePointerUp(event) {
     canvas.releasePointerCapture(event.pointerId);
     if (!pointerState.moved && mapState.hoveredStar) {
       selectStar(mapState.hoveredStar);
+    } else {
+      mapState.velocityX = pointerState.velocityX;
+      mapState.velocityY = pointerState.velocityY;
+      if (Math.abs(mapState.velocityX) > PAN_VELOCITY_THRESHOLD || Math.abs(mapState.velocityY) > PAN_VELOCITY_THRESHOLD) {
+        startPanInertia();
+      }
     }
     pointerState.active = false;
     pointerState.pointerId = null;
     pointerState.moved = false;
+    pointerState.velocityX = 0;
+    pointerState.velocityY = 0;
+    updateCenterButtonLabel();
   }
 }
 
@@ -1844,17 +1601,72 @@ function handleRotationInput(event) {
 
 function handleResetOrientation() {
   stopAutoRotate();
+  stopPanInertia();
+  mapState.panX = 0;
+  mapState.panY = 0;
+  updateViewTransform();
   setRotation(0);
   clearSelection();
 }
 
 function handleConstellationToggle(event) {
   mapState.showConstellations = Boolean(event.target.checked);
+  updateVisibilityControls();
   renderStarMap();
 }
 
 function handleMilkyWayToggle(event) {
   mapState.showMilkyWay = Boolean(event.target.checked);
+  renderStarMap();
+}
+
+function handleMagnitudeInput(event) {
+  const value = parseFloat(event.target.value);
+  setMagnitudeLimit(Number.isNaN(value) ? mapState.magnitudeLimit : value);
+}
+
+function handleFovInput(event) {
+  const value = parseFloat(event.target.value);
+  const clamped = Number.isNaN(value) ? mapState.fieldOfView : value;
+  const animate = event.type !== 'input';
+  setFieldOfView(clamped, { animate });
+  if (animate) {
+    renderStarMap();
+  }
+}
+
+function handleGridToggle(event) {
+  mapState.showGrid = Boolean(event.target.checked);
+  renderStarMap();
+}
+
+function handleHorizonToggle(event) {
+  mapState.showHorizon = Boolean(event.target.checked);
+  renderStarMap();
+}
+
+function handleSessionTimeRecenter() {
+  stopAutoRotate();
+  stopPanInertia();
+  mapState.panX = 0;
+  mapState.panY = 0;
+  updateViewTransform();
+  const sidereal = computeLocalSiderealTime(new Date(), OBSERVER_LONGITUDE);
+  setRotation(sidereal);
+}
+
+function handleWheel(event) {
+  if (!canvas) {
+    return;
+  }
+  event.preventDefault();
+  stopAutoRotate();
+  const delta = -event.deltaY || 0;
+  if (!delta) {
+    return;
+  }
+  const sensitivity = mapState.fieldOfView * 0.0025;
+  setFieldOfView(mapState.fieldOfView - delta * sensitivity);
   renderStarMap();
 }
 function applyNightMode(enabled) {
@@ -1904,11 +1716,32 @@ function initialiseStarMap() {
 
   mapState.showConstellations = constellationsToggle ? Boolean(constellationsToggle.checked) : true;
   mapState.showMilkyWay = milkyWayToggle ? Boolean(milkyWayToggle.checked) : true;
+  mapState.showGrid = gridToggle ? Boolean(gridToggle.checked) : true;
+  mapState.showHorizon = horizonToggle ? Boolean(horizonToggle.checked) : true;
+
+  if (magnitudeInput) {
+    const initialMagnitude = parseFloat(magnitudeInput.value);
+    if (!Number.isNaN(initialMagnitude)) {
+      mapState.magnitudeLimit = clamp(initialMagnitude, MIN_MAGNITUDE_LIMIT, MAX_MAGNITUDE_LIMIT);
+    }
+  }
+  updateMagnitudeControl();
+
+  if (fovInput) {
+    const initialFov = parseFloat(fovInput.value);
+    if (!Number.isNaN(initialFov)) {
+      mapState.fieldOfView = clamp(initialFov, MIN_FIELD_OF_VIEW, MAX_FIELD_OF_VIEW);
+    }
+  }
+  mapState.targetZoom = fieldOfViewToZoom(mapState.fieldOfView);
+  mapState.zoom = mapState.targetZoom;
+  updateFieldOfViewControl();
+  updateVisibilityControls();
 
   setDefaultDetails();
   resizeCanvas();
-  setRotation(0);
-  renderStarMap();
+  const initialSidereal = computeLocalSiderealTime(new Date(), OBSERVER_LONGITUDE);
+  setRotation(initialSidereal);
 
   readNightModePreference();
   if (nightModeToggle) {
@@ -1940,6 +1773,7 @@ function initialiseStarMap() {
   canvas.addEventListener('pointercancel', handlePointerUp);
   canvas.addEventListener('pointerleave', handlePointerLeave);
   canvas.addEventListener('dblclick', handleDoubleClick);
+  canvas.addEventListener('wheel', handleWheel, { passive: false });
 
   if (rotationInput) {
     rotationInput.addEventListener('input', handleRotationInput);
@@ -1954,6 +1788,29 @@ function initialiseStarMap() {
   if (milkyWayToggle) {
     milkyWayToggle.addEventListener('change', handleMilkyWayToggle);
   }
+  if (gridToggle) {
+    gridToggle.addEventListener('change', handleGridToggle);
+  }
+  if (horizonToggle) {
+    horizonToggle.addEventListener('change', handleHorizonToggle);
+  }
+  if (magnitudeInput) {
+    magnitudeInput.addEventListener('input', handleMagnitudeInput);
+    magnitudeInput.addEventListener('change', handleMagnitudeInput);
+  }
+  if (fovInput) {
+    fovInput.addEventListener('input', handleFovInput);
+    fovInput.addEventListener('change', handleFovInput);
+  }
+  if (toggleStarsButton) {
+    toggleStarsButton.addEventListener('click', toggleStarsVisibility);
+  }
+  if (toggleConstellationsButton) {
+    toggleConstellationsButton.addEventListener('click', toggleConstellationsVisibility);
+  }
+  if (toggleLabelsButton) {
+    toggleLabelsButton.addEventListener('click', toggleLabelsVisibility);
+  }
   if (autoRotateButton) {
     autoRotateButton.addEventListener('click', toggleAutoRotate);
     updateAutoRotateButton();
@@ -1962,6 +1819,10 @@ function initialiseStarMap() {
     centerButton.addEventListener('click', handleCenterSelection);
     centerButton.setAttribute('title', 'Aligner la carte sur l’étoile suivie');
     updateCenterButtonLabel();
+  }
+  if (sessionTimeButton) {
+    sessionTimeButton.addEventListener('click', handleSessionTimeRecenter);
+    sessionTimeButton.setAttribute('title', 'Recentrer sur l’heure sidérale locale');
   }
   if (fullscreenButton) {
     fullscreenButton.addEventListener('click', handleFullscreenToggle);

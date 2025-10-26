@@ -2,22 +2,10 @@ import { readStorage, writeStorage } from '../utils/storage.js';
 const STORAGE_KEY = 'astro:equipement';
 const DEFAULT_PROFILES = [
     {
-        id: 'apo-80-384',
-        nom: 'Lunette APO 80/480 + réducteur 0,8×',
-        focaleMm: 480,
-        ouvertureMm: 80,
-        reducteur: 0.8,
-        capteur: { largeurMm: 17.7, hauteurMm: 13.4, pixelUm: 3.8 },
-        bin: 1,
-        rotationDeg: 0,
-        miroirX: false,
-        miroirY: false
-    },
-    {
-        id: 'objectif-135-apn',
-        nom: 'APN plein format + objectif 135 mm',
+        id: 'preset-dslr-135',
+        nom: 'APN 135 mm plein format',
         focaleMm: 135,
-        ouvertureMm: 67,
+        ouvertureMm: 48,
         reducteur: null,
         capteur: { largeurMm: 36, hauteurMm: 24, pixelUm: 5.3 },
         bin: 1,
@@ -26,12 +14,24 @@ const DEFAULT_PROFILES = [
         miroirY: false
     },
     {
-        id: 'newton-200-cmos',
-        nom: 'Newton 200/1000 + caméra APS-C',
-        focaleMm: 1000,
-        ouvertureMm: 200,
+        id: 'preset-newton-150-750',
+        nom: 'Newton 150/750 + caméra APS-C',
+        focaleMm: 750,
+        ouvertureMm: 150,
         reducteur: null,
         capteur: { largeurMm: 23.5, hauteurMm: 15.7, pixelUm: 3.76 },
+        bin: 1,
+        rotationDeg: 0,
+        miroirX: false,
+        miroirY: false
+    },
+    {
+        id: 'preset-planetary-150',
+        nom: 'Setup planétaire 150 mm',
+        focaleMm: 3000,
+        ouvertureMm: 150,
+        reducteur: null,
+        capteur: { largeurMm: 4.8, hauteurMm: 3.6, pixelUm: 2.9 },
         bin: 1,
         rotationDeg: 0,
         miroirX: false,
