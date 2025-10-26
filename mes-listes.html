@@ -6,7 +6,7 @@
   <title>Astro Soir — Mes listes personnalisées</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="catalogue-page">
+<body class="catalogue-page" data-page="mes-listes">
   <header class="hero hero--compact">
     <div class="hero-content">
       <div class="hero-bar">
@@ -167,8 +167,6 @@
     </nav>
     <small>Export CSV : compatible avec les tableurs courants et logiciels de planification.</small>
   </footer>
-  <script type="module" src="src/ui/navigation.js"></script>
-  <script type="module" src="src/state/equipement-header.js"></script>
-  <script type="module" src="src/pages/mes-listes.js"></script>
+  <script type="module" src="src/bootstrap/page-loader.js"></script>
 </body>
 </html>

@@ -6,7 +6,7 @@
   <title>Astro Soir — Préférences de catalogue</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="catalogue-settings-page">
+<body class="catalogue-settings-page" data-page="catalogue-settings">
   <header class="page-header simple-page-header">
     <div class="simple-page-header__start">
       <a class="page-header__back" href="index.html">← Retour</a>
@@ -164,8 +164,6 @@
     </nav>
     <small>Préférences enregistrées localement pendant un an.</small>
   </footer>
-  <script type="module" src="src/ui/navigation.js"></script>
-  <script type="module" src="src/state/equipement-header.js"></script>
-  <script type="module" src="catalogue-settings.js"></script>
+  <script type="module" src="src/bootstrap/page-loader.js"></script>
 </body>
 </html>

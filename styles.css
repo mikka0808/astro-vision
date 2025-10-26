@@ -3451,6 +3451,51 @@ details.object-panel[open] > summary::after {
   letter-spacing: 0.06em;
 }
 
+.deferred-spinner {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+  box-shadow: 0 12px 28px rgba(3, 12, 30, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 80;
+}
+
+.night-mode .deferred-spinner {
+  background: color-mix(in srgb, var(--color-surface-soft) 80%, transparent);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.deferred-spinner.is-visible {
+  opacity: 1;
+}
+
+.deferred-spinner__circle {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 999px;
+  border: 3px solid var(--color-accent);
+  border-bottom-color: transparent;
+  animation: deferred-spinner-spin 0.8s linear infinite;
+}
+
+@keyframes deferred-spinner-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

@@ -1,4 +1,4 @@
-import { formatLocalTime } from './astro-core.js';
+import { formatLocalTime } from './src/core/astro.js';
 
 function normaliseTrack(trackSource = []) {
   if (!Array.isArray(trackSource)) {

@@ -11,7 +11,7 @@
     crossorigin="anonymous"
   >
 </head>
-<body>
+<body data-page="index">
   <header class="hero">
     <div class="hero-content">
       <div class="hero-bar">
@@ -427,8 +427,6 @@
     </nav>
     <small>Sources météo : <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open‑Meteo</a>. Les calculs astronomiques sont approximatifs mais suffisants pour planifier une soirée.</small>
   </footer>
-  <script type="module" src="src/ui/navigation.js"></script>
-  <script type="module" src="src/state/equipement-header.js"></script>
-  <script src="app.js" type="module"></script>
+  <script type="module" src="src/bootstrap/page-loader.js"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-import { NIGHT_MODE_STORAGE_KEY } from './astro-core.js';
+import { NIGHT_MODE_STORAGE_KEY } from './src/core/astro.js';
 import { parseCataloguePayload } from './catalogue-data.js';
 import {
   flattenCataloguePreferences,

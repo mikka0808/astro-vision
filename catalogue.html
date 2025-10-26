@@ -6,7 +6,7 @@
   <title>Astro Soir — Catalogue d'observation</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="catalogue-page">
+<body class="catalogue-page" data-page="catalogue">
   <header class="hero hero--compact">
     <div class="hero-content">
       <div class="hero-bar">
@@ -255,8 +255,6 @@
     </nav>
     <small>Sources météo : <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open‑Meteo</a>. Catalogues et métadonnées consolidés par Astro Soir.</small>
   </footer>
-  <script type="module" src="src/ui/navigation.js"></script>
-  <script type="module" src="src/state/equipement-header.js"></script>
-  <script type="module" src="catalogue.js"></script>
+  <script type="module" src="src/bootstrap/page-loader.js"></script>
 </body>
 </html>

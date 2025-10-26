@@ -1,4 +1,4 @@
-import { getDefaultScoreWeights, getScoreWeights, setScoreWeightOverrides } from './astro-core.js';
+import { getDefaultScoreWeights, getScoreWeights, setScoreWeightOverrides } from './src/core/astro.js';
 
 const COOKIE_NAME = 'astroSoir:scoreWeights';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 an
