@@ -2139,6 +2139,16 @@ body.night-mode .astrophoto-guidance {
   gap: 0.5rem;
 }
 
+.astrophoto-guidance__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.astrophoto-guidance__actions .secondary {
+  align-self: flex-start;
+}
+
 .astrophoto-guidance__fact {
   display: grid;
   gap: 0.2rem;

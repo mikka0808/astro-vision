@@ -216,6 +216,24 @@ const ASTROPHOTO_PROFILES = [
     weights: { base: 0.45, altitude: 0.2, window: 0.15, brightness: 0.1, seeing: 0.05, transparency: 0.05 },
     categoryBoost: {},
     setup: null,
+    captureDefaults: {
+      exposureSeconds: 45,
+      minExposureSeconds: 15,
+      maxExposureSeconds: 75,
+      integrationMinutes: 45,
+      minIntegrationMinutes: 30,
+      maxIntegrationMinutes: 90,
+      isoRange: [1600, 3200],
+      filters: {
+        dark: 'Sans filtre ou UV/IR cut',
+        medium: 'Filtre CLS léger',
+        bright: 'Filtre UHC/CLS pour limiter la PL',
+        default: 'UV/IR cut ou protecteur clair'
+      },
+      darkCount: 20,
+      flatCount: 25,
+      biasCount: 25
+    },
     guidance: {
       summary: 'Pour des sessions découverte et imagerie légère sans autoguidage.',
       exposure: '30 à 60 s à ISO 1600–3200 (f/4–f/5.6)',
@@ -249,6 +267,24 @@ const ASTROPHOTO_PROFILES = [
         gain: null,
         cadence: 'Empile 30 × 90 s — dithering toutes les 3 poses'
       }
+    },
+    captureDefaults: {
+      exposureSeconds: 90,
+      minExposureSeconds: 45,
+      maxExposureSeconds: 180,
+      integrationMinutes: 120,
+      minIntegrationMinutes: 90,
+      maxIntegrationMinutes: 240,
+      isoRange: [800, 1600],
+      filters: {
+        dark: 'Sans filtre ou UV/IR cut',
+        medium: 'Filtre CLS ou LP léger',
+        bright: 'Filtre duo-band (L-eNhance/L-eXtreme)',
+        default: 'UV/IR cut ou protecteur clair'
+      },
+      darkCount: 25,
+      flatCount: 35,
+      biasCount: 35
     },
     guidance: {
       summary: 'Optimise le grand champ : nébuleuses diffuses et régions étoilées.',
@@ -284,6 +320,25 @@ const ASTROPHOTO_PROFILES = [
         cadence: 'Empile 45 × 180 s — dithering toutes les 2 poses'
       }
     },
+    captureDefaults: {
+      exposureSeconds: 210,
+      minExposureSeconds: 120,
+      maxExposureSeconds: 300,
+      integrationMinutes: 180,
+      minIntegrationMinutes: 120,
+      maxIntegrationMinutes: 360,
+      isoRange: [800, 1600],
+      gainRange: [100, 120],
+      filters: {
+        dark: 'Luminance libre pour galaxies',
+        medium: 'Filtre UHC/L-eNhance sur nébuleuses',
+        bright: 'Filtre duo-band (L-eXtreme) sous forte PL',
+        default: 'Filtre luminance ou UV/IR cut'
+      },
+      darkCount: 30,
+      flatCount: 35,
+      biasCount: 35
+    },
     guidance: {
       summary: "Tire parti d'un 150/750 sur les galaxies et nébuleuses contrastées.",
       exposure: '180 à 240 s avec gain 100–120 ou ISO 800–1600 sous autoguidage',
@@ -318,6 +373,24 @@ const ASTROPHOTO_PROFILES = [
         gain: 'Gain 280–320',
         cadence: 'Séquences SER de 90 s à ≥ 150 i/s'
       }
+    },
+    captureDefaults: {
+      exposureSeconds: 0.008,
+      minExposureSeconds: 0.003,
+      maxExposureSeconds: 0.012,
+      integrationMinutes: 3,
+      minIntegrationMinutes: 2,
+      maxIntegrationMinutes: 5,
+      gainRange: [280, 320],
+      filters: {
+        dark: 'IR-cut + RGB classique',
+        medium: 'IR-cut et ADC recommandé',
+        bright: 'Filtre IR-pass pour luminance',
+        default: 'IR-cut obligatoire'
+      },
+      darkCount: 10,
+      flatCount: 20,
+      biasCount: 0
     },
     guidance: {
       summary: 'Optimise la haute résolution sur planètes et étoiles doubles.',
@@ -399,7 +472,17 @@ export function getAstrophotoProfile(id) {
       }
     : null;
   const setup = cloneAstrophotoSetup(profile.setup);
-  return { ...profile, guidance, setup };
+  const captureDefaults = profile.captureDefaults ? { ...profile.captureDefaults } : null;
+  if (captureDefaults && Array.isArray(captureDefaults.isoRange)) {
+    captureDefaults.isoRange = [...captureDefaults.isoRange];
+  }
+  if (captureDefaults && Array.isArray(captureDefaults.gainRange)) {
+    captureDefaults.gainRange = [...captureDefaults.gainRange];
+  }
+  if (captureDefaults && captureDefaults.filters) {
+    captureDefaults.filters = { ...captureDefaults.filters };
+  }
+  return { ...profile, guidance, setup, captureDefaults };
 }
 
 export function describeSeeingQuality(value) {
@@ -1394,9 +1477,260 @@ export function buildVisibilityCalendar(baseResults = [], objects = [], context 
     .filter(Boolean);
 }
 
+function clampRange(value, min, max) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return Number.isFinite(min) ? min : null;
+  let clamped = numeric;
+  if (Number.isFinite(min)) {
+    clamped = Math.max(min, clamped);
+  }
+  if (Number.isFinite(max)) {
+    clamped = Math.min(max, clamped);
+  }
+  return clamped;
+}
+
+function normalizeBortle(value, fallback = 4) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  return clampRange(Math.round(numeric), 1, 9);
+}
+
+function pickCloudCover(weather = {}) {
+  if (Number.isFinite(weather.cover)) return weather.cover;
+  const layers = [weather.low, weather.mid, weather.high].map(Number).filter((value) => Number.isFinite(value));
+  if (layers.length === 0) return null;
+  return Math.max(...layers);
+}
+
+function slugifyName(name) {
+  if (typeof name !== 'string') return 'cible';
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase() || 'cible';
+}
+
+function formatRangeLabel(range) {
+  if (!Array.isArray(range) || range.length === 0) return null;
+  const [min, max] = range.map(Number);
+  if (Number.isFinite(min) && Number.isFinite(max) && min !== max) {
+    return `${min.toString()}–${max.toString()}`;
+  }
+  if (Number.isFinite(min)) {
+    return min.toString();
+  }
+  if (Number.isFinite(max)) {
+    return max.toString();
+  }
+  return null;
+}
+
+function buildCaptureRecommendation(entry, profile, context = {}, weather = {}, moon = null) {
+  const defaults = profile.captureDefaults || {};
+  const bortle = normalizeBortle(context.bortle);
+  const altitude = Number.isFinite(entry.altitude) ? entry.altitude : Number.isFinite(entry.averageAltitude) ? entry.averageAltitude : 45;
+  const altitudeNormalized = clampRange((altitude - 15) / 60, 0.4, 1.15);
+  const cloudCover = pickCloudCover(weather);
+  const cloudFactor = 1 - Math.min(0.35, Math.max(0, (cloudCover ?? 0) / 100) * 0.35);
+  const bortlePenalty = Math.max(0, bortle - 3);
+  const bortleFactor = 1 - Math.min(0.55, bortlePenalty * 0.08);
+  const baseExposure = Number.isFinite(defaults.exposureSeconds) ? defaults.exposureSeconds : 90;
+  const minExposure = Number.isFinite(defaults.minExposureSeconds) ? defaults.minExposureSeconds : baseExposure * 0.5;
+  const maxExposure = Number.isFinite(defaults.maxExposureSeconds) ? defaults.maxExposureSeconds : baseExposure * 1.8;
+  let exposureSeconds = baseExposure * altitudeNormalized * cloudFactor * bortleFactor;
+  exposureSeconds = clampRange(exposureSeconds, minExposure, maxExposure);
+
+  const baseIntegration = Number.isFinite(defaults.integrationMinutes) ? defaults.integrationMinutes : 120;
+  const minIntegration = Number.isFinite(defaults.minIntegrationMinutes) ? defaults.minIntegrationMinutes : baseIntegration * 0.6;
+  const maxIntegration = Number.isFinite(defaults.maxIntegrationMinutes) ? defaults.maxIntegrationMinutes : baseIntegration * 2;
+  const altitudeBoost = 1 + Math.max(0, (55 - altitude) / 110);
+  const bortleBoost = 1 + Math.max(0, (bortle - 4) * 0.18);
+  const cloudBoost = 1 + Math.max(0, (cloudCover ?? 0 - 20) / 140);
+  let integrationMinutes = baseIntegration * altitudeBoost * bortleBoost * cloudBoost;
+  integrationMinutes = clampRange(Math.round(integrationMinutes / 5) * 5, minIntegration, maxIntegration);
+
+  const isoLabel = formatRangeLabel(defaults.isoRange);
+  const gainLabel = formatRangeLabel(defaults.gainRange);
+  const isoText = isoLabel ? `ISO ${isoLabel}` : null;
+  const gainText = gainLabel ? `Gain ${gainLabel}` : null;
+
+  const filters = defaults.filters || {};
+  let filterRecommendation = filters.default ?? null;
+  if (bortle >= 7) {
+    filterRecommendation = filters.bright ?? filters.medium ?? filters.default ?? null;
+  } else if (bortle >= 5) {
+    filterRecommendation = filters.medium ?? filters.default ?? null;
+  } else if (bortle <= 3) {
+    filterRecommendation = filters.dark ?? filters.default ?? null;
+  }
+  const moonIllumination = Number.isFinite(moon?.illumination) ? moon.illumination : null;
+  const moonAltitude = Number.isFinite(moon?.altitude) ? moon.altitude : null;
+  if (
+    moonIllumination !== null &&
+    moonAltitude !== null &&
+    moonIllumination >= 0.65 &&
+    moonAltitude > 15
+  ) {
+    filterRecommendation = filters.bright ?? filters.medium ?? filterRecommendation;
+  }
+
+  const warnings = [];
+  if (moonIllumination !== null && moonAltitude !== null && moonIllumination >= 0.6 && moonAltitude > 15) {
+    warnings.push(`Lune haute (${Math.round(moonAltitude)}°)`);
+  }
+  const wind = Number.isFinite(weather.wind) ? weather.wind : null;
+  const gust = Number.isFinite(weather.gust) ? weather.gust : null;
+  if (gust !== null && gust >= 45) {
+    warnings.push(`Rafales ${Math.round(gust)} km/h`);
+  } else if (wind !== null && wind >= 30) {
+    warnings.push(`Vent ${Math.round(wind)} km/h`);
+  }
+  if (Number.isFinite(cloudCover)) {
+    if (cloudCover >= 60) {
+      warnings.push(`Nuages ${Math.round(cloudCover)}%`);
+    } else if (cloudCover >= 35) {
+      warnings.push(`Voile ${Math.round(cloudCover)}%`);
+    }
+  }
+
+  const darkCount = Number.isFinite(defaults.darkCount) ? Math.round(defaults.darkCount) : Math.max(10, Math.round(integrationMinutes / 12));
+  const flatCount = Number.isFinite(defaults.flatCount) ? Math.round(defaults.flatCount) : 25;
+  const biasCount = Number.isFinite(defaults.biasCount) ? Math.max(0, Math.round(defaults.biasCount)) : 25;
+  const slug = slugifyName(entry.object?.name);
+  const exposureLabel = `${Math.round(exposureSeconds)}s`;
+  const integrationLabel = `${Math.round(integrationMinutes)}m`;
+  const gainTag = gainText ? gainText.replace(/[^0-9–]/g, '').replace(/–/g, '-') : null;
+  const isoTag = isoText ? isoText.replace(/[^0-9–]/g, '').replace(/–/g, '-') : null;
+  const sensitivityTag = isoTag || gainTag || 'auto';
+  const calibrationFiles = [];
+  if (darkCount > 0) {
+    calibrationFiles.push({ type: 'Darks', count: darkCount, filename: `dark_${slug}_${exposureLabel}_${sensitivityTag}.fits` });
+  }
+  if (flatCount > 0) {
+    calibrationFiles.push({ type: 'Flats', count: flatCount, filename: `flat_${slug}_${integrationLabel}.fits` });
+  }
+  if (biasCount > 0) {
+    calibrationFiles.push({ type: 'Offsets/Bias', count: biasCount, filename: `bias_${slug}_${sensitivityTag}.fits` });
+  }
+
+  return {
+    exposureSeconds,
+    integrationMinutes,
+    isoText,
+    gainText,
+    filter: filterRecommendation,
+    darkCount,
+    flatCount,
+    biasCount,
+    warnings,
+    calibrationFiles
+  };
+}
+
+function averageOrNull(values = []) {
+  const filtered = values.map(Number).filter((value) => Number.isFinite(value));
+  if (filtered.length === 0) return null;
+  const total = filtered.reduce((sum, value) => sum + value, 0);
+  return total / filtered.length;
+}
+
+function mostFrequentString(values = []) {
+  const counts = new Map();
+  values.forEach((value) => {
+    if (typeof value !== 'string' || !value.trim()) return;
+    const key = value.trim();
+    counts.set(key, (counts.get(key) || 0) + 1);
+  });
+  let best = null;
+  let score = -1;
+  counts.forEach((value, key) => {
+    if (value > score) {
+      best = key;
+      score = value;
+    }
+  });
+  return best;
+}
+
+function collectWarnings(recommendations = []) {
+  const unique = new Set();
+  recommendations.forEach((entry) => {
+    const planWarnings = entry.capturePlan?.warnings || [];
+    planWarnings.forEach((warning) => {
+      if (typeof warning === 'string' && warning.trim()) {
+        unique.add(warning.trim());
+      }
+    });
+  });
+  return Array.from(unique);
+}
+
+function buildCalibrationChecklist(recommendations = []) {
+  const seen = new Set();
+  const items = [];
+  recommendations.forEach((entry) => {
+    const plan = entry.capturePlan;
+    if (!plan) return;
+    const parts = [];
+    if (plan.darkCount > 0) parts.push(`${plan.darkCount} darks`);
+    if (plan.flatCount > 0) parts.push(`${plan.flatCount} flats`);
+    if (plan.biasCount > 0) parts.push(`${plan.biasCount} offsets`);
+    if (parts.length === 0) return;
+    const label = `${entry.object?.name || 'Cible'} : ${parts.join(', ')}`;
+    if (seen.has(label)) return;
+    seen.add(label);
+    items.push(`Calibrations ${label}`);
+  });
+  return items;
+}
+
+function buildAstrophotoPlanSummary(recommendations = []) {
+  if (!Array.isArray(recommendations) || recommendations.length === 0) return null;
+  const exposures = averageOrNull(recommendations.map((entry) => entry.capturePlan?.exposureSeconds));
+  const integration = averageOrNull(recommendations.map((entry) => entry.capturePlan?.integrationMinutes));
+  const iso = recommendations
+    .map((entry) => entry.capturePlan?.isoText)
+    .find((value) => typeof value === 'string' && value.trim());
+  const gain = recommendations
+    .map((entry) => entry.capturePlan?.gainText)
+    .find((value) => typeof value === 'string' && value.trim());
+  const filter = mostFrequentString(recommendations.map((entry) => entry.capturePlan?.filter).filter(Boolean));
+  const darkCounts = recommendations
+    .map((entry) => entry.capturePlan?.darkCount)
+    .filter((value) => Number.isFinite(value));
+  const flatCounts = recommendations
+    .map((entry) => entry.capturePlan?.flatCount)
+    .filter((value) => Number.isFinite(value));
+  const biasCounts = recommendations
+    .map((entry) => entry.capturePlan?.biasCount)
+    .filter((value) => Number.isFinite(value));
+  const maxDark = darkCounts.length > 0 ? Math.max(...darkCounts) : null;
+  const maxFlat = flatCounts.length > 0 ? Math.max(...flatCounts) : null;
+  const maxBias = biasCounts.length > 0 ? Math.max(...biasCounts) : null;
+  const reference = recommendations.find((entry) => entry.capturePlan && entry.capturePlan.calibrationFiles?.length > 0);
+  const warnings = collectWarnings(recommendations);
+  return {
+    exposureSeconds: exposures,
+    integrationMinutes: integration,
+    isoText: iso || null,
+    gainText: gain || null,
+    filter: filter || null,
+    calibration: {
+      darkCount: maxDark,
+      flatCount: maxFlat,
+      biasCount: maxBias,
+      referenceFiles: reference?.capturePlan?.calibrationFiles || []
+    },
+    warnings
+  };
+}
+
 function computeAstrophotoRecommendations(results = [], profileId = 'visual', weatherImpact = {}, options = {}) {
   const profile = findAstrophotoProfile(profileId);
-  const { limit = 5 } = options;
+  const { limit = 5, context = {}, weather = {}, moon = null } = options;
   const minAltitude = profile.minAltitude ?? 10;
   const maxMagnitude = profile.maxMagnitude ?? 12;
   const recommendations = results
@@ -1426,12 +1760,21 @@ function computeAstrophotoRecommendations(results = [], profileId = 'visual', we
       if (profile.requireSeeing && seeing < profile.requireSeeing) {
         astroScore *= 0.6;
       }
-      return { ...entry, astroScore };
+      const capturePlan = buildCaptureRecommendation(entry, profile, context, weather, moon);
+      return { ...entry, astroScore, capturePlan };
     })
     .filter((entry) => entry.astroScore > 0.1)
     .sort((a, b) => b.astroScore - a.astroScore)
     .slice(0, Math.max(1, limit));
-  return { profile, recommendations };
+  const calibrationChecklist = buildCalibrationChecklist(recommendations);
+  const sessionWarnings = collectWarnings(recommendations);
+  const planSummary = buildAstrophotoPlanSummary(recommendations);
+  return {
+    profile,
+    recommendations,
+    sessionChecklist: calibrationChecklist.concat(sessionWarnings.map((warning) => `⚠️ ${warning}`)),
+    planSummary
+  };
 }
 
 function describeGlobalVisibility(score) {
@@ -1531,7 +1874,12 @@ export function computeDecisionInsights(results = [], options = {}) {
     enabled: Boolean(equipment?.enabled),
     profileId: equipment?.profileId ?? 'visual'
   };
-  const astrophoto = computeAstrophotoRecommendations(top, astroSettings.profileId, weatherImpact, { limit: 5 });
+  const astrophoto = computeAstrophotoRecommendations(top, astroSettings.profileId, weatherImpact, {
+    limit: 5,
+    context,
+    weather,
+    moon
+  });
 
   return {
     globalScore,
@@ -1552,7 +1900,9 @@ export function computeDecisionInsights(results = [], options = {}) {
       profileLabel: astrophoto.profile.label,
       profileDescription: astrophoto.profile.description,
       guidance: astrophoto.profile.guidance ?? null,
-      recommendations: astroSettings.enabled ? astrophoto.recommendations : []
+      recommendations: astroSettings.enabled ? astrophoto.recommendations : [],
+      checklist: astrophoto.sessionChecklist ?? [],
+      planSummary: astrophoto.planSummary
     }
   };
 }

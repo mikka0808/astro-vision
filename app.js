@@ -130,6 +130,8 @@ const astrophotoGuidancePanel = document.getElementById('astrophotoGuidance');
 const astrophotoGuidanceSummary = document.getElementById('astrophotoGuidanceSummary');
 const astrophotoGuidanceFacts = document.getElementById('astrophotoGuidanceFacts');
 const astrophotoGuidanceChecklist = document.getElementById('astrophotoGuidanceChecklist');
+const astrophotoGuidanceActions = document.getElementById('astrophotoGuidanceActions');
+const astrophotoChecklistExportBtn = document.getElementById('exportAstroChecklist');
 const panelToggleButtons = document.querySelectorAll('[data-panel-toggle]');
 const nightModeToggle = document.getElementById('nightModeToggle');
 const skyMapPanel = document.getElementById('skyMapPanel');
@@ -217,6 +219,18 @@ function persistAstrophotoPreferences(settings) {
     profileId: typeof settings.profileId === 'string' && settings.profileId.trim() ? settings.profileId.trim() : 'visual'
   };
   writeStorage(ASTROPHOTO_STORAGE_KEY, payload);
+}
+
+function escapeHtml(value) {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function formatArcminutes(value) {
@@ -1080,6 +1094,26 @@ function formatHourDuration(hours) {
   return rounded.toLocaleString('fr-FR', { minimumFractionDigits, maximumFractionDigits: 1 });
 }
 
+function formatMinutesDuration(minutes) {
+  if (!Number.isFinite(minutes) || minutes <= 0) {
+    return '';
+  }
+  const rounded = Math.max(5, Math.round(minutes / 5) * 5);
+  const hours = Math.floor(rounded / 60);
+  const mins = rounded - hours * 60;
+  const parts = [];
+  if (hours > 0) {
+    parts.push(`${hours} h`);
+  }
+  if (mins > 0) {
+    parts.push(`${mins} min`);
+  }
+  if (parts.length === 0) {
+    return '0 min';
+  }
+  return parts.join(' ');
+}
+
 function describeNightSessions(count) {
   if (!Number.isFinite(count) || count <= 0) return '';
   const rounded = Math.max(1, Math.floor(count));
@@ -1295,6 +1329,13 @@ function renderAstrophotoGuidance() {
       astrophotoGuidanceChecklist.innerHTML = '';
       astrophotoGuidanceChecklist.hidden = true;
     }
+    if (astrophotoGuidanceActions) {
+      astrophotoGuidanceActions.hidden = true;
+    }
+    if (astrophotoChecklistExportBtn) {
+      astrophotoChecklistExportBtn.disabled = true;
+      astrophotoChecklistExportBtn.setAttribute('aria-disabled', 'true');
+    }
     return;
   }
 
@@ -1302,12 +1343,68 @@ function renderAstrophotoGuidance() {
   const guidance = profile?.guidance ?? null;
   const metrics = computeAstrophotoMetrics(profile);
   const capture = profile?.setup?.capture ?? null;
+  const decisionAstro = cachedDecision?.astrophoto || null;
+  const hasMatchingPlan =
+    decisionAstro &&
+    decisionAstro.active &&
+    decisionAstro.profileId === profile.id &&
+    Array.isArray(decisionAstro.recommendations) &&
+    decisionAstro.recommendations.length > 0;
+  const planSummary = hasMatchingPlan ? decisionAstro.planSummary : null;
+  const dynamicChecklist = hasMatchingPlan ? decisionAstro.checklist || [] : [];
 
   astrophotoGuidancePanel.hidden = false;
-  astrophotoGuidancePanel.removeAttribute('data-state');
-  astrophotoGuidancePanel.removeAttribute('aria-hidden');
-  astrophotoGuidanceSummary.textContent = guidance?.summary || profile?.description ||
-    'Optimise ton setup photo avant la prise de vue.';
+  astrophotoGuidancePanel.setAttribute('aria-hidden', 'false');
+  if (hasMatchingPlan) {
+    astrophotoGuidancePanel.removeAttribute('data-state');
+  } else {
+    astrophotoGuidancePanel.setAttribute('data-state', 'inactive');
+  }
+
+  const summaryParts = [];
+  if (guidance?.summary) {
+    summaryParts.push(guidance.summary);
+  } else if (profile?.description) {
+    summaryParts.push(profile.description);
+  } else {
+    summaryParts.push('Optimise ton setup photo avant la prise de vue.');
+  }
+  const exposureLabel = Number.isFinite(planSummary?.exposureSeconds)
+    ? formatExposureSeconds(planSummary.exposureSeconds)
+    : null;
+  const integrationLabel = Number.isFinite(planSummary?.integrationMinutes)
+    ? formatMinutesDuration(planSummary.integrationMinutes)
+    : null;
+  if (exposureLabel) {
+    summaryParts.push(`Pose ${exposureLabel}`);
+  } else if (guidance?.exposure && !hasMatchingPlan) {
+    summaryParts.push(guidance.exposure);
+  }
+  if (integrationLabel) {
+    summaryParts.push(`Intégration ${integrationLabel}`);
+  } else if (guidance?.integration && !hasMatchingPlan) {
+    summaryParts.push(guidance.integration);
+  }
+  const sensitivityParts = [];
+  if (planSummary?.isoText) {
+    sensitivityParts.push(planSummary.isoText);
+  }
+  if (planSummary?.gainText) {
+    sensitivityParts.push(planSummary.gainText);
+  }
+  if (sensitivityParts.length === 0 && !hasMatchingPlan && capture) {
+    if (capture.iso) sensitivityParts.push(capture.iso);
+    if (capture.gain) sensitivityParts.push(capture.gain);
+  }
+  if (sensitivityParts.length > 0) {
+    summaryParts.push(sensitivityParts.join(' • '));
+  }
+  if (planSummary?.filter) {
+    summaryParts.push(planSummary.filter);
+  } else if (guidance?.filters && !hasMatchingPlan) {
+    summaryParts.push(guidance.filters);
+  }
+  astrophotoGuidanceSummary.textContent = summaryParts.join(' • ');
 
   if (astrophotoGuidanceFacts) {
     astrophotoGuidanceFacts.innerHTML = '';
@@ -1326,29 +1423,51 @@ function renderAstrophotoGuidance() {
         facts.push({ label: 'Pose max sans suivi', value: unguidedText });
       }
     }
-    if (capture) {
+    if (exposureLabel) {
+      facts.push({ label: 'Pose recommandée', value: exposureLabel });
+    } else if (guidance?.exposure) {
+      facts.push({ label: 'Pose unitaire', value: guidance.exposure });
+    }
+    if (integrationLabel) {
+      facts.push({ label: 'Intégration cible', value: integrationLabel });
+    } else if (guidance?.integration) {
+      facts.push({ label: 'Intégration cible', value: guidance.integration });
+    }
+    if (sensitivityParts.length > 0) {
+      facts.push({ label: 'Sensibilité', value: sensitivityParts.join(' • ') });
+    } else if (capture) {
       const sensitivity = [];
-      if (capture.iso) {
-        sensitivity.push(capture.iso);
-      }
-      if (capture.gain) {
-        sensitivity.push(capture.gain);
-      }
+      if (capture.iso) sensitivity.push(capture.iso);
+      if (capture.gain) sensitivity.push(capture.gain);
       if (sensitivity.length > 0) {
         facts.push({ label: 'Sensibilité', value: sensitivity.join(' • ') });
       }
-      if (capture.cadence) {
-        facts.push({ label: 'Cadence recommandée', value: capture.cadence });
+    }
+    if (planSummary?.filter) {
+      facts.push({ label: 'Filtre recommandé', value: planSummary.filter });
+    } else if (guidance?.filters) {
+      facts.push({ label: 'Filtres', value: guidance.filters });
+    }
+    if (capture?.cadence) {
+      facts.push({ label: 'Cadence recommandée', value: capture.cadence });
+    }
+    if (planSummary?.calibration) {
+      const calParts = [];
+      if (Number.isFinite(planSummary.calibration.darkCount)) {
+        calParts.push(`${planSummary.calibration.darkCount} darks`);
+      }
+      if (Number.isFinite(planSummary.calibration.flatCount)) {
+        calParts.push(`${planSummary.calibration.flatCount} flats`);
+      }
+      if (Number.isFinite(planSummary.calibration.biasCount) && planSummary.calibration.biasCount > 0) {
+        calParts.push(`${planSummary.calibration.biasCount} offsets`);
+      }
+      if (calParts.length > 0) {
+        facts.push({ label: 'Calibrations', value: calParts.join(' • ') });
       }
     }
-    if (guidance?.exposure) {
-      facts.push({ label: 'Pose unitaire', value: guidance.exposure });
-    }
-    if (guidance?.integration) {
-      facts.push({ label: 'Intégration cible', value: guidance.integration });
-    }
-    if (guidance?.filters) {
-      facts.push({ label: 'Filtres', value: guidance.filters });
+    if (Array.isArray(planSummary?.warnings) && planSummary.warnings.length > 0) {
+      facts.push({ label: 'À surveiller', value: planSummary.warnings.join(' • ') });
     }
     facts.forEach((fact) => {
       const item = document.createElement('div');
@@ -1368,13 +1487,243 @@ function renderAstrophotoGuidance() {
 
   if (astrophotoGuidanceChecklist) {
     astrophotoGuidanceChecklist.innerHTML = '';
-    const checklist = Array.isArray(guidance?.checklist) ? guidance.checklist : [];
-    checklist.forEach((entry) => {
+    const combined = [];
+    const seen = new Set();
+    const pushItem = (value) => {
+      if (typeof value !== 'string') return;
+      const normalized = value.trim();
+      if (!normalized || seen.has(normalized)) return;
+      seen.add(normalized);
+      combined.push(normalized);
+    };
+    if (Array.isArray(guidance?.checklist)) {
+      guidance.checklist.forEach(pushItem);
+    }
+    if (Array.isArray(dynamicChecklist)) {
+      dynamicChecklist.forEach(pushItem);
+    }
+    if (!hasMatchingPlan) {
+      pushItem('Lance une analyse pour générer les réglages recommandés.');
+    }
+    combined.forEach((entry) => {
       const li = document.createElement('li');
       li.textContent = entry;
       astrophotoGuidanceChecklist.appendChild(li);
     });
-    astrophotoGuidanceChecklist.hidden = checklist.length === 0;
+    astrophotoGuidanceChecklist.hidden = combined.length === 0;
+  }
+
+  if (astrophotoGuidanceActions) {
+    astrophotoGuidanceActions.hidden = !hasMatchingPlan;
+  }
+  if (astrophotoChecklistExportBtn) {
+    astrophotoChecklistExportBtn.disabled = !hasMatchingPlan;
+    astrophotoChecklistExportBtn.setAttribute('aria-disabled', hasMatchingPlan ? 'false' : 'true');
+  }
+}
+
+function exportAstrophotoChecklist() {
+  const enabled = enableAstrophotoInput?.checked;
+  const astro = cachedDecision?.astrophoto || null;
+  const hasRecommendations =
+    enabled &&
+    astro &&
+    astro.active &&
+    Array.isArray(astro.recommendations) &&
+    astro.recommendations.length > 0;
+  if (!hasRecommendations) {
+    alert('Aucune check-list photo disponible. Active le mode photo et relance une analyse.');
+    return;
+  }
+
+  const profileLabel = astro.profileLabel ?? 'Profil photo';
+  const localDate = cachedContext?.localDate || '';
+  const localTime = cachedContext?.localTime || '';
+  const sessionLabel = [localDate, localTime].filter(Boolean).join(' à ');
+  const bortleLabel = Number.isFinite(cachedContext?.bortle) ? `Bortle ${cachedContext.bortle}` : 'Bortle inconnu';
+  const durationLabel = Number.isFinite(cachedContext?.durationHours)
+    ? `${formatHourDuration(cachedContext.durationHours)} h`
+    : '';
+  const locationLabel = Number.isFinite(cachedContext?.latitude) && Number.isFinite(cachedContext?.longitude)
+    ? `${formatCoordinate(cachedContext.latitude)}, ${formatCoordinate(cachedContext.longitude)}`
+    : 'Coordonnées indisponibles';
+  const planSummary = astro.planSummary || null;
+  const guidanceChecklist = Array.isArray(astro.guidance?.checklist) ? astro.guidance.checklist : [];
+  const dynamicChecklist = Array.isArray(astro.checklist) ? astro.checklist : [];
+  const checklistItems = [];
+  const checklistSeen = new Set();
+  const pushChecklist = (value) => {
+    if (typeof value !== 'string') return;
+    const normalized = value.trim();
+    if (!normalized || checklistSeen.has(normalized)) return;
+    checklistSeen.add(normalized);
+    checklistItems.push(normalized);
+  };
+  guidanceChecklist.forEach(pushChecklist);
+  dynamicChecklist.forEach(pushChecklist);
+
+  const planExposure = Number.isFinite(planSummary?.exposureSeconds)
+    ? formatExposureSeconds(planSummary.exposureSeconds)
+    : null;
+  const planIntegration = Number.isFinite(planSummary?.integrationMinutes)
+    ? formatMinutesDuration(planSummary.integrationMinutes)
+    : null;
+  const sensitivitySummary = [];
+  if (planSummary?.isoText) sensitivitySummary.push(planSummary.isoText);
+  if (planSummary?.gainText) sensitivitySummary.push(planSummary.gainText);
+  const filterSummary = planSummary?.filter || null;
+  const calibrationSummaryParts = [];
+  if (Number.isFinite(planSummary?.calibration?.darkCount)) {
+    calibrationSummaryParts.push(`${planSummary.calibration.darkCount} darks`);
+  }
+  if (Number.isFinite(planSummary?.calibration?.flatCount)) {
+    calibrationSummaryParts.push(`${planSummary.calibration.flatCount} flats`);
+  }
+  if (Number.isFinite(planSummary?.calibration?.biasCount) && planSummary.calibration.biasCount > 0) {
+    calibrationSummaryParts.push(`${planSummary.calibration.biasCount} offsets`);
+  }
+  const planWarnings = Array.isArray(planSummary?.warnings) ? planSummary.warnings : [];
+
+  const exportWindow = window.open('', '_blank');
+  if (!exportWindow || !exportWindow.document) {
+    alert('Impossible d’ouvrir la fenêtre pour exporter la check-list.');
+    return;
+  }
+
+  const checklistHtml =
+    checklistItems.length > 0
+      ? `<section><h2>Checklist générale</h2><ul>${checklistItems
+          .map((item) => `<li>${escapeHtml(item)}</li>`)
+          .join('')}</ul></section>`
+      : '';
+
+  const summaryList = [];
+  if (planExposure) summaryList.push(`<li><strong>Pose unitaire :</strong> ${escapeHtml(planExposure)}</li>`);
+  if (planIntegration) summaryList.push(`<li><strong>Intégration cible :</strong> ${escapeHtml(planIntegration)}</li>`);
+  if (sensitivitySummary.length > 0) {
+    summaryList.push(`<li><strong>Sensibilité :</strong> ${escapeHtml(sensitivitySummary.join(' • '))}</li>`);
+  }
+  if (filterSummary) {
+    summaryList.push(`<li><strong>Filtre recommandé :</strong> ${escapeHtml(filterSummary)}</li>`);
+  }
+  if (calibrationSummaryParts.length > 0) {
+    summaryList.push(
+      `<li><strong>Calibrations :</strong> ${escapeHtml(calibrationSummaryParts.join(' • '))}</li>`
+    );
+  }
+  if (planWarnings.length > 0) {
+    summaryList.push(`<li><strong>À surveiller :</strong> ${escapeHtml(planWarnings.join(' • '))}</li>`);
+  }
+
+  const recommendationsHtml = astro.recommendations
+    .map((entry) => {
+      const plan = entry.capturePlan || {};
+      const scoreLabel = Number.isFinite(entry.astroScore) ? `${Math.round(entry.astroScore * 100)}/100` : '—';
+      const baseScore = Number.isFinite(entry.score ?? entry.baseScore)
+        ? `${Math.round((entry.score ?? entry.baseScore) * 100)}/100`
+        : '—';
+      const directionLabel = entry.direction || describeAzimuth(entry.azimuth);
+      const exposureLine = Number.isFinite(plan.exposureSeconds)
+        ? formatExposureSeconds(plan.exposureSeconds)
+        : null;
+      const integrationLine = Number.isFinite(plan.integrationMinutes)
+        ? formatMinutesDuration(plan.integrationMinutes)
+        : null;
+      const sensitivityParts = [];
+      if (plan.isoText) sensitivityParts.push(plan.isoText);
+      if (plan.gainText) sensitivityParts.push(plan.gainText);
+      const calibrationLines = (plan.calibrationFiles || []).map(
+        (file) => `<li>${escapeHtml(file.type)} : ${file.count}× <code>${escapeHtml(file.filename)}</code></li>`
+      );
+      const warningsLines = Array.isArray(plan.warnings) && plan.warnings.length > 0
+        ? `<p class="warn">${plan.warnings.map((warn) => `⚠️ ${escapeHtml(warn)}`).join('<br>')}</p>`
+        : '';
+      return `
+        <article class="target">
+          <h3>${escapeHtml(entry.object?.name ?? 'Cible photo')}</h3>
+          <ul class="target-meta">
+            <li><strong>Moment idéal :</strong> ${escapeHtml(formatLocalTime(entry.bestTime))}</li>
+            <li><strong>Altitude :</strong> ${escapeHtml(formatAltitude(entry.altitude))}</li>
+            <li><strong>Direction :</strong> ${escapeHtml(directionLabel)}</li>
+            <li><strong>Score photo :</strong> ${escapeHtml(scoreLabel)} (visuel ${escapeHtml(baseScore)})</li>
+          </ul>
+          <ul class="target-settings">
+            ${exposureLine ? `<li>Pose : ${escapeHtml(exposureLine)}</li>` : ''}
+            ${integrationLine ? `<li>Intégration : ${escapeHtml(integrationLine)}</li>` : ''}
+            ${sensitivityParts.length > 0 ? `<li>Sensibilité : ${escapeHtml(sensitivityParts.join(' • '))}</li>` : ''}
+            ${plan.filter ? `<li>Filtre : ${escapeHtml(plan.filter)}</li>` : ''}
+          </ul>
+          ${calibrationLines.length > 0 ? `<ul class="target-calibration">${calibrationLines.join('')}</ul>` : ''}
+          ${warningsLines}
+        </article>
+      `;
+    })
+    .join('');
+
+  const htmlContent = `<!DOCTYPE html>
+    <html lang="fr">
+      <head>
+        <meta charset="utf-8">
+        <title>Check-list de prise de vue</title>
+        <style>
+          :root { color-scheme: light; }
+          body { font-family: 'Inter', 'Segoe UI', Roboto, sans-serif; margin: 1.5cm; color: #0f172a; }
+          header { border-bottom: 2px solid #2563eb; margin-bottom: 1rem; padding-bottom: 0.5rem; }
+          h1 { margin: 0; font-size: 1.75rem; }
+          h2 { margin-top: 1.5rem; font-size: 1.2rem; color: #1d4ed8; }
+          h3 { margin: 0 0 0.35rem; font-size: 1.05rem; color: #0b1d3a; }
+          section { margin-bottom: 1rem; }
+          ul { margin: 0.4rem 0 0.2rem; padding-left: 1.1rem; }
+          ul li { margin-bottom: 0.25rem; }
+          .target { border: 1px solid rgba(37, 99, 235, 0.25); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.8rem; }
+          .target-meta, .target-settings, .target-calibration { list-style: none; padding-left: 0; margin: 0.2rem 0; }
+          .target-meta li, .target-settings li, .target-calibration li { margin-bottom: 0.25rem; }
+          .target-calibration code { background: rgba(37, 99, 235, 0.12); padding: 0 0.25rem; border-radius: 4px; font-family: 'Fira Code', 'SFMono-Regular', Menlo, monospace; }
+          .warn { color: #b91c1c; font-weight: 600; margin-top: 0.4rem; }
+          @media print {
+            body { margin: 1cm; }
+            header { border-color: #1d4ed8; }
+          }
+        </style>
+      </head>
+      <body>
+        <header>
+          <h1>Check-list de prise de vue</h1>
+          <p><strong>Profil :</strong> ${escapeHtml(profileLabel)}</p>
+          <p><strong>Session :</strong> ${escapeHtml(sessionLabel || 'Date/heure à préciser')} • ${escapeHtml(bortleLabel)}${
+            durationLabel ? ` • ${escapeHtml(durationLabel)}` : ''
+          }</p>
+          <p><strong>Coordonnées :</strong> ${escapeHtml(locationLabel)}</p>
+        </header>
+        <section>
+          <h2>Réglages synthétiques</h2>
+          <ul>
+            ${summaryList.length > 0 ? summaryList.join('') : '<li>Aucun réglage synthétique disponible.</li>'}
+          </ul>
+        </section>
+        ${checklistHtml}
+        <section>
+          <h2>Détails par cible</h2>
+          ${recommendationsHtml}
+        </section>
+      </body>
+    </html>`;
+
+  exportWindow.document.open();
+  exportWindow.document.write(htmlContent);
+  exportWindow.document.close();
+  exportWindow.focus();
+  const triggerPrint = () => {
+    try {
+      exportWindow.print();
+    } catch (error) {
+      console.warn('Impossible de lancer automatiquement l’impression :', error);
+    }
+  };
+  if ('addEventListener' in exportWindow) {
+    exportWindow.addEventListener('load', () => setTimeout(triggerPrint, 200), { once: true });
+  } else {
+    setTimeout(triggerPrint, 300);
   }
 }
 
@@ -2379,23 +2728,43 @@ function renderDecisionSupport(decision) {
       const profileLabel = astro.profileLabel ?? 'Profil photo';
       const description = typeof astro.profileDescription === 'string' ? astro.profileDescription.trim() : '';
       const guidance = astro.guidance || {};
-      const parts = [];
-      parts.push(description ? `${profileLabel} — ${description}` : profileLabel);
-      if (guidance.exposure) {
-        parts.push(`Pose ${guidance.exposure}`);
+      const summaryParts = [];
+      summaryParts.push(description ? `${profileLabel} — ${description}` : profileLabel);
+      const planSummary = astro.planSummary || null;
+      const exposureLabel = Number.isFinite(planSummary?.exposureSeconds)
+        ? formatExposureSeconds(planSummary.exposureSeconds)
+        : null;
+      const integrationLabel = Number.isFinite(planSummary?.integrationMinutes)
+        ? formatMinutesDuration(planSummary.integrationMinutes)
+        : null;
+      if (exposureLabel) {
+        summaryParts.push(`Pose ${exposureLabel}`);
+      } else if (guidance.exposure) {
+        summaryParts.push(`Pose ${guidance.exposure}`);
       }
-      if (guidance.integration) {
-        parts.push(`Intégration ${guidance.integration}`);
+      if (integrationLabel) {
+        summaryParts.push(`Intégration ${integrationLabel}`);
+      } else if (guidance.integration) {
+        summaryParts.push(guidance.integration);
       }
-      if (guidance.filters) {
-        parts.push(guidance.filters);
+      const sensitivitySummary = [];
+      if (planSummary?.isoText) sensitivitySummary.push(planSummary.isoText);
+      if (planSummary?.gainText) sensitivitySummary.push(planSummary.gainText);
+      if (sensitivitySummary.length > 0) {
+        summaryParts.push(sensitivitySummary.join(' • '));
+      }
+      if (planSummary?.filter) {
+        summaryParts.push(planSummary.filter);
+      } else if (guidance.filters) {
+        summaryParts.push(guidance.filters);
       }
       if (nightSummary) {
-        parts.push(nightSummary);
+        summaryParts.push(nightSummary);
       }
-      astrophotoSummary.textContent = parts.join(' • ');
+      astrophotoSummary.textContent = summaryParts.join(' • ');
     } else {
-      const base = 'Active le mode photo pour obtenir des recommandations et conseils de capture dédiés.';
+      const base =
+        'Active le mode photo pour obtenir des réglages recommandés, la check-list et un export PDF.';
       astrophotoSummary.textContent = nightSummary ? `${base} • ${nightSummary}` : base;
     }
     if (astro.active && Array.isArray(astro.recommendations) && astro.recommendations.length > 0) {
@@ -2411,7 +2780,40 @@ function renderDecisionSupport(decision) {
           ? `${Math.round((entry.score ?? entry.baseScore) * 100)}/100`
           : '—';
         const directionLabel = entry.direction || describeAzimuth(entry.azimuth);
-        span.textContent = `🕒 ${formatLocalTime(entry.bestTime)} • ⛰️ ${formatAltitude(entry.altitude)} • 🧭 ${directionLabel} • 📸 ${scoreLabel} • 🎯 ${baseScore}`;
+        const baseLine = `🕒 ${formatLocalTime(entry.bestTime)} • ⛰️ ${formatAltitude(entry.altitude)} • 🧭 ${directionLabel} • 📸 ${scoreLabel} • 🎯 ${baseScore}`;
+        const settingsParts = [];
+        if (Number.isFinite(entry.capturePlan?.exposureSeconds)) {
+          settingsParts.push(`Pose ${formatExposureSeconds(entry.capturePlan.exposureSeconds)}`);
+        }
+        if (Number.isFinite(entry.capturePlan?.integrationMinutes)) {
+          settingsParts.push(`Intégration ${formatMinutesDuration(entry.capturePlan.integrationMinutes)}`);
+        }
+        if (entry.capturePlan?.isoText) {
+          settingsParts.push(entry.capturePlan.isoText);
+        }
+        if (entry.capturePlan?.gainText) {
+          settingsParts.push(entry.capturePlan.gainText);
+        }
+        if (entry.capturePlan?.filter) {
+          settingsParts.push(entry.capturePlan.filter);
+        }
+        const calibrationParts = (entry.capturePlan?.calibrationFiles || []).map(
+          (file) => `${escapeHtml(file.type)} : ${file.count}× <code>${escapeHtml(file.filename)}</code>`
+        );
+        const warningLine = Array.isArray(entry.capturePlan?.warnings) && entry.capturePlan.warnings.length > 0
+          ? entry.capturePlan.warnings.map((warn) => `⚠️ ${escapeHtml(warn)}`).join(' • ')
+          : null;
+        const htmlLines = [escapeHtml(baseLine)];
+        if (settingsParts.length > 0) {
+          htmlLines.push(`⚙️ ${settingsParts.map((part) => escapeHtml(part)).join(' • ')}`);
+        }
+        if (calibrationParts.length > 0) {
+          htmlLines.push(`🧪 ${calibrationParts.join(' • ')}`);
+        }
+        if (warningLine) {
+          htmlLines.push(warningLine);
+        }
+        span.innerHTML = htmlLines.join('<br>');
         content.appendChild(title);
         content.appendChild(span);
         decisionAstrophotoList.appendChild(item);
@@ -2425,6 +2827,8 @@ function renderDecisionSupport(decision) {
       decisionAstrophotoList.appendChild(item);
     }
   }
+
+  renderAstrophotoGuidance();
 }
 
 function refreshDecisionSupport() {
@@ -2941,6 +3345,10 @@ if (equipmentSelect) {
     renderAstrophotoGuidance();
     refreshDecisionSupport();
   });
+}
+
+if (astrophotoChecklistExportBtn) {
+  astrophotoChecklistExportBtn.addEventListener('click', exportAstrophotoChecklist);
 }
 
 useSunsetBtn.addEventListener('click', () => {
