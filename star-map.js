@@ -1,4 +1,4 @@
-import { NIGHT_MODE_STORAGE_KEY } from './astro-core.js';
+import { NIGHT_MODE_STORAGE_KEY } from './src/core/astro.js';
 
 const nightModeToggle = document.getElementById('nightModeToggle');
 const canvas = document.getElementById('starMapCanvas');

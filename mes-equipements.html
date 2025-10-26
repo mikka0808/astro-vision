@@ -6,7 +6,7 @@
   <title>Astro Soir — Mes équipements</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="equipment-page">
+<body class="equipment-page" data-page="mes-equipements">
   <header class="hero hero--compact">
     <div class="hero-content">
       <div class="hero-bar">
@@ -260,8 +260,6 @@
     </nav>
     <small>Configure ton matériel pour adapter les recommandations photo d’Astro Soir.</small>
   </footer>
-  <script type="module" src="src/ui/navigation.js"></script>
-  <script type="module" src="src/state/equipement-header.js"></script>
-  <script type="module" src="src/pages/mes-equipements.js"></script>
+  <script type="module" src="src/bootstrap/page-loader.js"></script>
 </body>
 </html>

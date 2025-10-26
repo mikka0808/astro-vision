@@ -6,7 +6,7 @@
   <title>Astro Soir — Carte du ciel interactive</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="star-map-page">
+<body class="star-map-page" data-page="star-map">
   <header class="hero hero--compact">
     <div class="hero-content">
       <div class="hero-bar">
@@ -209,8 +209,6 @@
     </nav>
     <small>Planisphère généré à partir d’un ensemble d’étoiles brillantes et de constellations emblématiques.</small>
   </footer>
-  <script type="module" src="src/ui/navigation.js"></script>
-  <script type="module" src="src/state/equipement-header.js"></script>
-  <script type="module" src="star-map.js"></script>
+  <script type="module" src="src/bootstrap/page-loader.js"></script>
 </body>
 </html>

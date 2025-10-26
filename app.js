@@ -26,8 +26,7 @@ import {
   computeDecisionInsights,
   resolveScoreTone,
   getAstrophotoProfile
-} from './astro-core.js';
-import { renderAltitudeSparkline } from './charts.js';
+} from './src/core/astro.js';
 import {
   parseCataloguePayload,
   fetchCatalogueObjectsFromSource,
@@ -181,6 +180,17 @@ let computedNightEndDate = null;
 let addressSuggestionFetchTimeout = null;
 let addressSuggestionAbortController = null;
 let addressSuggestionsData = [];
+let chartsModulePromise = null;
+
+function loadChartsModule() {
+  if (!chartsModulePromise) {
+    chartsModulePromise = import('./charts.js').catch((error) => {
+      chartsModulePromise = null;
+      throw error;
+    });
+  }
+  return chartsModulePromise;
+}
 
 function applyGlobalScoreTone(scoreValue) {
   const tone = resolveScoreTone(scoreValue, { scale: 100 });
@@ -1826,7 +1836,15 @@ function renderVisibilityChart(card, entry) {
   if (!container) return;
   const objectName = entry?.object?.name ?? 'la cible';
   container.setAttribute('aria-label', `Évolution de l'altitude de ${objectName} durant la session`);
-  renderAltitudeSparkline(container, entry?.track, { objectName });
+  loadChartsModule()
+    .then(({ renderAltitudeSparkline }) => {
+      if (typeof renderAltitudeSparkline === 'function') {
+        renderAltitudeSparkline(container, entry?.track, { objectName });
+      }
+    })
+    .catch((error) => {
+      console.warn("Impossible d'afficher la courbe d'altitude :", error);
+    });
 }
 
 function renderTargets(targets, stats = {}) {

@@ -13,7 +13,7 @@ import {
   formatLocalDateTime,
   formatLocalTime,
   resolveScoreTone
-} from './astro-core.js';
+} from './src/core/astro.js';
 import { createObservationPreview } from './catalogue-media.js';
 import { renderAltitudeSparkline } from './charts.js';
 import {
@@ -26,7 +26,7 @@ import {
   normaliseCatalogueIdList,
   filterObjectsByCatalogue,
   countObjectsByCatalogue
-} from './catalogue-utils.js';
+} from './src/core/catalogue.js';
 import { loadScorePreferencesFromCookie } from './score-preferences.js';
 import {
   filterCataloguesForPreferences,

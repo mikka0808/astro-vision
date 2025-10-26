@@ -6,7 +6,7 @@ import {
   normaliseCatalogueIdList,
   filterObjectsByCatalogue,
   countObjectsByCatalogue
-} from '../catalogue-utils.js';
+} from '../src/core/catalogue.js';
 import fs from 'node:fs/promises';
 
 const datasetPromise = (async () => {

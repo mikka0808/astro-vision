@@ -1,4 +1,4 @@
-import { NIGHT_MODE_STORAGE_KEY, getDefaultScoreWeights, setScoreWeightOverrides } from './astro-core.js';
+import { NIGHT_MODE_STORAGE_KEY, getDefaultScoreWeights, setScoreWeightOverrides } from './src/core/astro.js';
 import {
   loadScorePreferencesFromCookie,
   persistScorePreferences,

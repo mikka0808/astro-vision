@@ -12,7 +12,7 @@ import {
   formatLocalTime,
   describeAzimuth,
   resolveScoreTone
-} from './astro-core.js';
+} from './src/core/astro.js';
 import { renderAltitudeSparkline } from './charts.js';
 import { loadScorePreferencesFromCookie } from './score-preferences.js';
 import { filterSnapshotForPreferences, loadCataloguePreferences } from './catalogue-preferences.js';

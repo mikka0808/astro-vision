@@ -6,7 +6,7 @@
   <title>Astro Soir — Fiche catalogue interactive</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="detail-page detail-page--catalogue">
+<body class="detail-page detail-page--catalogue" data-page="catalogue-detail">
   <header class="hero hero--compact">
     <div class="hero-content">
       <div class="hero-bar">
@@ -243,8 +243,6 @@
     </nav>
     <small>Astro Soir consolide les données météo Open‑Meteo et plusieurs catalogues d’observation.</small>
   </footer>
-  <script type="module" src="src/ui/navigation.js"></script>
-  <script type="module" src="src/state/equipement-header.js"></script>
-  <script type="module" src="catalogue-detail.js"></script>
+  <script type="module" src="src/bootstrap/page-loader.js"></script>
 </body>
 </html>

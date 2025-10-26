@@ -11,7 +11,7 @@ import {
   formatLocalDateTime,
   formatLocalTime,
   resolveScoreTone
-} from './astro-core.js';
+} from './src/core/astro.js';
 import { createObservationPreview, resolveImageSources } from './catalogue-media.js';
 import { getObjectDossier } from './object-dossiers.js';
 import { loadScorePreferencesFromCookie } from './score-preferences.js';
@@ -22,7 +22,7 @@ import {
   flattenCataloguePreferences,
   loadCataloguePreferences
 } from './catalogue-preferences.js';
-import { normaliseCatalogueId } from './catalogue-utils.js';
+import { normaliseCatalogueId } from './src/core/catalogue.js';
 
 loadScorePreferencesFromCookie();
 
