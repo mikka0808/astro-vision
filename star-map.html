@@ -168,6 +168,37 @@
                 <output id="starMapFovValue" for="starMapFov">160°</output>
               </div>
             </div>
+            <div class="star-map__control star-map__control--frame">
+              <div class="star-map__control-header">
+                <p class="star-map__control-label">Cadre photo actif</p>
+                <p id="starMapFrameSummary" class="star-map__control-value">Aucun profil sélectionné</p>
+              </div>
+              <div class="star-map__frame-controls" id="starMapFrameControls">
+                <div class="star-map__frame-presets">
+                  <button type="button" class="chip-button" data-frame-rotation="0" disabled>0°</button>
+                  <button type="button" class="chip-button" data-frame-rotation="90" disabled>90°</button>
+                </div>
+                <div class="star-map__slider star-map__slider--rotation">
+                  <input
+                    type="range"
+                    id="starMapFrameRotation"
+                    min="0"
+                    max="359"
+                    step="0.1"
+                    value="0"
+                    aria-describedby="starMapFrameRotationValue"
+                    disabled
+                  >
+                  <output id="starMapFrameRotationValue" for="starMapFrameRotation">0°</output>
+                </div>
+                <button type="button" id="starMapFrameExport" class="button secondary star-map__control-button" disabled>
+                  Exporter le cadrage (PNG)
+                </button>
+              </div>
+              <p class="help-text star-map__frame-hint" id="starMapFrameHint" hidden>
+                Tourne la molette pour orienter le cadrage (maintiens Shift pour des pas fins, Ctrl pour zoomer).
+              </p>
+            </div>
             <div class="star-map__control">
               <label class="toggle">
                 <input type="checkbox" id="starMapConstellations" checked>
