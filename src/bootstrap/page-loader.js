@@ -1,6 +1,8 @@
 const sharedModules = [
   () => import('../ui/navigation.js'),
-  () => import('../state/equipement-header.js')
+  () => import('../state/equipement-header.js'),
+  () => import('../ui/i18n.js'),
+  () => import('./pwa.js')
 ];
 
 sharedModules.forEach((loader) => {

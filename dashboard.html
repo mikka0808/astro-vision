@@ -3,10 +3,26 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Astro Soir — Tableau de bord</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta name="theme-color" content="#050a18" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#160606" media="(prefers-color-scheme: dark)">
+  <title data-i18n-key="dashboard.title">Astro Soir — Tableau de bord</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link
+    rel="stylesheet"
+    href="dist/styles.css"
+    onerror="this.onerror=null;this.href='styles.css'"
+  >
+  <link rel="preload" as="style" href="styles.css">
+  <link
+    rel="stylesheet"
+    href="https://aladin.u-strasbg.fr/AladinLite/api/v3/latest/aladinLite.min.css"
+    crossorigin="anonymous"
+  >
 </head>
 <body class="dashboard-page" data-page="dashboard">
+  <div class="connection-indicator" id="offlineIndicator" role="status" aria-live="assertive" hidden data-i18n-key="status.offline">
+    Mode hors-ligne activé — certaines données peuvent être datées.
+  </div>
   <header class="hero hero--compact">
     <div class="hero-content">
       <div class="hero-bar">
@@ -18,28 +34,42 @@
             <span class="site-brand__word site-brand__word--evening">Soir</span>
           </span>
         </a>
-        <div class="hero-tools">
-          <button type="button" id="nightModeToggle" class="night-toggle" aria-pressed="false">🔦 Mode nuit</button>
+        <div class="hero-tools" role="group" aria-label="Affichage" data-i18n-attr="aria-label" data-i18n-key="header.displayLabel">
+          <div
+            class="language-switcher"
+            role="group"
+            aria-label="Choisir la langue"
+            data-i18n-attr="aria-label"
+            data-i18n-key="language.switcherLabel"
+          >
+            <button type="button" class="language-switcher__btn" data-language-switch="fr" aria-pressed="true">FR</button>
+            <button type="button" class="language-switcher__btn" data-language-switch="en" aria-pressed="false">EN</button>
+          </div>
+          <button type="button" id="nightModeToggle" class="night-toggle" aria-pressed="false" data-i18n-key="actions.nightToggle">
+            🔦 Mode nuit
+          </button>
         </div>
       </div>
-      <h1 class="hero-title">Tableau de bord</h1>
+      <h1 class="hero-title" data-i18n-key="dashboard.heading">Tableau de bord</h1>
             <div class="hero-navigation primary-navigation">
-        <nav class="app-menu" aria-label="Navigation principale" data-app-menu>
+        <nav class="app-menu" aria-label="Navigation principale" data-app-menu data-i18n-attr="aria-label" data-i18n-key="nav.menuTitle">
           <button
             class="app-menu__toggle"
             type="button"
             aria-expanded="false"
             aria-controls="appMenuPanel"
             data-app-menu-toggle
+            data-i18n-attr="aria-label"
+            data-i18n-key="nav.menuToggle"
           >
             <span class="app-menu__toggle-icon" aria-hidden="true"></span>
-            <span class="app-menu__toggle-label">Menu</span>
+            <span class="app-menu__toggle-label" data-i18n-key="nav.menuToggle">Menu</span>
           </button>
           <div class="app-menu__scrim" data-app-menu-scrim hidden></div>
           <div class="app-menu__panel" id="appMenuPanel" data-app-menu-panel tabindex="-1">
             <div class="app-menu__panel-header">
-              <p class="app-menu__title">Navigation</p>
-              <button class="app-menu__close" type="button" data-app-menu-close aria-label="Fermer le menu">
+              <p class="app-menu__title" data-i18n-key="nav.menuTitle">Navigation</p>
+              <button class="app-menu__close" type="button" data-app-menu-close data-i18n-attr="aria-label" data-i18n-key="nav.menuToggle" aria-label="Menu">
                 <span aria-hidden="true">✕</span>
               </button>
             </div>
@@ -47,55 +77,55 @@
               <li class="app-menu__item">
                 <a class="app-menu__link" href="index.html">
                   <span class="app-menu__icon" aria-hidden="true">⭐</span>
-                  <span class="app-menu__text">Cibles idéales</span>
+                  <span class="app-menu__text" data-i18n-key="nav.targets">Cibles idéales</span>
                 </a>
               </li>
               <li class="app-menu__item">
                 <a class="app-menu__link" href="star-map.html">
                   <span class="app-menu__icon" aria-hidden="true">🗺️</span>
-                  <span class="app-menu__text">Carte du ciel</span>
+                  <span class="app-menu__text" data-i18n-key="nav.skyMap">Carte du ciel</span>
                 </a>
               </li>
               <li class="app-menu__item">
                 <a class="app-menu__link" href="catalogue.html">
                   <span class="app-menu__icon" aria-hidden="true">📚</span>
-                  <span class="app-menu__text">Catalogue</span>
+                  <span class="app-menu__text" data-i18n-key="nav.catalogue">Catalogue</span>
                 </a>
               </li>
               <li class="app-menu__item">
                 <a class="app-menu__link" href="fiche-catalogue.html">
                   <span class="app-menu__icon" aria-hidden="true">🗂️</span>
-                  <span class="app-menu__text">Fiche catalogue</span>
+                  <span class="app-menu__text" data-i18n-key="nav.catalogueSheet">Fiche catalogue</span>
                 </a>
               </li>
               <li class="app-menu__item">
                 <a class="app-menu__link" href="dashboard.html" aria-current="page">
                   <span class="app-menu__icon" aria-hidden="true">📊</span>
-                  <span class="app-menu__text">Tableau de bord</span>
+                  <span class="app-menu__text" data-i18n-key="nav.dashboard">Tableau de bord</span>
                 </a>
               </li>
               <li class="app-menu__item">
                 <a class="app-menu__link" href="mes-equipements.html">
                   <span class="app-menu__icon" aria-hidden="true">🔭</span>
-                  <span class="app-menu__text">Mes équipements</span>
+                  <span class="app-menu__text" data-i18n-key="nav.equipment">Mes équipements</span>
                 </a>
               </li>
               <li class="app-menu__item">
                 <a class="app-menu__link" href="mes-listes.html">
                   <span class="app-menu__icon" aria-hidden="true">📝</span>
-                  <span class="app-menu__text">Mes listes</span>
+                  <span class="app-menu__text" data-i18n-key="nav.lists">Mes listes</span>
                 </a>
               </li>
               <li class="app-menu__item">
                 <a class="app-menu__link" href="catalogue-settings.html">
                   <span class="app-menu__icon" aria-hidden="true">⚙️</span>
-                  <span class="app-menu__text">Réglages catalogue</span>
+                  <span class="app-menu__text" data-i18n-key="nav.catalogueSettings">Réglages catalogue</span>
                 </a>
               </li>
               <li class="app-menu__item">
                 <a class="app-menu__link" href="score-settings.html">
                   <span class="app-menu__icon" aria-hidden="true">🎯</span>
-                  <span class="app-menu__text">Réglages notation</span>
+                  <span class="app-menu__text" data-i18n-key="nav.scoreSettings">Réglages notation</span>
                 </a>
               </li>
             </ul>
@@ -104,17 +134,17 @@
       </div>
     </div>
   </header>
-  <section class="page-toolbar" aria-label="Équipement actif">
+  <section class="page-toolbar" aria-label="Équipement actif" data-i18n-attr="aria-label" data-i18n-key="toolbar.sectionLabel">
     <div class="page-toolbar__inner">
       <div class="equipment-switcher" data-equipment-switcher hidden>
-        <label for="headerEquipmentSelect">Équipement actif</label>
+        <label for="headerEquipmentSelect" data-i18n-key="toolbar.label">Équipement actif</label>
         <div class="equipment-switcher__controls">
-          <select id="headerEquipmentSelect" data-equipment-select aria-label="Sélection rapide d’équipement">
-            <option>Chargement…</option>
+          <select id="headerEquipmentSelect" data-equipment-select aria-label="Sélection rapide d’équipement" data-i18n-attr="aria-label" data-i18n-key="toolbar.selectAria">
+            <option data-i18n-key="toolbar.loading">Chargement…</option>
           </select>
-          <a class="link-button equipment-switcher__manage" href="mes-equipements.html">Gérer</a>
+          <a class="link-button equipment-switcher__manage" href="mes-equipements.html" data-i18n-key="toolbar.manage">Gérer</a>
         </div>
-        <p class="equipment-switcher__summary" data-equipment-summary>Chargement des profils…</p>
+        <p class="equipment-switcher__summary" data-equipment-summary data-i18n-key="toolbar.summaryLoading">Chargement des profils…</p>
       </div>
     </div>
   </section>
@@ -253,38 +283,40 @@
     </section>
   </main>
   <footer>
-    <nav class="footer-nav" aria-label="Navigation secondaire">
+    <nav class="footer-nav" aria-label="Navigation secondaire" data-i18n-attr="aria-label" data-i18n-key="footer.navLabel">
       <a class="chip-link" href="index.html">
         <span aria-hidden="true">✨</span>
-        <span>Cibles</span>
+        <span data-i18n-key="footer.targets">Cibles</span>
       </a>
       <a class="chip-link" href="catalogue.html">
         <span aria-hidden="true">📚</span>
-        <span>Catalogue</span>
+        <span data-i18n-key="footer.catalogue">Catalogue</span>
       </a>
       <a class="chip-link" href="mes-equipements.html">
         <span aria-hidden="true">🔭</span>
-        <span>Équipements</span>
+        <span data-i18n-key="footer.equipment">Équipements</span>
       </a>
       <a class="chip-link" href="mes-listes.html">
         <span aria-hidden="true">🗂️</span>
-        <span>Listes</span>
+        <span data-i18n-key="footer.lists">Listes</span>
       </a>
       <a class="chip-link" href="catalogue-settings.html">
         <span aria-hidden="true">⚙️</span>
-        <span>Catalogues</span>
+        <span data-i18n-key="footer.catalogues">Catalogues</span>
       </a>
       <a class="chip-link" href="star-map.html">
         <span aria-hidden="true">🌌</span>
-        <span>Carte</span>
+        <span data-i18n-key="footer.map">Carte</span>
       </a>
       <a class="chip-link" href="score-settings.html">
         <span aria-hidden="true">🎯</span>
-        <span>Score</span>
+        <span data-i18n-key="footer.score">Score</span>
       </a>
     </nav>
-    <small>Les données affichées proviennent de ta dernière analyse locale. Relance une analyse pour mettre à jour le tableau de bord.</small>
+    <small data-i18n-key="dashboard.footerNote">Les données affichées proviennent de ta dernière analyse locale. Relance une analyse pour mettre à jour le tableau de bord.</small>
   </footer>
-  <script type="module" src="src/bootstrap/page-loader.js"></script>
+  <script type="module">
+    import('./dist/page-loader.js').catch(() => import('./src/bootstrap/page-loader.js'));
+  </script>
 </body>
 </html>

@@ -3,8 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Astro Soir — Cibles idéales</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta name="theme-color" content="#050a18" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#160606" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="Préparez vos nuits d’observation : météo, visibilité, scénarios et fiches objets pour Astro-Vision.">
+  <title data-i18n-key="hero.title">Astro Soir — Cibles idéales</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link
+    rel="stylesheet"
+    href="dist/styles.css"
+    onerror="this.onerror=null;this.href='styles.css'"
+  >
+  <link rel="preload" as="style" href="styles.css">
   <link
     rel="stylesheet"
     href="https://aladin.u-strasbg.fr/AladinLite/api/v3/latest/aladinLite.min.css"
@@ -12,6 +21,9 @@
   >
 </head>
 <body data-page="index">
+  <div class="connection-indicator" id="offlineIndicator" role="status" aria-live="assertive" hidden data-i18n-key="status.offline">
+    Mode hors-ligne activé — certaines données peuvent être datées.
+  </div>
   <header class="hero">
     <div class="hero-content">
       <div class="hero-bar">
@@ -23,11 +35,23 @@
             <span class="site-brand__word site-brand__word--evening">Soir</span>
           </span>
         </a>
-        <div class="hero-tools">
-          <button type="button" id="nightModeToggle" class="night-toggle" aria-pressed="false">🔦 Mode nuit</button>
+        <div class="hero-tools" role="group" aria-label="Affichage">
+          <div
+            class="language-switcher"
+            role="group"
+            aria-label="Choisir la langue"
+            data-i18n-attr="aria-label"
+            data-i18n-key="language.switcherLabel"
+          >
+            <button type="button" class="language-switcher__btn" data-language-switch="fr" aria-pressed="true">FR</button>
+            <button type="button" class="language-switcher__btn" data-language-switch="en" aria-pressed="false">EN</button>
+          </div>
+          <button type="button" id="nightModeToggle" class="night-toggle" aria-pressed="false" data-i18n-key="actions.nightToggle">
+            🔦 Mode nuit
+          </button>
         </div>
       </div>
-      <h1 class="hero-title">Astro Soir — Cibles idéales</h1>
+      <h1 class="hero-title" data-i18n-key="hero.title">Astro Soir — Cibles idéales</h1>
             <div class="hero-navigation primary-navigation">
         <nav class="app-menu" aria-label="Navigation principale" data-app-menu>
           <button
@@ -36,15 +60,17 @@
             aria-expanded="false"
             aria-controls="appMenuPanel"
             data-app-menu-toggle
+            data-i18n-attr="aria-label"
+            data-i18n-key="nav.menuToggle"
           >
             <span class="app-menu__toggle-icon" aria-hidden="true"></span>
-            <span class="app-menu__toggle-label">Menu</span>
+            <span class="app-menu__toggle-label" data-i18n-key="nav.menuToggle">Menu</span>
           </button>
           <div class="app-menu__scrim" data-app-menu-scrim hidden></div>
           <div class="app-menu__panel" id="appMenuPanel" data-app-menu-panel tabindex="-1">
             <div class="app-menu__panel-header">
-              <p class="app-menu__title">Navigation</p>
-              <button class="app-menu__close" type="button" data-app-menu-close aria-label="Fermer le menu">
+              <p class="app-menu__title" data-i18n-key="nav.menuTitle">Navigation</p>
+              <button class="app-menu__close" type="button" data-app-menu-close data-i18n-attr="aria-label" data-i18n-key="nav.menuToggle" aria-label="Fermer le menu">
                 <span aria-hidden="true">✕</span>
               </button>
             </div>
@@ -52,55 +78,55 @@
               <li class="app-menu__item">
                 <a class="app-menu__link" href="index.html" aria-current="page">
                   <span class="app-menu__icon" aria-hidden="true">⭐</span>
-                  <span class="app-menu__text">Cibles idéales</span>
+                  <span class="app-menu__text" data-i18n-key="nav.targets">Cibles idéales</span>
                 </a>
               </li>
               <li class="app-menu__item">
                 <a class="app-menu__link" href="star-map.html">
                   <span class="app-menu__icon" aria-hidden="true">🗺️</span>
-                  <span class="app-menu__text">Carte du ciel</span>
+                  <span class="app-menu__text" data-i18n-key="nav.skyMap">Carte du ciel</span>
                 </a>
               </li>
               <li class="app-menu__item">
                 <a class="app-menu__link" href="catalogue.html">
                   <span class="app-menu__icon" aria-hidden="true">📚</span>
-                  <span class="app-menu__text">Catalogue</span>
+                  <span class="app-menu__text" data-i18n-key="nav.catalogue">Catalogue</span>
                 </a>
               </li>
               <li class="app-menu__item">
                 <a class="app-menu__link" href="fiche-catalogue.html">
                   <span class="app-menu__icon" aria-hidden="true">🗂️</span>
-                  <span class="app-menu__text">Fiche catalogue</span>
+                  <span class="app-menu__text" data-i18n-key="nav.catalogueSheet">Fiche catalogue</span>
                 </a>
               </li>
               <li class="app-menu__item">
                 <a class="app-menu__link" href="dashboard.html">
                   <span class="app-menu__icon" aria-hidden="true">📊</span>
-                  <span class="app-menu__text">Tableau de bord</span>
+                  <span class="app-menu__text" data-i18n-key="nav.dashboard">Tableau de bord</span>
                 </a>
               </li>
               <li class="app-menu__item">
                 <a class="app-menu__link" href="mes-equipements.html">
                   <span class="app-menu__icon" aria-hidden="true">🔭</span>
-                  <span class="app-menu__text">Mes équipements</span>
+                  <span class="app-menu__text" data-i18n-key="nav.equipment">Mes équipements</span>
                 </a>
               </li>
               <li class="app-menu__item">
                 <a class="app-menu__link" href="mes-listes.html">
                   <span class="app-menu__icon" aria-hidden="true">📝</span>
-                  <span class="app-menu__text">Mes listes</span>
+                  <span class="app-menu__text" data-i18n-key="nav.lists">Mes listes</span>
                 </a>
               </li>
               <li class="app-menu__item">
                 <a class="app-menu__link" href="catalogue-settings.html">
                   <span class="app-menu__icon" aria-hidden="true">⚙️</span>
-                  <span class="app-menu__text">Réglages catalogue</span>
+                  <span class="app-menu__text" data-i18n-key="nav.catalogueSettings">Réglages catalogue</span>
                 </a>
               </li>
               <li class="app-menu__item">
                 <a class="app-menu__link" href="score-settings.html">
                   <span class="app-menu__icon" aria-hidden="true">🎯</span>
-                  <span class="app-menu__text">Réglages notation</span>
+                  <span class="app-menu__text" data-i18n-key="nav.scoreSettings">Réglages notation</span>
                 </a>
               </li>
             </ul>
@@ -122,6 +148,37 @@
         <p class="equipment-switcher__summary" data-equipment-summary>Chargement des profils…</p>
       </div>
     </div>
+  </section>
+  <section class="session-summary" id="sessionSummary" aria-live="polite">
+    <div class="session-summary__header">
+      <h2 data-i18n-key="summary.title">Session active</h2>
+      <button type="button" class="link-button" data-summary-edit data-i18n-key="summary.edit">Modifier</button>
+    </div>
+    <dl class="session-summary__grid">
+      <div>
+        <dt data-i18n-key="summary.location">Position</dt>
+        <dd>
+          <span id="summaryLatitude">—</span>
+          <span aria-hidden="true">•</span>
+          <span id="summaryLongitude">—</span>
+        </dd>
+      </div>
+      <div>
+        <dt data-i18n-key="summary.time">Heure locale</dt>
+        <dd>
+          <time id="summaryLocalTime">—</time>
+          <span class="session-summary__timezone" id="summaryTimezone"></span>
+        </dd>
+      </div>
+      <div>
+        <dt data-i18n-key="summary.bortle">Pollution lumineuse</dt>
+        <dd id="summaryBortle">—</dd>
+      </div>
+      <div>
+        <dt data-i18n-key="summary.duration">Fenêtre</dt>
+        <dd id="summaryDuration">—</dd>
+      </div>
+    </dl>
   </section>
   <main>
     <section class="panel" aria-labelledby="section-observer">
@@ -387,6 +444,34 @@
       <div id="targets" class="targets-grid" role="list"></div>
     </section>
 
+    <section class="panel hidden" id="observationScenarios" aria-live="polite">
+      <div class="panel-header">
+        <h2 data-i18n-key="scenarios.title">Scénarios d'observation</h2>
+        <p id="scenarioHint" data-i18n-key="scenarios.description">
+          Selon ta position, ces cibles sont parfaites ce soir. Ajoute-les à ta liste en un clic.
+        </p>
+      </div>
+      <ul id="scenarioList" class="scenario-grid"></ul>
+    </section>
+
+    <section class="panel" id="quickGuide" aria-labelledby="quickGuideTitle">
+      <div class="panel-header">
+        <h2 id="quickGuideTitle" data-i18n-key="guide.title">Guide rapide</h2>
+        <p data-i18n-key="guide.description">
+          Nouvel utilisateur ? Suis ces étapes pour préparer ta nuit sans rien oublier.
+        </p>
+      </div>
+      <div class="panel-body">
+        <ol class="guide-steps">
+          <li data-i18n-key="guide.steps.prepare">Renseigne une position exacte et valide la durée souhaitée.</li>
+          <li data-i18n-key="guide.steps.analyse">Lance l'analyse pour calculer la hauteur et la visibilité des cibles.</li>
+          <li data-i18n-key="guide.steps.compare">Compare la magnitude, la difficulté et les fenêtres optimales.</li>
+          <li data-i18n-key="guide.steps.redMode">Active le mode nuit rouge avant de sortir pour préserver ta vision.</li>
+          <li data-i18n-key="guide.steps.pack">Utilise la checklist « Alertes du soir » pour préparer ton matériel.</li>
+        </ol>
+      </div>
+    </section>
+
     <section class="panel panel--cta" aria-labelledby="section-launch">
       <div class="panel-header">
         <h2 id="section-launch">Prêt à lancer l'analyse ?</h2>
@@ -430,6 +515,8 @@
     </nav>
     <small>Sources météo : <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open‑Meteo</a>. Les calculs astronomiques sont approximatifs mais suffisants pour planifier une soirée.</small>
   </footer>
-  <script type="module" src="src/bootstrap/page-loader.js"></script>
+  <script type="module">
+    import('./dist/page-loader.js').catch(() => import('./src/bootstrap/page-loader.js'));
+  </script>
 </body>
 </html>
