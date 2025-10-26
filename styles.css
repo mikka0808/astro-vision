@@ -2139,6 +2139,16 @@ body.night-mode .astrophoto-guidance {
   gap: 0.5rem;
 }
 
+.astrophoto-guidance__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.astrophoto-guidance__actions .secondary {
+  align-self: flex-start;
+}
+
 .astrophoto-guidance__fact {
   display: grid;
   gap: 0.2rem;
@@ -4162,6 +4172,51 @@ body.night-mode .score-summary__item {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
+.star-map__control--frame {
+  gap: 0.85rem;
+}
+
+.star-map__control-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.star-map__control-value {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-accent-strong);
+}
+
+.star-map__frame-controls {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.star-map__frame-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.star-map__frame-presets .chip-button {
+  padding-inline: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.star-map__slider--rotation input[type='range'] {
+  width: 100%;
+}
+
+.star-map__frame-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
 .star-map__control-actions {
   display: flex;
   flex-wrap: wrap;
@@ -4504,6 +4559,11 @@ body.star-map--pseudo-fullscreen {
   cursor: pointer;
   font-size: 0.95rem;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.chip-button.is-active {
+  background: rgba(130, 183, 255, 0.32);
+  box-shadow: inset 0 0 0 1px rgba(130, 183, 255, 0.65);
 }
 
 .chip-button:hover,

@@ -1,5 +1,7 @@
 import { NIGHT_MODE_STORAGE_KEY } from './src/core/astro.js';
 import { STAR_CATALOG } from './src/core/star-catalog.js';
+import { Equipements } from './src/state/equipement.js';
+import { focaleEffective, fovDeg } from './src/utils/optique.js';
 
 const nightModeToggle = document.getElementById('nightModeToggle');
 const canvas = document.getElementById('starMapCanvas');
@@ -25,8 +27,19 @@ const detailsPanel = document.getElementById('starMapDetails');
 const autoRotateButton = document.getElementById('starMapAutoRotate');
 const centerButton = document.getElementById('starMapCenterSelection');
 const fullscreenButton = document.getElementById('starMapFullscreen');
+const frameSummary = document.getElementById('starMapFrameSummary');
+const frameRotationInput = document.getElementById('starMapFrameRotation');
+const frameRotationValue = document.getElementById('starMapFrameRotationValue');
+const frameControls = document.getElementById('starMapFrameControls');
+const framePresetButtons = frameControls
+  ? Array.from(frameControls.querySelectorAll('[data-frame-rotation]'))
+  : [];
+const frameExportButton = document.getElementById('starMapFrameExport');
+const frameHint = document.getElementById('starMapFrameHint');
 
 let pseudoFullscreen = false;
+
+const FRAME_ROTATION_STORAGE_KEY = 'astroSoir:frameRotation';
 
 const requestFrame =
   typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function'
@@ -296,12 +309,21 @@ const mapState = {
   selectedStar: null,
   activeConstellation: null,
   previewConstellation: null,
+  frame: {
+    widthDeg: null,
+    heightDeg: null,
+    rotationDeg: 0,
+    profileName: null,
+    visible: false
+  },
   projectedStars: [],
   projectedPositions: new Map(),
   autoRotate: false,
   autoRotateFrame: null,
   lastAutoRotateTime: null
 };
+
+mapState.frame.rotationDeg = readStoredFrameRotation();
 
 mapState.targetZoom = fieldOfViewToZoom(mapState.fieldOfView);
 mapState.zoom = mapState.targetZoom;
@@ -320,6 +342,294 @@ const pointerState = {
 };
 
 let ctx = null;
+
+function clampRotation(value) {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  let rotation = value % 360;
+  if (rotation < 0) {
+    rotation += 360;
+  }
+  return Number.parseFloat(rotation.toFixed(3));
+}
+
+function readStoredFrameRotation() {
+  let stored = null;
+  try {
+    stored = localStorage.getItem(FRAME_ROTATION_STORAGE_KEY);
+  } catch (error) {
+    stored = null;
+  }
+  if (stored === null || stored === undefined) {
+    return 0;
+  }
+  const value = parseFloat(stored);
+  if (Number.isNaN(value)) {
+    return 0;
+  }
+  return clampRotation(value);
+}
+
+function persistFrameRotation(value) {
+  const rotation = clampRotation(value);
+  try {
+    localStorage.setItem(FRAME_ROTATION_STORAGE_KEY, rotation.toFixed(1));
+  } catch (error) {
+    /* ignore */
+  }
+}
+
+function formatFrameDimension(value) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return '—';
+  }
+  if (value >= 10) {
+    return `${value.toFixed(1)}°`;
+  }
+  if (value >= 1) {
+    return `${value.toFixed(2)}°`;
+  }
+  return `${value.toFixed(3)}°`;
+}
+
+function formatRotationLabel(value) {
+  const rotation = clampRotation(value);
+  const decimals = Math.abs(rotation - Math.round(rotation)) < 0.05 ? 0 : 1;
+  return `${rotation.toFixed(decimals)}°`;
+}
+
+function updateFrameRotationControl() {
+  const rotation = clampRotation(mapState.frame.rotationDeg);
+  if (frameRotationInput) {
+    frameRotationInput.value = rotation.toFixed(1);
+  }
+  if (frameRotationValue) {
+    frameRotationValue.textContent = formatRotationLabel(rotation);
+  }
+}
+
+function updateFrameControlsState() {
+  const enabled = Boolean(mapState.frame.visible);
+  if (frameRotationInput) {
+    frameRotationInput.disabled = !enabled;
+  }
+  framePresetButtons.forEach((button) => {
+    const value = parseFloat(button.dataset.frameRotation);
+    button.disabled = !enabled;
+    if (!enabled) {
+      button.classList.remove('is-active');
+      return;
+    }
+    const preset = Number.isNaN(value) ? 0 : clampRotation(value);
+    const current = clampRotation(mapState.frame.rotationDeg);
+    const diff = Math.abs(current - preset);
+    const wrapDiff = Math.abs(diff - 360);
+    const active = Math.min(diff, wrapDiff) < 0.5;
+    button.classList.toggle('is-active', active);
+  });
+  if (frameExportButton) {
+    frameExportButton.disabled = !enabled;
+  }
+  if (frameHint) {
+    frameHint.hidden = !enabled;
+  }
+}
+
+function updateFrameSummary() {
+  if (frameSummary) {
+    if (!mapState.frame.visible) {
+      frameSummary.textContent = 'Aucun profil sélectionné';
+    } else {
+      const widthText = formatFrameDimension(mapState.frame.widthDeg);
+      const heightText = formatFrameDimension(mapState.frame.heightDeg);
+      const name = mapState.frame.profileName || 'Profil actif';
+      frameSummary.textContent = `${name} · ${widthText} × ${heightText}`;
+    }
+  }
+  updateFrameControlsState();
+  updateFrameRotationControl();
+}
+
+function computeFrameFromProfile(profile) {
+  if (!profile || !profile.capteur) {
+    return null;
+  }
+  const focaleMm = Number(profile.focaleMm);
+  const largeurMm = Number(profile.capteur.largeurMm);
+  const hauteurMm = Number(profile.capteur.hauteurMm);
+  if (!Number.isFinite(focaleMm) || focaleMm <= 0) {
+    return null;
+  }
+  if (!Number.isFinite(largeurMm) || largeurMm <= 0 || !Number.isFinite(hauteurMm) || hauteurMm <= 0) {
+    return null;
+  }
+  const reducteur = Number(profile.reducteur);
+  const ratio = Number.isFinite(reducteur) && reducteur > 0 ? reducteur : 1;
+  const focaleEff = focaleEffective(focaleMm, ratio);
+  if (!Number.isFinite(focaleEff) || focaleEff <= 0) {
+    return null;
+  }
+  const widthDeg = fovDeg(largeurMm, focaleEff);
+  const heightDeg = fovDeg(hauteurMm, focaleEff);
+  if (!Number.isFinite(widthDeg) || widthDeg <= 0 || !Number.isFinite(heightDeg) || heightDeg <= 0) {
+    return null;
+  }
+  return {
+    widthDeg,
+    heightDeg,
+    profileName: typeof profile.nom === 'string' && profile.nom.trim() ? profile.nom.trim() : 'Profil actif'
+  };
+}
+
+function updateCameraFrame({ render = true } = {}) {
+  const profile = Equipements.getCurrent();
+  const frame = computeFrameFromProfile(profile);
+  if (!frame) {
+    mapState.frame.visible = false;
+    mapState.frame.widthDeg = null;
+    mapState.frame.heightDeg = null;
+    mapState.frame.profileName = null;
+    updateFrameSummary();
+    if (render) {
+      renderStarMap();
+    }
+    return;
+  }
+  mapState.frame.visible = true;
+  mapState.frame.widthDeg = frame.widthDeg;
+  mapState.frame.heightDeg = frame.heightDeg;
+  mapState.frame.profileName = frame.profileName;
+  updateFrameSummary();
+  if (render) {
+    renderStarMap();
+  }
+}
+
+function drawCameraFrame() {
+  if (!ctx || !mapState.frame.visible || !mapState.radius) {
+    return;
+  }
+  const { widthDeg, heightDeg } = mapState.frame;
+  if (!Number.isFinite(widthDeg) || !Number.isFinite(heightDeg) || widthDeg <= 0 || heightDeg <= 0) {
+    return;
+  }
+  const scale = mapState.fieldOfView > 0 ? (mapState.radius * 2) / mapState.fieldOfView : 0;
+  if (!Number.isFinite(scale) || scale <= 0) {
+    return;
+  }
+  const halfWidth = (widthDeg * scale) / 2;
+  const halfHeight = (heightDeg * scale) / 2;
+  if (!Number.isFinite(halfWidth) || !Number.isFinite(halfHeight)) {
+    return;
+  }
+  const maxHalf = Math.max(0, mapState.radius - 12);
+  const clampedHalfWidth = Math.min(Math.abs(halfWidth), maxHalf);
+  const clampedHalfHeight = Math.min(Math.abs(halfHeight), maxHalf);
+  const angleRad = (mapState.frame.rotationDeg * Math.PI) / 180;
+  ctx.save();
+  ctx.translate(mapState.viewCenterX, mapState.viewCenterY);
+  ctx.rotate(angleRad);
+  ctx.lineWidth = Math.max(1, mapState.radius * 0.006);
+  ctx.strokeStyle = 'rgba(255, 210, 130, 0.88)';
+  ctx.setLineDash([10, 8]);
+  ctx.strokeRect(-clampedHalfWidth, -clampedHalfHeight, clampedHalfWidth * 2, clampedHalfHeight * 2);
+  ctx.setLineDash([]);
+  ctx.lineWidth = Math.max(0.9, mapState.radius * 0.004);
+  ctx.beginPath();
+  ctx.moveTo(-clampedHalfWidth, 0);
+  ctx.lineTo(clampedHalfWidth, 0);
+  ctx.moveTo(0, -clampedHalfHeight);
+  ctx.lineTo(0, clampedHalfHeight);
+  ctx.stroke();
+  const markerRadius = Math.max(2, mapState.radius * 0.012);
+  ctx.beginPath();
+  ctx.arc(0, 0, markerRadius, 0, TWO_PI);
+  ctx.stroke();
+  const label = `${formatFrameDimension(widthDeg)} × ${formatFrameDimension(heightDeg)}`;
+  ctx.save();
+  ctx.rotate(-angleRad);
+  ctx.translate(0, -clampedHalfHeight - Math.max(16, mapState.radius * 0.06));
+  ctx.font = `${Math.max(12, mapState.radius * 0.05)}px "Inter", system-ui, sans-serif`;
+  ctx.fillStyle = 'rgba(255, 232, 194, 0.92)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(label, 0, 0);
+  ctx.restore();
+  ctx.restore();
+}
+
+function handleFrameRotationInput(event) {
+  const value = parseFloat(event.target.value);
+  if (Number.isNaN(value)) {
+    updateFrameRotationControl();
+    return;
+  }
+  setFrameRotation(value, { persist: true, render: true });
+}
+
+function handleFrameRotationWheel(event) {
+  if (!mapState.frame.visible) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  const delta = event.deltaY || 0;
+  if (!delta) {
+    return;
+  }
+  const step = event.shiftKey ? 0.1 : 1;
+  const direction = delta > 0 ? 1 : -1;
+  setFrameRotation(mapState.frame.rotationDeg + direction * step, { persist: true, render: true });
+}
+
+function handleFramePresetClick(event) {
+  const value = parseFloat(event.currentTarget.dataset.frameRotation);
+  const rotation = Number.isNaN(value) ? 0 : value;
+  setFrameRotation(rotation, { persist: true, render: true });
+}
+
+function buildFrameFileName() {
+  const rotationLabel = formatRotationLabel(mapState.frame.rotationDeg).replace('°', 'deg');
+  const profileSlug = (mapState.frame.profileName || 'cadre')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '') || 'cadre';
+  const timestamp = new Date().toISOString().slice(0, 10);
+  return `cadrage-${profileSlug}-${rotationLabel}-${timestamp}.png`;
+}
+
+function handleFrameExport() {
+  if (!canvas || !mapState.frame.visible) {
+    return;
+  }
+  renderStarMap();
+  try {
+    const dataUrl = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = buildFrameFileName();
+    link.click();
+  } catch (error) {
+    console.error('Export du cadrage impossible :', error);
+  }
+}
+function setFrameRotation(value, { persist = true, render = true } = {}) {
+  const rotation = clampRotation(value);
+  if (Math.abs(rotation - clampRotation(mapState.frame.rotationDeg)) < 0.0005) {
+    updateFrameRotationControl();
+    return;
+  }
+  mapState.frame.rotationDeg = rotation;
+  if (persist) {
+    persistFrameRotation(rotation);
+  }
+  updateFrameRotationControl();
+  updateFrameControlsState();
+  if (render) {
+    renderStarMap();
+  }
+}
 
 function normaliseHours(value) {
   if (Number.isNaN(value)) {
@@ -840,6 +1150,7 @@ function renderStarMap() {
     drawConstellations();
   }
   drawStars();
+  drawCameraFrame();
   drawStarLabels();
   if (mapState.activeConstellation) {
     drawConstellationLabel(mapState.activeConstellation);
@@ -1661,6 +1972,17 @@ function handleWheel(event) {
   }
   event.preventDefault();
   stopAutoRotate();
+  if (mapState.frame.visible && !event.ctrlKey && !event.metaKey) {
+    event.stopPropagation();
+    const delta = event.deltaY || 0;
+    if (!delta) {
+      return;
+    }
+    const direction = delta > 0 ? 1 : -1;
+    const step = event.shiftKey ? 0.1 : 1;
+    setFrameRotation(mapState.frame.rotationDeg + direction * step, { persist: true, render: true });
+    return;
+  }
   const delta = -event.deltaY || 0;
   if (!delta) {
     return;
@@ -1737,6 +2059,10 @@ function initialiseStarMap() {
   mapState.zoom = mapState.targetZoom;
   updateFieldOfViewControl();
   updateVisibilityControls();
+  updateCameraFrame({ render: false });
+  Equipements.subscribe(() => {
+    updateCameraFrame();
+  });
 
   setDefaultDetails();
   resizeCanvas();
@@ -1801,6 +2127,20 @@ function initialiseStarMap() {
   if (fovInput) {
     fovInput.addEventListener('input', handleFovInput);
     fovInput.addEventListener('change', handleFovInput);
+  }
+  if (frameRotationInput) {
+    frameRotationInput.addEventListener('input', handleFrameRotationInput);
+    frameRotationInput.addEventListener('change', handleFrameRotationInput);
+    frameRotationInput.addEventListener('wheel', handleFrameRotationWheel, { passive: false });
+  }
+  if (frameControls) {
+    frameControls.addEventListener('wheel', handleFrameRotationWheel, { passive: false });
+  }
+  framePresetButtons.forEach((button) => {
+    button.addEventListener('click', handleFramePresetClick);
+  });
+  if (frameExportButton) {
+    frameExportButton.addEventListener('click', handleFrameExport);
   }
   if (toggleStarsButton) {
     toggleStarsButton.addEventListener('click', toggleStarsVisibility);
