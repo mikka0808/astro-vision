@@ -695,7 +695,7 @@ function approximateSunEquatorial(date) {
   return { raHours: (ra * 12) / Math.PI, decDeg: (dec * 180) / Math.PI };
 }
 
-function approximateMoonEquatorial(date) {
+export function approximateMoonEquatorial(date) {
   const d = daysSinceJ2000(date);
   const N = toRadians(normalizeDegrees(125.1228 - 0.0529538083 * d));
   const i = toRadians(5.1454);
@@ -1698,7 +1698,17 @@ export function buildWeatherSummary(data) {
   if (!data) {
     return "Aucune donnée météo enregistrée pour le moment. Elles apparaîtront après ta prochaine analyse.";
   }
-  const { cover = 100, precipProb = 0, weatherCode = 0, wind = 0, periodLabel = '–' } = data;
+  const {
+    cover = 100,
+    low,
+    mid,
+    high,
+    precipProb = 0,
+    weatherCode = 0,
+    wind = 0,
+    visibilityKm,
+    periodLabel = '–'
+  } = data;
   const sky = cover <= 20 ? 'excellent' : cover <= 45 ? 'bon' : cover <= 70 ? 'mitigé' : 'difficile';
   const codeText = weatherCodes[weatherCode] || 'Condition inconnue';
   const seeingText = data.seeingText || describeSeeingQuality(data.seeingIndex);
@@ -1715,13 +1725,22 @@ export function buildWeatherSummary(data) {
   ];
 
   if (Number.isFinite(cover)) {
-    parts.push(`${Math.round(cover)}% nuages`);
+    let coverLabel = `${Math.round(cover)}% nuages`;
+    const layerValues = [low, mid, high];
+    if (layerValues.every((value) => Number.isFinite(value))) {
+      const formatted = layerValues.map((value) => Math.round(value));
+      coverLabel += ` (B/M/H ${formatted.join('/')} %)`;
+    }
+    parts.push(coverLabel);
   }
   if (Number.isFinite(precipProb)) {
     parts.push(`${Math.round(precipProb)}% pluie`);
   }
   if (Number.isFinite(wind)) {
     parts.push(`vent ${Math.round(wind)} km/h`);
+  }
+  if (Number.isFinite(visibilityKm)) {
+    parts.push(`visibilité ${Math.round(visibilityKm)} km`);
   }
   if (seeingText) {
     parts.push(`seeing ${seeingText}${seeingArcsec ? ` (~${seeingArcsec})` : ''}`);
